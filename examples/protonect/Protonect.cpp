@@ -211,7 +211,8 @@ int KSendCommandReadResponse(libusb_device_handle *handle, cmd_header& cmd, int 
 
 	//Read expected response complete
 	uint8_t responseData[512];
-	r = KReadCommandResponse(handle, cmd, 512, responseData, transferred);
+	int response_xf = 0;
+	r = KReadCommandResponse(handle, cmd, 512, responseData, &response_xf);
 
 	if (r == K_RESPONSE_COMPLETE)
 	{
