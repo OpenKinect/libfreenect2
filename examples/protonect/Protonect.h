@@ -26,8 +26,10 @@
 
 #include <stdlib.h>
 #include <stdio.h>
-#include <conio.h>
 #include <iostream>
+
+#include <stdarg.h>
+#include <string.h>
 
 #include "libusb.h"
 
