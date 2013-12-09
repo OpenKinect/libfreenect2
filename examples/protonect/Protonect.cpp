@@ -730,7 +730,7 @@ void IsoCallback(libusb_transfer* transfer)
 	if (LIBUSB_TRANSFER_COMPLETED == transfer->status)
 	{
 		int numPackets = transfer->num_iso_packets;
-		printf("Iso transfer completed. Num packets: %d\n", numPackets);
+		printf("Iso transfer completed. Num packets: %d  Len: %d/%d\n", numPackets, transfer->actual_length, transfer->length);
 
 		for (int i = 0; i < numPackets; i++)
 		{
@@ -740,7 +740,6 @@ void IsoCallback(libusb_transfer* transfer)
 			{
 				uint32_t len = packet.actual_length;
 				uint8_t* packetData = libusb_get_iso_packet_buffer_simple(transfer, i);
-				printf("  %d) Completed. Actual_len: %u\n", i, len);
 			}
 			else
 			{
@@ -951,7 +950,7 @@ int main(void) {
 	if ((r<0) || (r>4)) r = 0;
 	printf("             speed: %s\n", speed_name[r]);
 
-	int numIsoEventsToProcess = 2;
+	int numIsoEventsToProcess = 2000;
 	printf("Waiting for iso transfer...\n");
 	for (int i = 0; i <= numIsoEventsToProcess; i++)
 	{
