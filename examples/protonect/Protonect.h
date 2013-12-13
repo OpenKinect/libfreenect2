@@ -41,7 +41,7 @@ static int perr(char const *format, ...)
 	va_start(args, format);
 	r = vfprintf(stderr, format, args);
 	va_end(args);
-
+	
 	return r;
 }
 

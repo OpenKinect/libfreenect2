@@ -26,6 +26,18 @@
 
 #include "Protonect.h"
 
+#include <boost/thread/thread.hpp>
+#include <boost/thread/mutex.hpp>
+
+#include <opencv2/opencv.hpp>
+
+#include <sstream>
+#include <iostream>
+#include <fstream>
+#include <vector>
+
+
+
 bool should_resubmit = true;
 uint32_t num_iso_requests_outstanding = 0;
 
@@ -656,14 +668,6 @@ void InitKinect(libusb_device_handle *handle)
 		perr("Control transfer error: %d\n", r);
 	}
 
-	int configId = 1;
-	printf("Setting config: %d\n", configId);
-	r = libusb_set_configuration(handle, configId);
-	if (r != LIBUSB_SUCCESS)
-	{
-		perr("  Can't set configuration\n");
-	}
-
 	printf("\nSetting interface alt setting...\n");
 	r = KSetStreamingInterfaceStatus(handle, KSTREAM_DISABLE);
 	if (r != LIBUSB_SUCCESS) {
@@ -739,13 +743,15 @@ void IsoCallback(libusb_transfer* transfer)
 			if (packet.status == LIBUSB_TRANSFER_COMPLETED)
 			{
 				uint32_t len = packet.actual_length;
+				printf("  %d) %d/%d", i, packet.actual_length, packet.length);
 				uint8_t* packetData = libusb_get_iso_packet_buffer_simple(transfer, i);
 			}
 			else
 			{
-				printf("  %d) Error: %d\n", i, packet.status);
+				printf("  %d) Error: %d (%s)", i, packet.status, libusb_error_name(packet.status));
 			}
 		}
+		printf("\n");
 	}
 	else
 	{
@@ -784,11 +790,13 @@ void StartIsochronousTransfers(libusb_device_handle* handle, libusb_device* dev)
 
 	int maxPacketSize = libusb_get_max_iso_packet_size(dev, endpoint);
 	
+	printf("maxPacketSize: %d\n", maxPacketSize);
+	
 	//nominally 270336 = 33792 * 8
 	int bufferLen = maxPacketSize * numPackets;
 	uint8_t* buffer = (uint8_t*)malloc(bufferLen);
 	memset(buffer, 0, bufferLen);
-	int timeout = 1000;
+	int timeout = 6000;
 
 	libusb_fill_iso_transfer(transfer,
 		handle,
@@ -798,7 +806,7 @@ void StartIsochronousTransfers(libusb_device_handle* handle, libusb_device* dev)
 		numPackets,
 		(libusb_transfer_cb_fn)&IsoCallback,
 		NULL,
-		0);
+		timeout);
 
 	libusb_set_iso_packet_lengths(transfer, maxPacketSize);
 	
@@ -859,6 +867,160 @@ void CloseKinect(libusb_device_handle *handle)
 	r = KSetSensorStatus(handle, KSENSOR_DISABLE);
 }
 
+int num_bulk_requests_outstanding = 0;
+
+bool run_usb_event_loop = true;
+
+void usb_event_loop()
+{
+  while(run_usb_event_loop || num_iso_requests_outstanding > 0 || num_bulk_requests_outstanding > 0)
+    libusb_handle_events(NULL);
+}
+
+int packet_size = 0;
+
+struct Buffer
+{
+  uint8_t* data;
+  size_t offset;
+  uint32_t seq;
+  uint32_t unknown;
+  
+  Buffer() : data(0), offset(0) {}
+  ~Buffer()
+  {
+    if(data != 0) delete[] data;
+  }
+};
+
+boost::mutex buffer_mutex;
+
+Buffer* current_buffer = 0;
+uint8_t* backup_buffer = 0;
+
+#define PACKET_SIZE 0x4000
+#define BUFFER_SIZE 1024*1024*3
+
+typedef std::vector<Buffer*> BufferVector;
+BufferVector free_buffer, full_buffer;
+
+void BulkTransferCallback(libusb_transfer* transfer)
+{
+	num_bulk_requests_outstanding -= 1;
+	
+	if(transfer->actual_length > 0)
+	{
+	  if(current_buffer != 0 && current_buffer->offset == 0)
+	  {
+	    uint32_t* data = (uint32_t*)transfer->buffer;
+	    
+	    current_buffer->seq = data[0];
+	    current_buffer->unknown = data[1];
+	  }
+	 
+	  if(current_buffer != 0 && current_buffer->offset + transfer->actual_length < BUFFER_SIZE - PACKET_SIZE)
+	  {
+	    //memcpy(current_buffer->data + current_buffer->offset, transfer->buffer, transfer->actual_length);
+	    current_buffer->offset += transfer->actual_length;
+	  }
+	 
+      packet_size += transfer->actual_length;
+      
+      if(transfer->actual_length != PACKET_SIZE)
+      {
+        packet_size = 0;
+        
+	    boost::mutex::scoped_lock l(buffer_mutex);
+	    
+	    if(current_buffer != 0)
+	    {
+          printf("received image %d with: %d bytes and unknown: %#x\n", current_buffer->seq, current_buffer->offset, current_buffer->unknown);
+	      full_buffer.push_back(current_buffer);
+	    }
+	    
+	    if(free_buffer.size() > 0)
+	    {
+          current_buffer = free_buffer.back();
+          free_buffer.pop_back();
+        }
+        else
+        {
+          current_buffer = 0;
+          printf("skipping frame");
+        }
+      }
+    }
+    else
+    {
+      printf("0 transfer in between\n");
+    }
+    
+    if(current_buffer != 0)
+    {
+      transfer->buffer = current_buffer->data + current_buffer->offset;
+    }
+    else
+    {
+      transfer->buffer = backup_buffer;
+    }
+	
+	if(run_usb_event_loop)
+	{
+	  int r = libusb_submit_transfer(transfer);
+	  if(r == LIBUSB_SUCCESS)
+	  {
+	    num_bulk_requests_outstanding += 1;
+	  }
+	  else
+	  {
+	    perr("resubmit bulk transfer failed: %d\n", r);
+	  }
+	}
+}
+
+void StartBulkTransfers(libusb_device_handle* handle, libusb_device* dev)
+{
+    uint8_t endpoint = 0x83;
+
+	libusb_transfer* transfer = libusb_alloc_transfer(0);
+	backup_buffer = new uint8_t[BUFFER_SIZE];
+	for(size_t i = 0; i < 5; ++i)
+	{
+      free_buffer.push_back(new Buffer());
+      free_buffer[i]->data = new uint8_t[BUFFER_SIZE];
+      free_buffer[i]->offset = 0;
+      memset(free_buffer[i]->data, 0, BUFFER_SIZE);
+	}
+	
+	int bufferLen = PACKET_SIZE;
+	//uint8_t* buffer = (uint8_t*)malloc(bufferLen);
+	//memset(buffer, 0, bufferLen);
+	int timeout = 1000;
+
+    
+    current_buffer = 0;
+
+	libusb_fill_bulk_transfer(transfer,
+		handle,
+		endpoint,
+		backup_buffer,
+		bufferLen,
+		(libusb_transfer_cb_fn)&BulkTransferCallback,
+		NULL,
+		timeout);
+	
+	num_bulk_requests_outstanding = 1;
+	int r = libusb_submit_transfer(transfer);
+
+	if (r != LIBUSB_SUCCESS)
+	{
+		perr("Submit bulk transfer error: %d\n", r);
+	}
+	else
+	{
+		printf("Submit bulk transfer done\n");
+	}
+}
 
 int main(void) {
 
@@ -891,7 +1053,7 @@ int main(void) {
 
 	if (handle == NULL) {
 		perr("  Failed.\n");
-		system("PAUSE");
+		//system("PAUSE");
 		return -1;
 	}
 
@@ -916,6 +1078,21 @@ int main(void) {
 	printf("             speed: %s\n", speed_name[r]);
 
 
+    int active_cfg = -5;
+    r = libusb_get_configuration(handle, &active_cfg);
+    
+	printf("active configuration: %d, err: %d", active_cfg, r);
+	int configId = 1;
+	if(active_cfg != configId)
+	{
+	    printf("Setting config: %d\n", configId);
+	    r = libusb_set_configuration(handle, configId);
+	    if (r != LIBUSB_SUCCESS)
+	    {
+	    	perr("  Can't set configuration. Error code: %d (%s)\n",r,libusb_error_name(r));
+	    }
+	}
+	
 	int iface = 0;
 	printf("\nClaiming interface %d...\n", iface);
 	r = libusb_claim_interface(handle, iface);
@@ -932,6 +1109,9 @@ int main(void) {
 
 	InitKinect(handle);
 
+    boost::thread event_thread(&usb_event_loop);
+	StartBulkTransfers(handle, dev);
+	
 	r = libusb_get_device_speed(dev);
 	if ((r<0) || (r>4)) r = 0;
 	printf("             speed: %s\n", speed_name[r]);
@@ -942,6 +1122,9 @@ int main(void) {
 	if ((r<0) || (r>4)) r = 0;
 	printf("             speed: %s\n", speed_name[r]);
 
+
+
+#if 0
 	should_resubmit = true;
 	printf("should_resubmit: true\n");
 	StartIsochronousTransfers(handle, dev);
@@ -949,8 +1132,7 @@ int main(void) {
 	r = libusb_get_device_speed(dev);
 	if ((r<0) || (r>4)) r = 0;
 	printf("             speed: %s\n", speed_name[r]);
-
-	int numIsoEventsToProcess = 2000;
+	int numIsoEventsToProcess = 200;
 	printf("Waiting for iso transfer...\n");
 	for (int i = 0; i <= numIsoEventsToProcess; i++)
 	{
@@ -970,6 +1152,53 @@ int main(void) {
 	}
 
 	printf("\n");
+#endif
+    
+    int count = 0;
+    try
+    {
+    while(count < 500)
+    {
+      boost::mutex::scoped_lock l(buffer_mutex);
+      if(full_buffer.size() > 0)
+      {
+        Buffer* full = full_buffer.back();
+        full_buffer.pop_back();
+        l.unlock();
+        
+//      std::stringstream name;
+//        name << count << ".jpeg";
+//		name << "last.jpeg";
+        /*
+        std::ofstream outfile(name.str().c_str(), std::ofstream::binary);
+        outfile.write((const char*)(full->data + 8), full->offset);
+        outfile.close();
+        */
+        memset(full->data, 0, BUFFER_SIZE);
+        full->offset = 0;
+        l.lock();
+        free_buffer.push_back(full);
+        
+        //cv::imshow("rgb", cv::imread(name.str(), 1));
+        //cv::waitKey(5);
+//        cv::Mat img(800, 1000, CV_8UC1, full->data);
+//        cv::imwrite(name.str(), img);
+        
+        count += 1;
+      }
+      else
+      {
+      }
+    }
+    }
+    catch(...)
+    {
+    }
+    
+    //std::string input;
+//    std::cin >> input;
+    
+	run_usb_event_loop = false;
 	
 	r = libusb_get_device_speed(dev);
 	if ((r<0) || (r>4)) r = 0;
@@ -993,7 +1222,9 @@ int main(void) {
 	libusb_close(handle);
 
 	libusb_exit(NULL);
+	
+    event_thread.join();
 
-	system("PAUSE");
+	//system("PAUSE");
 	return 0;
 }
