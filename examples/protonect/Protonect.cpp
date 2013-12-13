@@ -1149,7 +1149,7 @@ int main(void) {
 	InitKinect(handle);
 
     boost::thread event_thread(&usb_event_loop);
-	StartBulkTransfers(handle, dev);
+	//StartBulkTransfers(handle, dev);
 	
 	r = libusb_get_device_speed(dev);
 	if ((r<0) || (r>4)) r = 0;
@@ -1189,7 +1189,7 @@ int main(void) {
         outfile.write((const char*)(full->data + 8), full->offset);
         outfile.close();
         
-        memset(full->data, 0, BUFFER_SIZE);
+        memset(full->data, 0, ISO_BUFFER_SIZE);
         full->offset = 0;
         l.lock();
         free_buffer.push_back(full);
