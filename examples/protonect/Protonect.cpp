@@ -1135,7 +1135,7 @@ int main(void)
       name << "iso" << iso_count << ".bin";
 
       std::ofstream outfile(name.str().c_str(), std::ofstream::binary);
-      outfile.write((const char*) (full->data + 8), full->offset);
+      outfile.write((const char*) (full->data), full->offset);
       outfile.close();
 
       memset(full->data, 0, ISO_BUFFER_SIZE);
