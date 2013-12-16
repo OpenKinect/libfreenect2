@@ -1,4 +1,4 @@
-all: Protonect decode
+all: Protonect decode decode2
     
 
 Protonect: Protonect.h Protonect.cpp
@@ -6,3 +6,6 @@ Protonect: Protonect.h Protonect.cpp
 
 decode: decode.cpp
 	g++ -Wall -o decode decode.cpp  -lopencv_core -lopencv_highgui
+	
+decode2: decode2.cpp
+	g++ -Wall -o decode2 decode2.cpp  -lopencv_core -lopencv_highgui
