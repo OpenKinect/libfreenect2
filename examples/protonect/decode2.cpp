@@ -44,7 +44,7 @@ int main(int argc, char **argv) {
     {
       for(int i = 0; i < 10; i++)
       {
-        std::cout << (int)imgs[i].at<uint16_t>(y, 1) << " ";
+        //std::cout << (int)imgs[i].at<uint16_t>(y, 0) << " ";
         //out.at<char>(y,i*4 + 0+10) = (char)(imgs[i].at<uint16_t>(y,0+4*9) / 2048.0f * 255.0f);
         //out.at<char>(y,i*4 + 1+10) = (char)(imgs[i].at<uint16_t>(y,1+4*9) / 2048.0f * 255.0f);
         //out.at<char>(y,i*4 + 2+10) = (char)(imgs[i].at<uint16_t>(y,2+4*9) / 2048.0f * 255.0f);

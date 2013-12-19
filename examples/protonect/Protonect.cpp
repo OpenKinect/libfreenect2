@@ -33,6 +33,7 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
+#include <deque>
 
 bool should_resubmit = true;
 uint32_t num_iso_requests_outstanding = 0;
@@ -695,26 +696,29 @@ boost::mutex buffer_mutex;
 Buffer* current_buffer = 0;
 uint8_t* backup_buffer = 0;
 
-typedef std::vector<Buffer*> BufferVector;
-BufferVector free_buffer, full_buffer;
+typedef std::deque<Buffer*> BufferQueue;
+BufferQueue free_buffer, full_buffer;
 
-#define ISO_BUFFER_SIZE 600000
+#define ISO_BUFFER_SIZE 1024*1024*5
 #define ISO_PACKET_SIZE 33792
+
+libusb_transfer* other_transfer = 0;
 
 void IsoCallback(libusb_transfer* transfer)
 {
   num_iso_requests_outstanding--;
-
+  
   if (NULL == transfer)
   {
     perr("IsoCallback received NULL transfer\n");
     return;
   }
+  
 
   if (LIBUSB_TRANSFER_COMPLETED == transfer->status)
   {
     int numPackets = transfer->num_iso_packets;
-    //printf("Iso transfer completed. Num packets: %d  Len: %d/%d\n", numPackets, transfer->actual_length, transfer->length);
+   // printf("Iso transfer completed. Num packets: %d  Len: %d/%d\n", numPackets, transfer->actual_length, transfer->length);
 
     for (int i = 0; i < numPackets; i++)
     {
@@ -730,18 +734,15 @@ void IsoCallback(libusb_transfer* transfer)
         }
         else
         {
-          /*
-           uint8_t* d = (uint8_t*)libusb_get_iso_packet_buffer_simple(transfer, i);
-           printf("packet id ");
-           for(int j = 0; j < 10; j++)
-           printf("%d ", d[j]);
-
-           printf("\n");
-           */
-          if (current_buffer != 0 && current_buffer->offset + packet.actual_length < ISO_BUFFER_SIZE - ISO_PACKET_SIZE)
+//          printf("received iso packet with: %d/%d bytes\n", packet.actual_length, packet.length);
+          if (current_buffer != 0 && current_buffer->offset + packet.actual_length < ISO_BUFFER_SIZE)
           {
             memcpy(current_buffer->data + current_buffer->offset, libusb_get_iso_packet_buffer_simple(transfer, i), packet.actual_length);
             current_buffer->offset += packet.actual_length;
+          }
+          else
+          {
+            if(current_buffer != 0) printf("wtf\n");
           }
 
           if (packet.actual_length < ISO_PACKET_SIZE)
@@ -751,7 +752,7 @@ void IsoCallback(libusb_transfer* transfer)
             if (current_buffer != 0)
             {
               //printf("received iso packet with: %d bytes\n", current_buffer->offset);
-              full_buffer.push_back(current_buffer);
+              full_buffer.push_front(current_buffer);
             }
 
             if (free_buffer.size() > 0)
@@ -762,7 +763,7 @@ void IsoCallback(libusb_transfer* transfer)
             else
             {
               current_buffer = 0;
-              printf("skipping iso");
+              printf("skipping iso\n");
             }
           }
         }
@@ -796,53 +797,72 @@ void IsoCallback(libusb_transfer* transfer)
   }
   else
   {
-    free(transfer->buffer);
-    transfer->buffer = NULL;
-    libusb_free_transfer(transfer);
+    if(current_buffer != 0)
+    {
+    boost::mutex::scoped_lock l(buffer_mutex);
+    
+    full_buffer.push_front(current_buffer);
+    current_buffer = 0;
+    }
   }
+  //else
+  //{
+  //  free(transfer->buffer);
+  //  transfer->buffer = NULL;
+  //  libusb_free_transfer(transfer);
+  //}
 }
 
 void StartIsochronousTransfers(libusb_device_handle* handle, libusb_device* dev)
 {
   uint8_t endpoint = 0x84;
 
-  int numPackets = 8;
-  libusb_transfer* transfer = libusb_alloc_transfer(numPackets);
 
-  for (size_t i = 0; i < 5; ++i)
+  for (size_t i = 0; i < 30; ++i)
   {
     free_buffer.push_back(new Buffer());
     free_buffer[i]->data = new uint8_t[ISO_BUFFER_SIZE];
     free_buffer[i]->offset = 0;
     memset(free_buffer[i]->data, 0, ISO_BUFFER_SIZE);
   }
-
+  
+  int numPackets = 8;
   int maxPacketSize = libusb_get_max_iso_packet_size(dev, endpoint);
-
   printf("maxPacketSize: %d\n", maxPacketSize);
-
-  //nominally 270336 = 33792 * 8
-  int bufferLen = maxPacketSize * numPackets;
-  uint8_t* buffer = (uint8_t*) malloc(bufferLen);
-  memset(buffer, 0, bufferLen);
-  int timeout = 6000;
-
-  libusb_fill_iso_transfer(transfer, handle, endpoint, buffer, bufferLen, numPackets, (libusb_transfer_cb_fn) & IsoCallback, NULL, timeout);
-
-  libusb_set_iso_packet_lengths(transfer, maxPacketSize);
-
-  int r = libusb_submit_transfer(transfer);
-
-  if (r != LIBUSB_SUCCESS)
+  
+  std::vector<libusb_transfer*> transfers;
+  
+  for(int i = 0; i < 50; ++i)
   {
-    perr("Submit iso transfer error: %d\n", r);
+    libusb_transfer* transfer1 = libusb_alloc_transfer(numPackets);
 
-    //TODO: free buffer?
+    //nominally 270336 = 33792 * 8
+    int bufferLen = maxPacketSize * numPackets;
+    uint8_t* buffer1 = (uint8_t*) malloc(bufferLen);
+    memset(buffer1, 0, bufferLen);
+    int timeout = 100;
+
+    libusb_fill_iso_transfer(transfer1, handle, endpoint, buffer1, bufferLen, numPackets, (libusb_transfer_cb_fn) & IsoCallback, NULL, timeout);
+
+    libusb_set_iso_packet_lengths(transfer1, maxPacketSize);
+    transfers.push_back(transfer1);
   }
-  else
+  
+  for(int i = 0; i < 50; ++i)
   {
-    num_iso_requests_outstanding++;
-    printf("Submit iso transfer done\n");
+    int r = libusb_submit_transfer(transfers[i]);
+
+    if (r != LIBUSB_SUCCESS)
+    {
+      perr("Submit iso transfer %d error: %d\n", i, r);
+
+      //TODO: free buffer?
+    }
+    else
+    {
+      num_iso_requests_outstanding++;
+      printf("Submit iso transfer %d done\n", i);
+    }
   }
 }
 
@@ -927,7 +947,7 @@ void BulkTransferCallback(libusb_transfer* transfer)
       if (current_buffer != 0)
       {
         printf("received image %d with: %d bytes and unknown: %#x\n", current_buffer->seq, current_buffer->offset, current_buffer->unknown);
-        full_buffer.push_back(current_buffer);
+        full_buffer.push_front(current_buffer);
       }
 
       if (free_buffer.size() > 0)
@@ -1004,6 +1024,16 @@ void StartBulkTransfers(libusb_device_handle* handle, libusb_device* dev)
   {
     printf("Submit bulk transfer done\n");
   }
+}
+
+void writeIsoBufferToDisk(Buffer& b, int index)
+{
+  std::stringstream name;
+  name << "iso" << index << ".bin";
+
+  std::ofstream outfile(name.str().c_str(), std::ofstream::binary);
+  outfile.write((const char*) (b.data), b.offset);
+  outfile.close();
 }
 
 int main(void)
@@ -1121,8 +1151,10 @@ int main(void)
     r = 0;
   printf("             speed: %s\n", speed_name[r]);
 
+  std::ofstream outfile("iso.bin", std::ofstream::binary);
+
   int iso_count = 0;
-  while (iso_count < 500)
+  while (iso_count < 1000)
   {
     boost::mutex::scoped_lock l(buffer_mutex);
     if (full_buffer.size() > 0)
@@ -1131,17 +1163,14 @@ int main(void)
       full_buffer.pop_back();
       l.unlock();
 
-      std::stringstream name;
-      name << "iso" << iso_count << ".bin";
+      //writeIsoBufferToDisk(*full, iso_count);
 
-      std::ofstream outfile(name.str().c_str(), std::ofstream::binary);
       outfile.write((const char*) (full->data), full->offset);
-      outfile.close();
-
+      outfile.flush();
       memset(full->data, 0, ISO_BUFFER_SIZE);
       full->offset = 0;
       l.lock();
-      free_buffer.push_back(full);
+      free_buffer.push_front(full);
 
       iso_count += 1;
     }
@@ -1214,6 +1243,7 @@ int main(void)
    std::string input;
    std::cin >> input;
    */
+
   should_resubmit = false;
   run_usb_event_loop = false;
 
@@ -1241,6 +1271,19 @@ int main(void)
   libusb_close(handle);
 
   event_thread.join();
+
+  printf("empty %d full %d \n", free_buffer.size(), full_buffer.size());
+
+  while(full_buffer.size() > 0)
+  {
+    Buffer* full = full_buffer.back();
+    full_buffer.pop_back();
+    outfile.write((const char*) (full->data), full->offset);
+    //writeIsoBufferToDisk(*full, iso_count);
+
+    iso_count += 1;
+  }
+  outfile.close();
 
   libusb_exit(NULL);
 
