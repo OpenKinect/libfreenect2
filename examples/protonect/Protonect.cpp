@@ -872,7 +872,7 @@ int main(int argc, char *argv[])
   RunKinect(handle, depth_processor);
 
   rgb_bulk_transfers.submit(10);
-  depth_iso_transfers.submit(40);
+  depth_iso_transfers.submit(60);
 
   r = libusb_get_device_speed(dev);
   if ((r < 0) || (r > 4))
