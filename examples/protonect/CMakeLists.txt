@@ -35,6 +35,7 @@ ADD_EXECUTABLE(Protonect
   
   src/rgb_packet_stream_parser.cpp
   src/rgb_packet_processor.cpp
+  src/turbo_jpeg_rgb_packet_processor.cpp
   
   src/depth_packet_stream_parser.cpp
   src/depth_packet_processor.cpp
@@ -47,4 +48,5 @@ TARGET_LINK_LIBRARIES(Protonect
   usb-1.0
   boost_thread
   ${OpenCV_LIBS}
+  turbojpeg
 )

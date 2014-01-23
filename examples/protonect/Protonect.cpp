@@ -841,7 +841,7 @@ int main(int argc, char *argv[])
   libfreenect2::usb::EventLoop usb_loop;
   usb_loop.start();
 
-  libfreenect2::DumpRgbPacketProcessor rgb_processor;
+  libfreenect2::TurboJpegRgbPacketProcessor rgb_processor;
   libfreenect2::RgbPacketStreamParser rgb_packet_stream_parser(&rgb_processor);
 
   libfreenect2::usb::BulkTransferPool rgb_bulk_transfers(handle, 0x83);

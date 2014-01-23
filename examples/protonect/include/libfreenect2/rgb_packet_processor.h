@@ -87,5 +87,18 @@ protected:
   virtual void doProcess(RgbPacket *packet, size_t jpeg_buffer_length);
 };
 
+class TurboJpegRgbPacketProcessorImpl;
+
+class TurboJpegRgbPacketProcessor : public AsyncRgbPacketProcessor
+{
+public:
+  TurboJpegRgbPacketProcessor();
+  virtual ~TurboJpegRgbPacketProcessor();
+protected:
+  virtual void doProcess(RgbPacket *packet, size_t jpeg_buffer_length);
+private:
+  TurboJpegRgbPacketProcessorImpl *impl_;
+};
+
 } /* namespace libfreenect2 */
 #endif /* RGB_PACKET_PROCESSOR_H_ */
