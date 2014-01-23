@@ -75,6 +75,14 @@ public:
 
   int16_t lut11to16[2048];
 
+  cv::Mat out_ir;
+  cv::Mat out_depth;
+
+  double timing_acc;
+  double timing_acc_n;
+
+  double timing_current_start;
+
   CpuDepthPacketProcessorImpl()
   {
     phase_in_rad0 = 0.0f;
@@ -87,6 +95,32 @@ public:
     phase_offset = 0.0f;
     unambigious_dist = 2083.333f;
     ab_output_multiplier = 16.0f;
+
+    out_ir = cv::Mat(424, 512, CV_32FC1);
+    out_depth = cv::Mat(424, 512, CV_32FC1);
+
+    timing_acc = 0.0;
+    timing_acc_n = 0.0;
+    timing_current_start = 0.0;
+  }
+
+  void startTiming()
+  {
+    timing_current_start = cv::getTickCount();
+  }
+
+  void stopTiming()
+  {
+    timing_acc += (cv::getTickCount() - timing_current_start) / cv::getTickFrequency();
+    timing_acc_n += 1.0;
+
+    if(timing_acc_n >= 100.0)
+    {
+      double avg = (timing_acc / timing_acc_n);
+      std::cout << "[CpuDepthPacketProcessor] avg. time: " << (avg * 1000) << "ms -> ~" << (1.0/avg) << "Hz" << std::endl;
+      timing_acc = 0.0;
+      timing_acc_n = 0.0;
+    }
   }
 
   int32_t decodePixelMeasurement(unsigned char* data, int sub, int x, int y)
@@ -338,7 +372,7 @@ void CpuDepthPacketProcessor::loadZTableFromFile(const char* filename)
 
 void CpuDepthPacketProcessor::load11To16LutFromFile(const char* filename)
 {
-  size_t n = 2048 * sizeof(uint16_t);
+  size_t n = 2048 * sizeof(int16_t);
 
   std::ifstream file(filename);
   file.read(reinterpret_cast<char *>(impl_->lut11to16), n);
@@ -353,20 +387,18 @@ void CpuDepthPacketProcessor::load11To16LutFromFile(const char* filename)
 
 void CpuDepthPacketProcessor::doProcess(DepthPacket* packet, size_t buffer_length)
 {
-  cv::Mat out_ir(424, 512, CV_32FC1);
-  cv::Mat out_depth(424, 512, CV_32FC1);
+  impl_->startTiming();
 
   for(int y = 0; y < 424; ++y)
     for(int x = 0; x < 512; ++x)
-      impl_->processPixel(packet->buffer, x, y, out_ir.ptr<float>(423 - y, x), out_depth.ptr<float>(423 - y, x));
+      impl_->processPixel(packet->buffer, x, y, impl_->out_ir.ptr<float>(423 - y, x), impl_->out_depth.ptr<float>(423 - y, x));
 
-  double min, max;
-  //cv::minMaxIdx(out_ir, &min, &max);
-  cv::imshow("ir_out", out_ir / 20000.0f);
-
-  cv::minMaxIdx(out_depth, &min, &max);
-  cv::imshow("depth_out", out_depth / max);
+  cv::imshow("ir_out", impl_->out_ir / 20000.0f);
+  // TODO: depth has wrong scale -.-
+  cv::imshow("depth_out", impl_->out_depth / 30000.0f);
   cv::waitKey(1);
+
+  impl_->stopTiming();
 }
 
 } /* namespace libfreenect2 */
