@@ -72,7 +72,8 @@ public:
   float phase_offset;
   float unambigious_dist;
   float ab_output_multiplier;
-
+  float individual_ab_threshold, ab_threshold, ab_confidence_slope, ab_confidence_offset;
+  float min_dealias_confidence, max_dealias_confidence;
   int16_t lut11to16[2048];
 
   cv::Mat out_ir;
@@ -95,6 +96,13 @@ public:
     phase_offset = 0.0f;
     unambigious_dist = 2083.333f;
     ab_output_multiplier = 16.0f;
+
+    individual_ab_threshold = 3.0f;
+    ab_threshold = 10.0f;
+    ab_confidence_slope = -0.5330578f;
+    ab_confidence_offset = 0.7694894f;
+    min_dealias_confidence = 0.3490659f;
+    max_dealias_confidence = 0.6108653f;
 
     out_ir = cv::Mat(424, 512, CV_32FC1);
     out_depth = cv::Mat(424, 512, CV_32FC1);
@@ -234,7 +242,7 @@ public:
 
   void transformMeasurements(float* m)
   {
-    float tmp0 = std::atan2((m[0]), (m[1]));
+    float tmp0 = std::atan2((m[1]), (m[0]));
     tmp0 = tmp0 < 0 ? tmp0 + M_PI * 2.0f : tmp0;
     tmp0 = (tmp0 != tmp0) ? 0 : tmp0;
 
@@ -280,7 +288,10 @@ public:
     transformMeasurements(m1);
     transformMeasurements(m2);
 
+    float phase;
     // if(DISABLE_DISAMBIGUATION)
+    if(false)
+    {
         //r0.yz = r3.zx + r4.zx // add
         //r0.yz = r5.xz + r0.zy // add
         float phase = m0[0] + m1[0] + m2[0]; // r0.y
@@ -292,12 +303,87 @@ public:
         //r3.zw = r4.xy // mov
         float tmp3 = m0[2] + m1[2] + m2[2]; // r3.z
         float tmp4 = m0[1] + m1[1] + m2[1]; // r3.w
-    // else
-        // TODO: disambiguation
+    }
+    else
+    {
+      float ir_sum = m0[1] + m1[1] + m2[1];
+      float ir_min = std::min(std::min(m0[1], m1[1]), m2[1]);
 
+      if (ir_min < individual_ab_threshold || ir_sum < ab_threshold)
+      {
+        phase = 0;
+      }
+      else
+      {
+        float t0 = m0[0] / (2.0f * M_PI) * 3.0f;
+        float t1 = m1[0] / (2.0f * M_PI) * 15.0f;
+        float t2 = m2[0] / (2.0f * M_PI) * 2.0f;
+
+        float t5 = (std::floor((t1 - t0) * 0.333333f + 0.5f) * 3.0f + t0);
+        float t3 = (-t2 + t5);
+        float t4 = t3 * 2.0f;
+
+        bool c1 = t4 >= -t4; // true if t4 positive
+
+        float f1 = c1 ? 2.0f : -2.0f;
+        float f2 = c1 ? 0.5f : -0.5f;
+        t3 *= f2;
+        t3 = (t3 - std::floor(t3)) * f1;
+
+        bool c2 = 0.5f < std::abs(t3) && std::abs(t3) < 1.5f;
+
+        float t6 = c2 ? t5 + 15.0f : t5;
+        float t7 = c2 ? t1 + 15.0f : t1;
+
+        float t8 = (std::floor((-t2 + t6) * 0.5f + 0.5f) * 2.0f + t2) * 0.5f;
+
+        t6 *= 0.333333f; // = / 3
+        t7 *= 0.066667f; // = / 15
+
+        float t9 = (t8 + t6 + t7); // transformed phase measurements (they are transformed and divided by the values the original values were multiplied with)
+        float t10 = t9 * 0.333333f; // some avg
+
+        t6 *= 2.0f * M_PI;
+        t7 *= 2.0f * M_PI;
+        t8 *= 2.0f * M_PI;
+
+        // some cross product
+        float t8_new = t7 * 0.826977f - t8 * 0.110264f;
+        float t6_new = t8 * 0.551318f - t6 * 0.826977f;
+        float t7_new = t6 * 0.110264f - t7 * 0.551318f;
+
+        t8 = t8_new;
+        t6 = t6_new;
+        t7 = t7_new;
+
+        float norm = t8 * t8 + t6 * t6 + t7 * t7;
+        float mask = t9 >= 0.0f ? 1.0f : 0.0f;
+        t10 *= mask;
+
+        bool slope_positive = 0 < ab_confidence_slope;
+
+        float ir_min_ = std::min(std::min(m0[1], m1[1]), m2[1]);
+        float ir_max_ = std::max(std::max(m0[1], m1[1]), m2[1]);
+
+        float ir_x = slope_positive ? ir_min_ : ir_max_;
+
+        ir_x = std::log(ir_x);
+        ir_x = (ir_x * ab_confidence_slope * 0.301030f + ab_confidence_offset) * 3.321928f;
+        ir_x = std::exp(ir_x);
+        ir_x = std::min(max_dealias_confidence, std::max(min_dealias_confidence, ir_x));
+        ir_x *= ir_x;
+
+        float mask2 = ir_x >= norm ? 1.0f : 0.0f;
+
+        float t11 = t10 * mask2;
+
+        float mask3 = max_dealias_confidence * max_dealias_confidence >= norm ? 1.0f : 0.0f;
+        t10 *= mask3;
+        phase = true/*(modeMask & 2) != 0*/ ? t11 : t10;
+      }
+    }
 
     // this seems to be the phase to depth mapping :)
-    //zmultiplier = (float)load<float>(zTable, x, y);
     float xmultiplier = x_table.at<float>(y, x);
 
     phase = 0 < phase ? phase + phase_offset : phase;
@@ -394,8 +480,7 @@ void CpuDepthPacketProcessor::doProcess(DepthPacket* packet, size_t buffer_lengt
       impl_->processPixel(packet->buffer, x, y, impl_->out_ir.ptr<float>(423 - y, x), impl_->out_depth.ptr<float>(423 - y, x));
 
   cv::imshow("ir_out", impl_->out_ir / 20000.0f);
-  // TODO: depth has wrong scale -.-
-  cv::imshow("depth_out", impl_->out_depth / 30000.0f);
+  cv::imshow("depth_out", impl_->out_depth / 4500.0f);
   cv::waitKey(1);
 
   impl_->stopTiming();
