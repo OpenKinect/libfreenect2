@@ -258,6 +258,29 @@ int KGenericCommand(libusb_device_handle *handle, int command, int parameter, in
   return transferred;
 }
 
+void hexdump( uint8_t* buffer, int size, const char* info ) {
+  printf("dumping %d bytes of raw data from command %s: \n",size,info);
+  int lines = size >> 4;
+  if (size % 16 != 0) lines += 1;
+  for (int i = 0; i < lines; i++)
+  {
+    printf("0x%04x:  ", i*16);
+    for (int j = 0; j < 16; j++)
+    {
+      if (j < size) printf("0x%02x ",buffer[i*16+j]);
+      else printf("     ");
+    }
+    printf("    ");
+    for (int j = 0; (j < 16) && (j < size); j++)
+    {
+      char c = buffer[i*16+j];
+      printf("%c",(((c<32)||(c>128))?'.':c));
+    }
+    printf("\n");
+    size -= 16;
+  }
+}
+
 int KReadData02(libusb_device_handle *handle)
 {
   uint8_t* data = NULL;
@@ -266,6 +289,7 @@ int KReadData02(libusb_device_handle *handle)
   if (data != NULL)
   {
     //TODO parse data
+    hexdump(data,res,"KCMD_READ_DATA1");
     delete[] data;
   }
 
@@ -280,6 +304,7 @@ int KReadData14(libusb_device_handle *handle)
   if (data != NULL)
   {
     //TODO parse data
+    hexdump(data,res,"KCMD_READ_VERSIONS");
     delete[] data;
   }
 
@@ -294,6 +319,7 @@ int KReadData22_1(libusb_device_handle *handle)
   if (data != NULL)
   {
     //TODO parse data
+    hexdump(data,res,"KCMD_READ_DATA_PAGE 0x01");
     delete[] data;
   }
 
@@ -323,6 +349,7 @@ int KReadData22_3(libusb_device_handle *handle)
   if (data != NULL)
   {
     //TODO parse data
+    hexdump(data,res,"KCMD_READ_DATA_PAGE 0x03");
     delete[] data;
   }
 
@@ -340,7 +367,6 @@ int KReadData22_4(libusb_device_handle *handle)
     float *params = reinterpret_cast<float *>(data + 1);
     for(size_t i = 0; i < 30; ++i)
       std::cout << params[i] << std::endl;
-
     delete[] data;
   }
 
