@@ -230,377 +230,198 @@ int KSendCommandReadResponse(libusb_device_handle *handle, cmd_header& cmd, int 
   return K_SUCCESS;
 }
 
-int KReadData02(libusb_device_handle *handle)
+int KGenericCommand(libusb_device_handle *handle, int command, int parameter, int length, int response = 0, uint8_t** buffer = NULL)
 {
-  int length = 20;
+  int transferred = 0;
+  uint8_t* data = NULL;
 
   cmd_header cmd = KInitCommand();
-  cmd.responseDataLen = 0x200;
-  cmd.command = KCMD_READ_DATA1;
+  cmd.responseDataLen = response;
+  cmd.command = command;
+  cmd.parameter = parameter;
 
-  uint8_t* data = new uint8_t[cmd.responseDataLen];
-  int transferred = 0;
+  if ((response > 0) && (buffer != NULL))
+  {
+    data = new uint8_t[response];
+    *buffer = data;
+  }
 
   int r = KSendCommandReadResponse(handle, cmd, length, data, &transferred);
-
-  int ret = K_SUCCESS;
 
   if (r == K_ERROR)
   {
     printf("Error in cmd protocol %#04x (%#x)\n", cmd.command, cmd.parameter);
-    ret = K_ERROR;
-  }
-  else
-  {
-    //TODO parse data
+    delete[] data;
+    return K_ERROR;
   }
 
-  delete data;
-  return ret;
+  return transferred;
+}
+
+int KReadData02(libusb_device_handle *handle)
+{
+  uint8_t* data = NULL;
+  int res = KGenericCommand(handle, KCMD_READ_DATA1, 0x00, 20, 0x200, &data);
+
+  if (data != NULL)
+  {
+    //TODO parse data
+    delete[] data;
+  }
+
+  return res;
 }
 
 int KReadData14(libusb_device_handle *handle)
 {
-  int length = 20;
+  uint8_t* data = NULL;
+  int res = KGenericCommand(handle, KCMD_READ_VERSIONS, 0x00, 20, 0x5C, &data);
 
-  cmd_header cmd = KInitCommand();
-  cmd.responseDataLen = 0x5C;
-  cmd.command = KCMD_READ_VERSIONS;
-
-  uint8_t* data = new uint8_t[cmd.responseDataLen];
-  int transferred = 0;
-
-  int r = KSendCommandReadResponse(handle, cmd, length, data, &transferred);
-
-  int ret = K_SUCCESS;
-
-  if (r == K_ERROR)
-  {
-    printf("Error in cmd protocol %#04x (%#x)\n", cmd.command, cmd.parameter);
-    ret = K_ERROR;
-  }
-  else
+  if (data != NULL)
   {
     //TODO parse data
+    delete[] data;
   }
 
-  delete data;
-  return ret;
+  return res;
 }
 
 int KReadData22_1(libusb_device_handle *handle)
 {
-  int length = 24;
+  uint8_t* data = NULL;
+  int res = KGenericCommand(handle, KCMD_READ_DATA_PAGE, 0x01, 24, 0x80, &data);
 
-  cmd_header cmd = KInitCommand();
-  cmd.responseDataLen = 0x80;
-  cmd.command = KCMD_READ_DATA_PAGE;
-  cmd.parameter = 0x1;
-
-  uint8_t* data = new uint8_t[cmd.responseDataLen];
-  int transferred = 0;
-
-  int r = KSendCommandReadResponse(handle, cmd, length, data, &transferred);
-
-  int ret = K_SUCCESS;
-
-  if (r == K_ERROR)
-  {
-    printf("Error in cmd protocol %#04x (%#x)\n", cmd.command, cmd.parameter);
-    ret = K_ERROR;
-  }
-  else
+  if (data != NULL)
   {
     //TODO parse data
+    delete[] data;
   }
 
-  delete data;
-  return ret;
+  return res;
 }
 
-int KReadData22_2(libusb_device_handle *handle, libfreenect2::DepthPacketProcessor& depth_processor)
+int KReadP0Tables(libusb_device_handle *handle, libfreenect2::DepthPacketProcessor& depth_processor)
 {
-  int length = 24;
+  uint8_t* data = NULL;
+  int res = KGenericCommand(handle, KCMD_READ_DATA_PAGE, 0x02, 24, 0x1C0000, &data);
 
-  cmd_header cmd = KInitCommand();
-  cmd.responseDataLen = 0x1C0000;
-  cmd.command = KCMD_READ_DATA_PAGE;
-  cmd.parameter = 0x2;
-
-  uint8_t* data = new uint8_t[cmd.responseDataLen];
-  int transferred = 0;
-
-  int r = KSendCommandReadResponse(handle, cmd, length, data, &transferred);
-
-  // PTables
-
-  int ret = K_SUCCESS;
-
-  if (r == K_ERROR)
+  if (data != NULL)
   {
-    printf("Error in cmd protocol %#04x (%#x)\n", cmd.command, cmd.parameter);
-    ret = K_ERROR;
-  }
-  else
-  {
-    depth_processor.loadP0TablesFromCommandResponse(data, transferred);
+    // PTables
+    depth_processor.loadP0TablesFromCommandResponse(data, res);
+    delete[] data;
   }
 
-  delete data;
-  return ret;
+  return res;
 }
 
 int KReadData22_3(libusb_device_handle *handle)
 {
-  int length = 24;
+  uint8_t* data = NULL;
+  int res = KGenericCommand(handle, KCMD_READ_DATA_PAGE, 0x03, 24, 0x1C0000, &data);
 
-  cmd_header cmd = KInitCommand();
-  cmd.responseDataLen = 0x1C0000;
-  cmd.command = KCMD_READ_DATA_PAGE;
-  cmd.parameter = 0x3;
-
-  uint8_t* data = new uint8_t[cmd.responseDataLen];
-  int transferred = 0;
-
-  int r = KSendCommandReadResponse(handle, cmd, length, data, &transferred);
-
-  int ret = K_SUCCESS;
-
-  if (r == K_ERROR)
-  {
-    printf("Error in cmd protocol %#04x (%#x)\n", cmd.command, cmd.parameter);
-    ret = K_ERROR;
-  }
-  else
+  if (data != NULL)
   {
     //TODO parse data
+    delete[] data;
   }
 
-  delete data;
-  return ret;
+  return res;
 }
 
 int KReadData22_4(libusb_device_handle *handle)
 {
-  int length = 24;
+  uint8_t* data = NULL;
+  int res = KGenericCommand(handle, KCMD_READ_DATA_PAGE, 0x04, 24, 0x1C0000, &data);
 
-  cmd_header cmd = KInitCommand();
-  cmd.responseDataLen = 0x1C0000;
-  cmd.command = KCMD_READ_DATA_PAGE;
-  cmd.parameter = 0x4;
-
-  uint8_t* data = new uint8_t[cmd.responseDataLen];
-  int transferred = 0;
-
-  int r = KSendCommandReadResponse(handle, cmd, length, data, &transferred);
-
-  int ret = K_SUCCESS;
-
-  if (r == K_ERROR)
-  {
-    printf("Error in cmd protocol %#04x (%#x)\n", cmd.command, cmd.parameter);
-    ret = K_ERROR;
-  }
-  else
+  if (data != NULL)
   {
     //TODO parse data
+    delete[] data;
   }
 
-  delete data;
-  return ret;
+  return res;
 }
 
-int KReadData16_90000(libusb_device_handle *handle)
+int KReadStatus90000(libusb_device_handle *handle)
 {
-  int length = 24;
+  uint8_t* data = NULL;
+  int res = KGenericCommand(handle, KCMD_READ_STATUS, 0x90000, 24, 0x04, &data);
 
-  cmd_header cmd = KInitCommand();
-  cmd.responseDataLen = 0x4;
-  cmd.command = KCMD_READ_STATUS;
-  cmd.parameter = 0x90000;
-
-  uint8_t* data = new uint8_t[cmd.responseDataLen];
-  int transferred = 0;
-
-  int r = KSendCommandReadResponse(handle, cmd, length, data, &transferred);
-
-  int ret = K_SUCCESS;
-
-  if (r == K_ERROR)
-  {
-    printf("Error in cmd protocol %#04x (%#x)\n", cmd.command, cmd.parameter);
-    ret = K_ERROR;
-  }
-  else
+  if (data != NULL)
   {
     //TODO parse data
     uint32_t* data32 = (uint32_t*) data;
     uint32_t value = *data32;
-    printf("Received status %#04x (%#x): %d\n", cmd.command, cmd.parameter, value);
+    printf("Received status KCMD_READ_STATUS (0x90000): %d\n", value);
+    delete[] data;
   }
 
-  delete data;
-  return ret;
+  return res;
 }
 
-int KReadData16_100007(libusb_device_handle *handle)
+int KReadStatus100007(libusb_device_handle *handle)
 {
-  int length = 24;
+  uint8_t* data = NULL;
+  int res = KGenericCommand(handle, KCMD_READ_STATUS, 0x100007, 24, 0x04, &data);
 
-  cmd_header cmd = KInitCommand();
-  cmd.responseDataLen = 0x4;
-  cmd.command = KCMD_READ_STATUS;
-  cmd.parameter = 0x100007;
-
-  uint8_t* data = new uint8_t[cmd.responseDataLen];
-  int transferred = 0;
-
-  int r = KSendCommandReadResponse(handle, cmd, length, data, &transferred);
-
-  int ret = K_SUCCESS;
-
-  if (r == K_ERROR)
-  {
-    printf("Error in cmd protocol %#04x (%#x)\n", cmd.command, cmd.parameter);
-    ret = K_ERROR;
-  }
-  else
+  if (data != NULL)
   {
     //TODO parse data
     uint32_t* data32 = (uint32_t*) data;
     uint32_t value = *data32;
-    printf("Received status %#04x (%#x): %d\n", cmd.command, cmd.parameter, value);
+    printf("Received status KCMD_READ_STATUS (0x100007): %d\n", value);
+    delete[] data;
   }
 
-  delete data;
-  return ret;
+  return res;
 }
 
-int KInitStreams09(libusb_device_handle *handle)
+int KInitStreams(libusb_device_handle *handle)
 {
-  int length = 20;
+  int res = KGenericCommand(handle, KCMD_INIT_STREAMS, 0x00, 20);
 
-  cmd_header cmd = KInitCommand();
-  cmd.responseDataLen = 0x0;
-  cmd.command = KCMD_INIT_STREAMS;
-
-  uint8_t* data = NULL;
-  int transferred = 0;
-
-  int r = KSendCommandReadResponse(handle, cmd, length, data, &transferred);
-
-  int ret = K_SUCCESS;
-
-  if (r == K_ERROR)
-  {
-    printf("Error in cmd protocol %#04x (%#x)\n", cmd.command, cmd.parameter);
-    ret = K_ERROR;
-  }
-  else
-  {
-    //TODO success
-  }
-
-  return ret;
+  return res;
 }
 
-int KSetStreamCommand2B(libusb_device_handle *handle, KStreamStatus KStreamStatus)
+int KSetStreamStatus(libusb_device_handle *handle, KStreamStatus KStreamStatus)
 {
-  int length = 24;
+  int res = KGenericCommand(handle, KCMD_SET_STREAMING, KStreamStatus, 24);
 
-  cmd_header cmd = KInitCommand();
-  cmd.responseDataLen = 0x0;
-  cmd.command = KCMD_SET_STREAMING;
-  cmd.parameter = KStreamStatus;
+  printf("Set stream status success: %s\n", (KStreamStatus == KSTREAM_ENABLE ? "Enable" : "Disable"));
 
-  uint8_t* data = NULL;
-  int transferred = 0;
-
-  int r = KSendCommandReadResponse(handle, cmd, length, data, &transferred);
-
-  int ret = K_SUCCESS;
-
-  if (r == K_ERROR)
-  {
-    printf("Error in cmd protocol %#04x (%#x)\n", cmd.command, cmd.parameter);
-    ret = K_ERROR;
-  }
-  else
-  {
-    //TODO success
-    printf("Set stream status success: %s\n", (KStreamStatus == KSTREAM_ENABLE ? "Enable" : "Disable"));
-
-  }
-
-  return ret;
+  return res;
 }
 
-int KSetModeCommand4B(libusb_device_handle *handle, KModeStatus KModeStatus)
+int KSetModeStatus(libusb_device_handle *handle, KModeStatus KModeStatus)
 {
-  int length = 36;
+  int res = KGenericCommand(handle, KCMD_SET_MODE, KModeStatus, 36);
 
-  cmd_header cmd = KInitCommand();
-  cmd.responseDataLen = 0x0;
-  cmd.command = KCMD_SET_MODE;
-  cmd.parameter = KModeStatus;
+  printf("Set mode status success: %s\n", (KModeStatus == KMODE_ENABLE ? "Enable" : "Disable"));
 
-  uint8_t* data = NULL;
-  int transferred = 0;
-
-  int r = KSendCommandReadResponse(handle, cmd, length, data, &transferred);
-
-  int ret = K_SUCCESS;
-
-  if (r == K_ERROR)
-  {
-    printf("Error in cmd protocol %#04x (%#x)\n", cmd.command, cmd.parameter);
-    ret = K_ERROR;
-  }
-  else
-  {
-    //TODO success
-    printf("Set mode status success: %s\n", (KModeStatus == KSTREAM_ENABLE ? "Enable" : "Disable"));
-
-  }
-
-  return ret;
+  return res;
 }
 
 int KReadData26(libusb_device_handle *handle)
 {
-  int length = 24;
+  uint8_t* data = NULL;
+  int res = KGenericCommand(handle, KCMD_READ_COUNT, 0x00, 24, 0x10, &data);
 
-  cmd_header cmd = KInitCommand();
-  cmd.responseDataLen = 0x10;
-  cmd.command = KCMD_READ_COUNT;
-
-  uint8_t* data = new uint8_t[cmd.responseDataLen];
-  int transferred = 0;
-
-  int r = KSendCommandReadResponse(handle, cmd, length, data, &transferred);
-
-  int ret = K_SUCCESS;
-
-  if (r == K_ERROR)
-  {
-    printf("Error in cmd protocol %#04x (%#x)\n", cmd.command, cmd.parameter);
-    ret = K_ERROR;
-  }
-  else
+  if (data != NULL)
   {
     //TODO parse data
     uint16_t* data16 = (uint16_t*) data;
-    int numValues = transferred / 2;
+    int numValues = res / 2;
     for (int i = 0; i < numValues; i++)
     {
       uint16_t value = *data16;
       data16++;
-      printf("Received status %#04x (%#x) %d: %d\n", cmd.command, cmd.parameter, i, value);
+      printf("Received status KCMD_READ_COUNT (0x00) %d: %d\n", i, value);
     }
+    delete[] data;
   }
 
-  delete data;
-  return ret;
+  return res;
 }
 
 void InitKinect(libusb_device_handle *handle)
@@ -704,19 +525,19 @@ void RunKinect(libusb_device_handle *handle, libfreenect2::DepthPacketProcessor&
 
   r = KReadData22_3(handle);
 
-  r = KReadData22_2(handle, depth_processor);
+  r = KReadP0Tables(handle, depth_processor);
 
   r = KReadData22_4(handle);
 
-  r = KReadData16_90000(handle);
+  r = KReadStatus90000(handle);
 
-  r = KInitStreams09(handle);
+  r = KInitStreams(handle);
 
   r = KSetStreamingInterfaceStatus(handle, KSTREAM_ENABLE);
 
-  r = KReadData16_90000(handle);
+  r = KReadStatus90000(handle);
 
-  r = KSetStreamCommand2B(handle, KSTREAM_ENABLE);
+  r = KSetStreamStatus(handle, KSTREAM_ENABLE);
 
 }
 
