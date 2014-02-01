@@ -300,7 +300,7 @@ int KReadData22_1(libusb_device_handle *handle)
   return res;
 }
 
-int KReadData22_2(libusb_device_handle *handle, libfreenect2::DepthPacketProcessor& depth_processor)
+int KReadP0Tables(libusb_device_handle *handle, libfreenect2::DepthPacketProcessor& depth_processor)
 {
   uint8_t* data = NULL;
   int res = KGenericCommand(handle, KCMD_READ_DATA_PAGE, 0x02, 24, 0x1C0000, &data);
@@ -343,7 +343,7 @@ int KReadData22_4(libusb_device_handle *handle)
   return res;
 }
 
-int KReadData16_90000(libusb_device_handle *handle)
+int KReadStatus90000(libusb_device_handle *handle)
 {
   uint8_t* data = NULL;
   int res = KGenericCommand(handle, KCMD_READ_STATUS, 0x90000, 24, 0x04, &data);
@@ -360,7 +360,7 @@ int KReadData16_90000(libusb_device_handle *handle)
   return res;
 }
 
-int KReadData16_100007(libusb_device_handle *handle)
+int KReadStatus100007(libusb_device_handle *handle)
 {
   uint8_t* data = NULL;
   int res = KGenericCommand(handle, KCMD_READ_STATUS, 0x100007, 24, 0x04, &data);
@@ -377,14 +377,14 @@ int KReadData16_100007(libusb_device_handle *handle)
   return res;
 }
 
-int KInitStreams09(libusb_device_handle *handle)
+int KInitStreams(libusb_device_handle *handle)
 {
   int res = KGenericCommand(handle, KCMD_INIT_STREAMS, 0x00, 20);
 
   return res;
 }
 
-int KSetStreamCommand2B(libusb_device_handle *handle, KStreamStatus KStreamStatus)
+int KSetStreamStatus(libusb_device_handle *handle, KStreamStatus KStreamStatus)
 {
   int res = KGenericCommand(handle, KCMD_SET_STREAMING, KStreamStatus, 24);
 
@@ -393,7 +393,7 @@ int KSetStreamCommand2B(libusb_device_handle *handle, KStreamStatus KStreamStatu
   return res;
 }
 
-int KSetModeCommand4B(libusb_device_handle *handle, KModeStatus KModeStatus)
+int KSetModeStatus(libusb_device_handle *handle, KModeStatus KModeStatus)
 {
   int res = KGenericCommand(handle, KCMD_SET_MODE, KModeStatus, 36);
 
@@ -525,19 +525,19 @@ void RunKinect(libusb_device_handle *handle, libfreenect2::DepthPacketProcessor&
 
   r = KReadData22_3(handle);
 
-  r = KReadData22_2(handle, depth_processor);
+  r = KReadP0Tables(handle, depth_processor);
 
   r = KReadData22_4(handle);
 
-  r = KReadData16_90000(handle);
+  r = KReadStatus90000(handle);
 
-  r = KInitStreams09(handle);
+  r = KInitStreams(handle);
 
   r = KSetStreamingInterfaceStatus(handle, KSTREAM_ENABLE);
 
-  r = KReadData16_90000(handle);
+  r = KReadStatus90000(handle);
 
-  r = KSetStreamCommand2B(handle, KSTREAM_ENABLE);
+  r = KSetStreamStatus(handle, KSTREAM_ENABLE);
 
 }
 
