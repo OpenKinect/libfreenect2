@@ -267,8 +267,8 @@ void hexdump( uint8_t* buffer, int size, const char* info ) {
     printf("0x%04x:  ", i*16);
     for (int j = 0; j < 16; j++)
     {
-      if (j < size) printf("0x%02x ",buffer[i*16+j]);
-      else printf("     ");
+      if (j < size) printf("%02x ",buffer[i*16+j]);
+      else printf("   ");
     }
     printf("    ");
     for (int j = 0; (j < 16) && (j < size); j++)
