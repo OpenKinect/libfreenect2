@@ -25,6 +25,7 @@
  */
 
 #include <libfreenect2/depth_packet_processor.h>
+#include "p0tables.h"
 
 #include <opencv2/opencv.hpp>
 #include <fstream>
@@ -431,19 +432,18 @@ CpuDepthPacketProcessor::~CpuDepthPacketProcessor()
 
 void CpuDepthPacketProcessor::loadP0TablesFromCommandResponse(unsigned char* buffer, size_t buffer_length)
 {
-  int t0 = 34, t1 = 434214, t2 = 868394;
+  // TODO: check known header fields (headersize, planesize)
+  p0tables* p0table = (p0tables*)buffer;
 
-  size_t table_size = 424 * 512 * sizeof(uint16_t); // 434176
-
-  if(buffer_length < t2 + table_size)
+  if(buffer_length < sizeof(p0tables))
   {
     std::cerr << "[CpuDepthPacketProcessor::loadP0TablesFromCommandResponse] P0Table response too short!" << std::endl;
     return;
   }
 
-  cv::Mat(424, 512, CV_16UC1, buffer + t0).copyTo(impl_->p0_table0);
-  cv::Mat(424, 512, CV_16UC1, buffer + t1).copyTo(impl_->p0_table1);
-  cv::Mat(424, 512, CV_16UC1, buffer + t2).copyTo(impl_->p0_table2);
+  cv::Mat(424, 512, CV_16UC1, p0table->p0table0).copyTo(impl_->p0_table0);
+  cv::Mat(424, 512, CV_16UC1, p0table->p0table1).copyTo(impl_->p0_table1);
+  cv::Mat(424, 512, CV_16UC1, p0table->p0table2).copyTo(impl_->p0_table2);
 }
 
 void CpuDepthPacketProcessor::loadXTableFromFile(const char* filename)
