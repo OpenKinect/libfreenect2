@@ -432,7 +432,7 @@ CpuDepthPacketProcessor::~CpuDepthPacketProcessor()
 
 void CpuDepthPacketProcessor::loadP0TablesFromCommandResponse(unsigned char* buffer, size_t buffer_length)
 {
-  // TODO: check known header fields (headersize, planesize)
+  // TODO: check known header fields (headersize, tablesize)
   p0tables* p0table = (p0tables*)buffer;
 
   if(buffer_length < sizeof(p0tables))

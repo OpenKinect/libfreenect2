@@ -32,7 +32,7 @@ struct __attribute__ ((__packed__)) p0tables {
 	uint32_t headersize;
 	uint32_t unknown1;
 	uint32_t unknown2;
-	uint32_t planesize;
+	uint32_t tablesize;
 	uint32_t unknown3;
 	uint32_t unknown4;
 	uint32_t unknown5;
@@ -50,6 +50,7 @@ struct __attribute__ ((__packed__)) p0tables {
 	uint16_t p0table2[512*424]; // row[0] == row[511] == 0x42e8
 	uint16_t unknownC;
 
+	uint8_t  unknownD[];
 };
 
 #endif // _P0TABLES_H_
