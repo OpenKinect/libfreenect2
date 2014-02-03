@@ -341,15 +341,37 @@ int KReadP0Tables(libusb_device_handle *handle, libfreenect2::DepthPacketProcess
   return res;
 }
 
-int KReadData22_3(libusb_device_handle *handle)
+struct DepthCameraParams {
+
+  // intrinsics (this is pretty certain)
+  float fx;
+  float fy;
+  float unknown1; // assumed to be always zero
+  float cx;
+  float cy;
+
+  // radial distortion (educated guess based on calibration data from Kinect SDK)
+  float k1;
+  float k2;
+  float p1; // always seen as zero so far, so purely a guess
+  float p2; // always seen as zero so far, so purely a guess
+  float k3;
+
+  float unknown2[13]; // assumed to be always zero
+};
+
+int KReadDepthCameraParams(libusb_device_handle *handle)
 {
   uint8_t* data = NULL;
   int res = KGenericCommand(handle, KCMD_READ_DATA_PAGE, 0x03, 24, 0x1C0000, &data);
 
   if (data != NULL)
   {
-    //TODO parse data
-    hexdump(data,res,"KCMD_READ_DATA_PAGE 0x03");
+    if (res == sizeof(DepthCameraParams)) {
+      DepthCameraParams* dp = (DepthCameraParams*)data;
+      printf("depth camera intrinsic parameters: fx %f, fy %f, cx %f, cy %f\n",dp->fx,dp->fy,dp->cx,dp->cy);
+      printf("depth camera radial distortion coeffs: k1 %f, k2 %f, p1 %f, p2 %f, k3 %f\n",dp->k1,dp->k2,dp->p1,dp->p2,dp->k3);
+    }
     delete[] data;
   }
 
@@ -553,7 +575,7 @@ void RunKinect(libusb_device_handle *handle, libfreenect2::DepthPacketProcessor&
 
   r = KReadData22_1(handle);
 
-  r = KReadData22_3(handle);
+  r = KReadDepthCameraParams(handle);
 
   r = KReadP0Tables(handle, depth_processor);
 
