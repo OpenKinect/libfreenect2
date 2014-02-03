@@ -471,13 +471,13 @@ void CpuDepthPacketProcessor::load11To16LutFromFile(const char* filename)
   file.close();
 }
 
-void CpuDepthPacketProcessor::doProcess(DepthPacket* packet, size_t buffer_length)
+void CpuDepthPacketProcessor::process(const DepthPacket &packet)
 {
   impl_->startTiming();
 
   for(int y = 0; y < 424; ++y)
     for(int x = 0; x < 512; ++x)
-      impl_->processPixel(packet->buffer, x, y, impl_->out_ir.ptr<float>(423 - y, x), impl_->out_depth.ptr<float>(423 - y, x));
+      impl_->processPixel(packet.buffer, x, y, impl_->out_ir.ptr<float>(423 - y, x), impl_->out_depth.ptr<float>(423 - y, x));
 
   cv::imshow("ir_out", impl_->out_ir / 20000.0f);
   cv::imshow("depth_out", impl_->out_depth / 4500.0f);

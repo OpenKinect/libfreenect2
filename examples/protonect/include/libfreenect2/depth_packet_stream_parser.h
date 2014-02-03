@@ -32,6 +32,7 @@
 
 #include <libfreenect2/double_buffer.h>
 #include <libfreenect2/depth_packet_processor.h>
+#include <libfreenect2/async_packet_processor.h>
 
 namespace libfreenect2
 {
@@ -55,8 +56,7 @@ public:
 
   void handleNewData(unsigned char* buffer, size_t length);
 private:
-  libfreenect2::DepthPacketProcessor *processor_;
-  libfreenect2::DepthPacket packet_;
+  libfreenect2::AsyncPacketProcessor<libfreenect2::DepthPacket, libfreenect2::DepthPacketProcessor> processor_;
 
   libfreenect2::DoubleBuffer buffer_;
   libfreenect2::Buffer work_buffer_;

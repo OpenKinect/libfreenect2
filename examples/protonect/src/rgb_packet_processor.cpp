@@ -40,68 +40,6 @@ RgbPacketProcessor::~RgbPacketProcessor()
 {
 }
 
-AsyncRgbPacketProcessor::AsyncRgbPacketProcessor() :
-    current_packet_available_(false),
-    current_packet_(0),
-    current_packet_jpeg_buffer_length_(0),
-    shutdown_(false),
-    thread_(boost::bind(&AsyncRgbPacketProcessor::execute, this))
-{
-
-}
-
-AsyncRgbPacketProcessor::~AsyncRgbPacketProcessor()
-{
-  shutdown_ = true;
-  packet_condition_.notify_one();
-
-  thread_.join();
-}
-
-bool AsyncRgbPacketProcessor::ready()
-{
-  // try to aquire lock, if we succeed the background thread is waiting on packet_condition_
-  bool locked = packet_mutex_.try_lock();
-
-  if(locked)
-  {
-    packet_mutex_.unlock();
-  }
-
-  return locked;
-}
-
-void AsyncRgbPacketProcessor::process(RgbPacket *packet, size_t jpeg_buffer_length)
-{
-  {
-    boost::mutex::scoped_lock l(packet_mutex_);
-    current_packet_ = packet;
-    current_packet_jpeg_buffer_length_ = jpeg_buffer_length;
-    current_packet_available_ = true;
-  }
-  packet_condition_.notify_one();
-}
-
-void AsyncRgbPacketProcessor::execute()
-{
-  boost::mutex::scoped_lock l(packet_mutex_);
-
-  while(!shutdown_)
-  {
-    packet_condition_.wait(l);
-
-    if(current_packet_available_)
-    {
-      // invoke process impl
-      doProcess(current_packet_, current_packet_jpeg_buffer_length_);
-
-      current_packet_ = 0;
-      current_packet_jpeg_buffer_length_ = 0;
-      current_packet_available_ = false;
-    }
-  }
-}
-
 DumpRgbPacketProcessor::DumpRgbPacketProcessor()
 {
 }
@@ -110,7 +48,7 @@ DumpRgbPacketProcessor::~DumpRgbPacketProcessor()
 {
 }
 
-void DumpRgbPacketProcessor::doProcess(RgbPacket *packet, size_t jpeg_buffer_length)
+void DumpRgbPacketProcessor::process(const RgbPacket &packet)
 {
   //std::stringstream name;
   //name << packet->sequence << "_" << packet->unknown0 << "_" << jpeg_buffer_length << ".jpeg";

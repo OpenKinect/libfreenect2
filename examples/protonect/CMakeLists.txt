@@ -38,7 +38,6 @@ ADD_EXECUTABLE(Protonect
   src/turbo_jpeg_rgb_packet_processor.cpp
   
   src/depth_packet_stream_parser.cpp
-  src/depth_packet_processor.cpp
   src/cpu_depth_packet_processor.cpp
   
   Protonect.cpp
