@@ -53,7 +53,10 @@ cv::Mat loadTableFromFile(const std::string& filename)
 
   file.close();
 
-  return r;
+  cv::flip(r, r_final, 0);
+  //r = r_final;
+
+  return r_final;
 }
 
 inline int bfi(int width, int offset, int src2, int src3)
@@ -76,6 +79,11 @@ public:
   float min_dealias_confidence, max_dealias_confidence;
   int16_t lut11to16[2048];
 
+  float joint_bilateral_ab_threshold;
+  float joint_bilateral_exp;
+
+  float gaussian_kernel[9];
+
   cv::Mat out_ir;
   cv::Mat out_depth;
 
@@ -83,6 +91,8 @@ public:
   double timing_acc_n;
 
   double timing_current_start;
+
+  bool enable_bilateral_filter;
 
   CpuDepthPacketProcessorImpl()
   {
@@ -97,6 +107,18 @@ public:
     unambigious_dist = 2083.333f;
     ab_output_multiplier = 16.0f;
 
+    joint_bilateral_ab_threshold = 3.0f;
+    joint_bilateral_exp = 5.0f;
+    gaussian_kernel[0] = 0.1069973f;
+    gaussian_kernel[1] = 0.1131098f;
+    gaussian_kernel[2] = 0.1069973f;
+    gaussian_kernel[3] = 0.1131098f;
+    gaussian_kernel[4] = 0.1195715f;
+    gaussian_kernel[5] = 0.1131098f;
+    gaussian_kernel[6] = 0.1069973f;
+    gaussian_kernel[7] = 0.1131098f;
+    gaussian_kernel[8] = 0.1069973f;
+
     individual_ab_threshold = 3.0f;
     ab_threshold = 10.0f;
     ab_confidence_slope = -0.5330578f;
@@ -110,6 +132,8 @@ public:
     timing_acc = 0.0;
     timing_acc_n = 0.0;
     timing_current_start = 0.0;
+
+    enable_bilateral_filter = true;
   }
 
   void startTiming()
@@ -252,7 +276,7 @@ public:
     m[1] = tmp1; // ir ?
   }
 
-  void processPixel(unsigned char* data, int x, int y, float* ir_out, float* depth_out)
+  void processPixelStage1(int x, int y, unsigned char* data, float *m0_out, float *m1_out, float *m2_out)
   {
     int32_t m0_raw[3], m1_raw[3], m2_raw[3];
 
@@ -266,23 +290,103 @@ public:
     m2_raw[1] = decodePixelMeasurement(data, 7, x, y);
     m2_raw[2] = decodePixelMeasurement(data, 8, x, y);
 
-    float m0[3], m1[3], m2[3];
-    processMeasurementTriple(p0_table0, ab_multiplier_per_frq0, x, y, m0_raw, m0);
-    processMeasurementTriple(p0_table1, ab_multiplier_per_frq1, x, y, m1_raw, m1);
-    processMeasurementTriple(p0_table2, ab_multiplier_per_frq2, x, y, m2_raw, m2);
+    processMeasurementTriple(p0_table0, ab_multiplier_per_frq0, x, y, m0_raw, m0_out);
+    processMeasurementTriple(p0_table1, ab_multiplier_per_frq1, x, y, m1_raw, m1_out);
+    processMeasurementTriple(p0_table2, ab_multiplier_per_frq2, x, y, m2_raw, m2_out);
+  }
 
-    float zmultiplier = z_table.at<float>(y, x);
+  void filterPixelStage1(int x, int y, const cv::Mat& m, float* m_out)
+  {
+    const float *m_ptr = m.ptr<float>(y, x);
 
-    // 10th measurement
-    float m9 = 1; // decodePixelMeasurement(data, 9, x, y);
+    if(x < 1 || y < 1 || x > 510 || y > 422)
+    {
+      for(int i = 0; i < 9; ++i)
+        m_out[i] = m_ptr[i];
+    }
+    else
+    {
+      float m_normalized[2];
+      float other_m_normalized[2];
 
-    // WTF?
-    bool cond0 = zmultiplier == 0 || (m9 >= 0 && m9 < 32767);
-    m9 = std::max(-m9, m9);
-    // if m9 is positive or pixel is invalid (zmultiplier) we set it to 0 otherwise to its absolute value O.o
-    m9 = cond0 ? 0 : m9;
+      int offset = 0;
 
-    // TODO: bilateral filtering
+      for(int i = 0; i < 3; ++i, m_ptr += 3, m_out += 3, offset += 3)
+      {
+        float norm2 = m_ptr[0] * m_ptr[0] + m_ptr[1] * m_ptr[1];
+        float inv_norm = 1.0f / std::sqrt(norm2);
+        inv_norm = (inv_norm == inv_norm) ? inv_norm : std::numeric_limits<float>::infinity();
+
+        m_normalized[0] = m_ptr[0] * inv_norm;
+        m_normalized[1] = m_ptr[1] * inv_norm;
+
+        int j = 0;
+
+        float weight_acc = 0.0f;
+        float weighted_m_acc[2] = {0.0f, 0.0f};
+
+        float threshold = (joint_bilateral_ab_threshold * joint_bilateral_ab_threshold) / (ab_multiplier * ab_multiplier);
+        float joint_bilateral_exp = this->joint_bilateral_exp;
+
+        if(norm2 < threshold)
+        {
+          threshold = 0.0f;
+          joint_bilateral_exp = 0.0f;
+        }
+
+        for(int yi = -1; yi < 2; ++yi)
+        {
+          for(int xi = -1; xi < 2; ++xi, ++j)
+          {
+            if(yi == 0 && xi == 0)
+            {
+              weight_acc += gaussian_kernel[j];
+
+              weighted_m_acc[0] += gaussian_kernel[j] * m_ptr[0];
+              weighted_m_acc[1] += gaussian_kernel[j] * m_ptr[1];
+              continue;
+            }
+
+            const float *other_m_ptr = m.ptr<float>(y + yi, x + xi) + offset;
+            float other_norm2 = other_m_ptr[0] * other_m_ptr[0] + other_m_ptr[1] * other_m_ptr[1];
+            // TODO: maybe fix numeric problems when norm = 0 - original code uses reciprocal square root, which returns +inf for +0
+            float other_inv_norm = 1.0f / std::sqrt(other_norm2);
+            other_inv_norm = (other_inv_norm == other_inv_norm) ? other_inv_norm : std::numeric_limits<float>::infinity();
+
+            other_m_normalized[0] = other_m_ptr[0] * other_inv_norm;
+            other_m_normalized[1] = other_m_ptr[1] * other_inv_norm;
+
+            float dist = -(other_m_normalized[0] * m_normalized[0] + other_m_normalized[1] * m_normalized[1]);
+            dist += 1.0f;
+            dist *= 0.5f;
+
+            float weight = other_norm2 < threshold ? 0.0f : (gaussian_kernel[j] * std::exp(-1.442695f * joint_bilateral_exp * dist));
+
+            weighted_m_acc[0] += weight * other_m_ptr[0];
+            weighted_m_acc[1] += weight * other_m_ptr[1];
+
+            weight_acc += weight;
+          }
+        }
+
+        m_out[0] = 0.0f < weight_acc ? weighted_m_acc[0] / weight_acc : 0.0f;
+        m_out[1] = 0.0f < weight_acc ? weighted_m_acc[1] / weight_acc : 0.0f;
+        m_out[2] = m_ptr[2];
+      }
+    }
+  }
+
+  void processPixelStage2(int x, int y, float *m0, float *m1, float *m2, float *ir_out, float *depth_out)
+  {
+
+    //// 10th measurement
+    //float m9 = 1; // decodePixelMeasurement(data, 9, x, y);
+    //
+    //// WTF?
+    //bool cond0 = zmultiplier == 0 || (m9 >= 0 && m9 < 32767);
+    //m9 = std::max(-m9, m9);
+    //// if m9 is positive or pixel is invalid (zmultiplier) we set it to 0 otherwise to its absolute value O.o
+    //m9 = cond0 ? 0 : m9;
 
     transformMeasurements(m0);
     transformMeasurements(m1);
@@ -384,6 +488,7 @@ public:
     }
 
     // this seems to be the phase to depth mapping :)
+    float zmultiplier = z_table.at<float>(y, x);
     float xmultiplier = x_table.at<float>(y, x);
 
     phase = 0 < phase ? phase + phase_offset : phase;
@@ -441,9 +546,12 @@ void CpuDepthPacketProcessor::loadP0TablesFromCommandResponse(unsigned char* buf
     return;
   }
 
-  cv::Mat(424, 512, CV_16UC1, buffer + t0).copyTo(impl_->p0_table0);
-  cv::Mat(424, 512, CV_16UC1, buffer + t1).copyTo(impl_->p0_table1);
-  cv::Mat(424, 512, CV_16UC1, buffer + t2).copyTo(impl_->p0_table2);
+  //cv::Mat(424, 512, CV_16UC1, buffer + t0).copyTo(impl_->p0_table0);
+  //cv::Mat(424, 512, CV_16UC1, buffer + t1).copyTo(impl_->p0_table1);
+  //cv::Mat(424, 512, CV_16UC1, buffer + t2).copyTo(impl_->p0_table2);
+  cv::flip(cv::Mat(424, 512, CV_16UC1, buffer + t0), impl_->p0_table0, 0);
+  cv::flip(cv::Mat(424, 512, CV_16UC1, buffer + t1), impl_->p0_table1, 0);
+  cv::flip(cv::Mat(424, 512, CV_16UC1, buffer + t2), impl_->p0_table2, 0);
 }
 
 void CpuDepthPacketProcessor::loadXTableFromFile(const char* filename)
@@ -475,13 +583,47 @@ void CpuDepthPacketProcessor::process(const DepthPacket &packet)
 {
   impl_->startTiming();
 
+  cv::Mat m = cv::Mat::zeros(424, 512, CV_32FC(9)), m_filtered = cv::Mat::zeros(424, 512, CV_32FC(9));
+
+  float *m_ptr = m.ptr<float>();
+
   for(int y = 0; y < 424; ++y)
-    for(int x = 0; x < 512; ++x)
-      impl_->processPixel(packet.buffer, x, y, impl_->out_ir.ptr<float>(423 - y, x), impl_->out_depth.ptr<float>(423 - y, x));
+    for(int x = 0; x < 512; ++x, m_ptr += 9)
+    {
+      impl_->processPixelStage1(x, y, packet.buffer, m_ptr + 0, m_ptr + 3, m_ptr + 6);
+    }
+
+  // bilateral filtering
+  if(impl_->enable_bilateral_filter)
+  {
+    float *m_filtered_ptr = m_filtered.ptr<float>();
+    for(int y = 0; y < 424; ++y)
+      for(int x = 0; x < 512; ++x, m_filtered_ptr += 9)
+      {
+        impl_->filterPixelStage1(x, y, m, m_filtered_ptr);
+      }
+
+    m_ptr = m_filtered.ptr<float>();
+  }
+  else
+  {
+    m_ptr = m.ptr<float>();
+  }
+
+  for(int y = 0; y < 424; ++y)
+    for(int x = 0; x < 512; ++x, m_ptr += 9)
+    {
+      impl_->processPixelStage2(x, y, m_ptr + 0, m_ptr + 3, m_ptr + 6, impl_->out_ir.ptr<float>(423 - y, x), impl_->out_depth.ptr<float>(423 - y, x));
+    }
 
   cv::imshow("ir_out", impl_->out_ir / 20000.0f);
   cv::imshow("depth_out", impl_->out_depth / 4500.0f);
-  cv::waitKey(1);
+  uint8_t k = cv::waitKey(1);
+
+  if(k == 98)
+  {
+    impl_->enable_bilateral_filter = !impl_->enable_bilateral_filter;
+  }
 
   impl_->stopTiming();
 }
