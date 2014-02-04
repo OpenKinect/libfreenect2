@@ -39,48 +39,25 @@ struct DepthPacket
 {
   uint32_t sequence;
   unsigned char *buffer;
+  size_t buffer_length;
 };
 
 class DepthPacketProcessor
 {
 public:
-  DepthPacketProcessor();
-  virtual ~DepthPacketProcessor();
+  DepthPacketProcessor() {};
+  virtual ~DepthPacketProcessor() {};
 
-  virtual bool ready() = 0;
-  virtual void process(DepthPacket *packet, size_t buffer_length) = 0;
+  virtual void process(const DepthPacket &packet) = 0;
 
   virtual void loadP0TablesFromCommandResponse(unsigned char* buffer, size_t buffer_length) = 0;
-};
-
-class AsyncDepthPacketProcessor : public DepthPacketProcessor
-{
-public:
-  AsyncDepthPacketProcessor();
-  virtual ~AsyncDepthPacketProcessor();
-
-  virtual bool ready();
-  virtual void process(DepthPacket *packet, size_t buffer_length);
-protected:
-  virtual void doProcess(DepthPacket *packet, size_t buffer_length) = 0;
-private:
-  bool current_packet_available_;
-  DepthPacket *current_packet_;
-  size_t current_packet_buffer_length_;
-
-  bool shutdown_;
-  boost::mutex packet_mutex_;
-  boost::condition_variable packet_condition_;
-  boost::thread thread_;
-
-  void execute();
 };
 
 // TODO: push this to some internal namespace
 // use pimpl to hide opencv dependency
 class CpuDepthPacketProcessorImpl;
 
-class CpuDepthPacketProcessor : public AsyncDepthPacketProcessor
+class CpuDepthPacketProcessor : public DepthPacketProcessor
 {
 public:
   CpuDepthPacketProcessor();
@@ -97,9 +74,8 @@ public:
   void loadZTableFromFile(const char* filename);
 
   void load11To16LutFromFile(const char* filename);
-protected:
-  virtual void doProcess(DepthPacket *packet, size_t buffer_length);
 
+  virtual void process(const DepthPacket &packet);
 private:
   CpuDepthPacketProcessorImpl *impl_;
 };

@@ -337,6 +337,10 @@ int KReadData22_4(libusb_device_handle *handle)
   if (data != NULL)
   {
     //TODO parse data
+    float *params = reinterpret_cast<float *>(data + 1);
+    for(size_t i = 0; i < 30; ++i)
+      std::cout << params[i] << std::endl;
+
     delete[] data;
   }
 
@@ -662,7 +666,8 @@ int main(int argc, char *argv[])
   libfreenect2::usb::EventLoop usb_loop;
   usb_loop.start();
 
-  libfreenect2::TurboJpegRgbPacketProcessor rgb_processor;
+  libfreenect2::DumpRgbPacketProcessor rgb_processor;
+  //libfreenect2::TurboJpegRgbPacketProcessor rgb_processor;
   libfreenect2::RgbPacketStreamParser rgb_packet_stream_parser(&rgb_processor);
 
   libfreenect2::usb::BulkTransferPool rgb_bulk_transfers(handle, 0x83);

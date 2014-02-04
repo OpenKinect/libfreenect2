@@ -31,6 +31,16 @@
 namespace libfreenect2
 {
 
+
+struct RawRgbPacket
+{
+  uint32_t sequence;
+  uint32_t unknown0;
+
+  unsigned char jpeg_buffer[0];
+};
+
+
 RgbPacketStreamParser::RgbPacketStreamParser(libfreenect2::RgbPacketProcessor* processor) :
     processor_(processor)
 {
@@ -63,16 +73,19 @@ void RgbPacketStreamParser::handleNewData(unsigned char* buffer, size_t length)
     if(length < 0x4000 && fb.length > sizeof(RgbPacket))
     {
       // can the processor handle the next image?
-      if(processor_->ready())
+      if(processor_.ready())
       {
         buffer_.swap();
         Buffer &bb = buffer_.back();
 
-        RgbPacket *rgb_packet = reinterpret_cast<RgbPacket *>(bb.data);
-        size_t jpeg_buffer_length = bb.length - sizeof(RgbPacket);
+        RawRgbPacket *raw_packet = reinterpret_cast<RawRgbPacket *>(bb.data);
+        RgbPacket rgb_packet;
+        rgb_packet.sequence = raw_packet->sequence;
+        rgb_packet.jpeg_buffer = raw_packet->jpeg_buffer;
+        rgb_packet.jpeg_buffer_length = bb.length - sizeof(RawRgbPacket);
 
         // call the processor
-        processor_->process(rgb_packet, jpeg_buffer_length);
+        processor_.process(rgb_packet);
       }
       else
       {

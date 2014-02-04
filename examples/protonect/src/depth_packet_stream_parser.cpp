@@ -99,14 +99,16 @@ void DepthPacketStreamParser::handleNewData(unsigned char* buffer, size_t in_len
         {
           if(current_subsequence_ == 0x3ff)
           {
-            if(processor_->ready())
+            if(processor_.ready())
             {
               buffer_.swap();
 
-              packet_.sequence = current_sequence_;
-              packet_.buffer = buffer_.back().data;
+              DepthPacket packet;
+              packet.sequence = current_sequence_;
+              packet.buffer = buffer_.back().data;
+              packet.buffer_length = buffer_.back().length;
 
-              processor_->process(&packet_, buffer_.back().length);
+              processor_.process(packet);
             }
             else
             {

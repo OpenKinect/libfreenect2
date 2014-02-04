@@ -31,6 +31,7 @@
 
 #include <libfreenect2/double_buffer.h>
 #include <libfreenect2/rgb_packet_processor.h>
+#include <libfreenect2/async_packet_processor.h>
 
 namespace libfreenect2
 {
@@ -44,7 +45,7 @@ public:
   void handleNewData(unsigned char* buffer, size_t length);
 private:
   libfreenect2::DoubleBuffer buffer_;
-  libfreenect2::RgbPacketProcessor *processor_;
+  libfreenect2::AsyncPacketProcessor<libfreenect2::RgbPacket, libfreenect2::RgbPacketProcessor> processor_;
 };
 
 } /* namespace libfreenect2 */

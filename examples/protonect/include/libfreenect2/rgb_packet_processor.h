@@ -30,17 +30,15 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include <boost/thread.hpp>
-
 namespace libfreenect2
 {
 
 struct RgbPacket
 {
   uint32_t sequence;
-  uint32_t unknown0;
 
-  unsigned char jpeg_buffer[0];
+  unsigned char *jpeg_buffer;
+  size_t jpeg_buffer_length;
 };
 
 class RgbPacketProcessor
@@ -49,53 +47,27 @@ public:
   RgbPacketProcessor();
   virtual ~RgbPacketProcessor();
 
-  virtual bool ready() = 0;
-  virtual void process(RgbPacket *packet, size_t jpeg_buffer_length) = 0;
+  virtual void process(const libfreenect2::RgbPacket &packet) = 0;
 };
 
-// TODO: maybe make AsyncRgbPacketProcessor a decorator of another RgbPacketProcessor,
-// so we don't need to subclass this one
-class AsyncRgbPacketProcessor : public RgbPacketProcessor
-{
-public:
-  AsyncRgbPacketProcessor();
-  virtual ~AsyncRgbPacketProcessor();
-
-  virtual bool ready();
-  virtual void process(RgbPacket *packet, size_t jpeg_buffer_length);
-protected:
-  virtual void doProcess(RgbPacket *packet, size_t jpeg_buffer_length) = 0;
-private:
-  bool current_packet_available_;
-  RgbPacket *current_packet_;
-  size_t current_packet_jpeg_buffer_length_;
-
-  bool shutdown_;
-  boost::mutex packet_mutex_;
-  boost::condition_variable packet_condition_;
-  boost::thread thread_;
-
-  void execute();
-};
-
-class DumpRgbPacketProcessor : public AsyncRgbPacketProcessor
+class DumpRgbPacketProcessor : public RgbPacketProcessor
 {
 public:
   DumpRgbPacketProcessor();
   virtual ~DumpRgbPacketProcessor();
 protected:
-  virtual void doProcess(RgbPacket *packet, size_t jpeg_buffer_length);
+  virtual void process(const libfreenect2::RgbPacket &packet);
 };
 
 class TurboJpegRgbPacketProcessorImpl;
 
-class TurboJpegRgbPacketProcessor : public AsyncRgbPacketProcessor
+class TurboJpegRgbPacketProcessor : public RgbPacketProcessor
 {
 public:
   TurboJpegRgbPacketProcessor();
   virtual ~TurboJpegRgbPacketProcessor();
 protected:
-  virtual void doProcess(RgbPacket *packet, size_t jpeg_buffer_length);
+  virtual void process(const libfreenect2::RgbPacket &packet);
 private:
   TurboJpegRgbPacketProcessorImpl *impl_;
 };

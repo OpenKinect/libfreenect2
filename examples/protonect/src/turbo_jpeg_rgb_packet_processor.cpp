@@ -99,13 +99,13 @@ TurboJpegRgbPacketProcessor::~TurboJpegRgbPacketProcessor()
   delete impl_;
 }
 
-void TurboJpegRgbPacketProcessor::doProcess(RgbPacket *packet, size_t jpeg_buffer_length)
+void TurboJpegRgbPacketProcessor::process(const RgbPacket &packet)
 {
   if(impl_->decompressor != 0)
   {
     impl_->startTiming();
 
-    int r = tjDecompress2(impl_->decompressor, packet->jpeg_buffer, jpeg_buffer_length, impl_->out.data, 1920, 1920 * tjPixelSize[TJPF_BGR], 1080, TJPF_BGR, 0);
+    int r = tjDecompress2(impl_->decompressor, packet.jpeg_buffer, packet.jpeg_buffer_length, impl_->out.data, 1920, 1920 * tjPixelSize[TJPF_BGR], 1080, TJPF_BGR, 0);
 
     if(r == 0)
     {
