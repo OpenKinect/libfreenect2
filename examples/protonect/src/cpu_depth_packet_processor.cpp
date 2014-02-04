@@ -25,7 +25,7 @@
  */
 
 #include <libfreenect2/depth_packet_processor.h>
-#include "p0tables.h"
+#include <libfreenect2/tables.h>
 
 #include <opencv2/opencv.hpp>
 #include <fstream>
