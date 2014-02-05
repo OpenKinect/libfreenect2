@@ -40,6 +40,7 @@
 
 #include <boost/bind.hpp>
 
+#include <libfreenect2/tables.h>
 #include <libfreenect2/usb/event_loop.h>
 #include <libfreenect2/usb/transfer_pool.h>
 #include <libfreenect2/rgb_packet_stream_parser.h>
@@ -340,25 +341,6 @@ int KReadP0Tables(libusb_device_handle *handle, libfreenect2::DepthPacketProcess
 
   return res;
 }
-
-struct DepthCameraParams {
-
-  // intrinsics (this is pretty certain)
-  float fx;
-  float fy;
-  float unknown1; // assumed to be always zero
-  float cx;
-  float cy;
-
-  // radial distortion (educated guess based on calibration data from Kinect SDK)
-  float k1;
-  float k2;
-  float p1; // always seen as zero so far, so purely a guess
-  float p2; // always seen as zero so far, so purely a guess
-  float k3;
-
-  float unknown2[13]; // assumed to be always zero
-};
 
 int KReadDepthCameraParams(libusb_device_handle *handle)
 {

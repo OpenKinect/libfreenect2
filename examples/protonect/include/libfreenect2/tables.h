@@ -24,9 +24,10 @@
  * either License.
  */
 
-#ifndef _P0TABLES_H_
-#define _P0TABLES_H_
+#ifndef _TABLES_H_
+#define _TABLES_H_
 
+// "P0" coefficient tables, input to the deconvolution code
 struct __attribute__ ((__packed__)) p0tables {
 
 	uint32_t headersize;
@@ -53,4 +54,25 @@ struct __attribute__ ((__packed__)) p0tables {
 	uint8_t  unknownD[];
 };
 
-#endif // _P0TABLES_H_
+
+// depth camera intrinsic & distortion parameters
+struct DepthCameraParams {
+
+  // intrinsics (this is pretty certain)
+  float fx;
+  float fy;
+  float unknown1; // assumed to be always zero
+  float cx;
+  float cy;
+
+  // radial distortion (educated guess based on calibration data from Kinect SDK)
+  float k1;
+  float k2;
+  float p1; // always seen as zero so far, so purely a guess
+  float p2; // always seen as zero so far, so purely a guess
+  float k3;
+
+  float unknown2[13]; // assumed to be always zero
+};
+
+#endif // _TABLES_H_
