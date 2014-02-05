@@ -40,6 +40,7 @@
 
 #include <boost/bind.hpp>
 
+#include <libfreenect2/tables.h>
 #include <libfreenect2/usb/event_loop.h>
 #include <libfreenect2/usb/transfer_pool.h>
 #include <libfreenect2/rgb_packet_stream_parser.h>
@@ -258,6 +259,29 @@ int KGenericCommand(libusb_device_handle *handle, int command, int parameter, in
   return transferred;
 }
 
+void hexdump( uint8_t* buffer, int size, const char* info ) {
+  printf("dumping %d bytes of raw data from command %s: \n",size,info);
+  int lines = size >> 4;
+  if (size % 16 != 0) lines += 1;
+  for (int i = 0; i < lines; i++)
+  {
+    printf("0x%04x:  ", i*16);
+    for (int j = 0; j < 16; j++)
+    {
+      if (j < size) printf("%02x ",buffer[i*16+j]);
+      else printf("   ");
+    }
+    printf("    ");
+    for (int j = 0; (j < 16) && (j < size); j++)
+    {
+      char c = buffer[i*16+j];
+      printf("%c",(((c<32)||(c>128))?'.':c));
+    }
+    printf("\n");
+    size -= 16;
+  }
+}
+
 int KReadData02(libusb_device_handle *handle)
 {
   uint8_t* data = NULL;
@@ -266,6 +290,7 @@ int KReadData02(libusb_device_handle *handle)
   if (data != NULL)
   {
     //TODO parse data
+    hexdump(data,res,"KCMD_READ_DATA1");
     delete[] data;
   }
 
@@ -280,6 +305,7 @@ int KReadData14(libusb_device_handle *handle)
   if (data != NULL)
   {
     //TODO parse data
+    hexdump(data,res,"KCMD_READ_VERSIONS");
     delete[] data;
   }
 
@@ -294,6 +320,7 @@ int KReadData22_1(libusb_device_handle *handle)
   if (data != NULL)
   {
     //TODO parse data
+    hexdump(data,res,"KCMD_READ_DATA_PAGE 0x01");
     delete[] data;
   }
 
@@ -315,32 +342,36 @@ int KReadP0Tables(libusb_device_handle *handle, libfreenect2::DepthPacketProcess
   return res;
 }
 
-int KReadData22_3(libusb_device_handle *handle)
+int KReadDepthCameraParams(libusb_device_handle *handle)
 {
   uint8_t* data = NULL;
   int res = KGenericCommand(handle, KCMD_READ_DATA_PAGE, 0x03, 24, 0x1C0000, &data);
 
   if (data != NULL)
   {
-    //TODO parse data
+    if (res == sizeof(DepthCameraParams)) {
+      DepthCameraParams* dp = (DepthCameraParams*)data;
+      printf("depth camera intrinsic parameters: fx %f, fy %f, cx %f, cy %f\n",dp->fx,dp->fy,dp->cx,dp->cy);
+      printf("depth camera radial distortion coeffs: k1 %f, k2 %f, p1 %f, p2 %f, k3 %f\n",dp->k1,dp->k2,dp->p1,dp->p2,dp->k3);
+    }
     delete[] data;
   }
 
   return res;
 }
 
-int KReadData22_4(libusb_device_handle *handle)
+int KReadCameraParams(libusb_device_handle *handle)
 {
   uint8_t* data = NULL;
   int res = KGenericCommand(handle, KCMD_READ_DATA_PAGE, 0x04, 24, 0x1C0000, &data);
 
   if (data != NULL)
   {
-    //TODO parse data
-    float *params = reinterpret_cast<float *>(data + 1);
-    for(size_t i = 0; i < 30; ++i)
-      std::cout << params[i] << std::endl;
-
+    if (res == sizeof(CameraParams)) {
+      CameraParams* cp = (CameraParams*)data;
+      for(size_t i = 0; i < 25; ++i)
+        std::cout << cp->intrinsics[i] << std::endl;
+    }
     delete[] data;
   }
 
@@ -527,11 +558,11 @@ void RunKinect(libusb_device_handle *handle, libfreenect2::DepthPacketProcessor&
 
   r = KReadData22_1(handle);
 
-  r = KReadData22_3(handle);
+  r = KReadDepthCameraParams(handle);
 
   r = KReadP0Tables(handle, depth_processor);
 
-  r = KReadData22_4(handle);
+  r = KReadCameraParams(handle);
 
   r = KReadStatus90000(handle);
 
