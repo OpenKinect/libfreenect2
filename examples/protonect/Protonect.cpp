@@ -289,6 +289,27 @@ int KReadData02(libusb_device_handle *handle)
 
   if (data != NULL)
   {
+
+    /**
+     * somehow related to firmware version?
+     *
+     * 7 blocks
+     *
+     * 01 00 uint16 = 1
+     * 5A 0B uint16 = 2906
+     * F6 0C uint16 = 3318
+     *
+     * my firmware version reported by SDK 1 1 3318 0 7 - coincidence?
+     *
+     * 01 00 01 00 5A 0B 00 00 00 00 00 00 00 00 00 00
+     * 01 00 01 00 F6 0C 00 00 00 00 00 00 00 00 00 00
+     * 01 00 01 00 F6 0C 00 00 00 00 00 00 00 00 00 00
+     * 01 00 01 00 F6 0C 00 00 00 00 00 00 00 00 00 00
+     * 01 00 01 00 5A 0B 00 00 00 00 00 00 00 00 00 00
+     * 01 00 01 00 F6 0C 00 00 00 00 00 00 00 00 00 00
+     * 01 00 01 00 F6 0C 00 00 00 00 00 00 00 00 00 00
+     *
+     */
     //TODO parse data
     hexdump(data,res,"KCMD_READ_DATA1");
     delete[] data;
@@ -317,9 +338,11 @@ int KReadData22_1(libusb_device_handle *handle)
   uint8_t* data = NULL;
   int res = KGenericCommand(handle, KCMD_READ_DATA_PAGE, 0x01, 24, 0x80, &data);
 
+
+
   if (data != NULL)
   {
-    //TODO parse data
+    // serial number as 0 terminated string?!
     hexdump(data,res,"KCMD_READ_DATA_PAGE 0x01");
     delete[] data;
   }
