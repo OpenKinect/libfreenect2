@@ -16,7 +16,10 @@ winiso = Windows isochronous modifications by Joshua Blake <joshblake@gmail.com>
 3. Done
 
 = Ubuntu
-libusbx 1.0.17 with superspeed patch by Joshua Blake <joshblake@gmail.com> see https://github.com/JoshBlake/libusbx/tree/superspeed
+kernel 3.10+
+libusbx 1.0.17 
+  with superspeed patch by Joshua Blake <joshblake@gmail.com> see https://github.com/JoshBlake/libusbx/tree/superspeed
+  with MAX_ISO_BUFFER_LENGTH increased to 49152 in libusb/os/libusb_usbfs.h
 turbojpeg
 boost threads
 opencv
