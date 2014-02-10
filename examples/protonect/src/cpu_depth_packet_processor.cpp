@@ -88,6 +88,14 @@ public:
   cv::Mat out_ir;
   cv::Mat out_depth;
 
+  cv::Mat* sin_tables0[3];
+  cv::Mat* sin_tables1[3];
+  cv::Mat* sin_tables2[3];
+
+  cv::Mat* cos_tables0[3];
+  cv::Mat* cos_tables1[3];
+  cv::Mat* cos_tables2[3];
+
   double timing_acc;
   double timing_acc_n;
 
@@ -129,6 +137,17 @@ public:
 
     out_ir = cv::Mat(424, 512, CV_32FC1);
     out_depth = cv::Mat(424, 512, CV_32FC1);
+
+    for (int i = 0; i < 3; i++)
+    {
+      sin_tables0[i] = new cv::Mat(424,512,CV_32FC1);
+      sin_tables1[i] = new cv::Mat(424,512,CV_32FC1);
+      sin_tables2[i] = new cv::Mat(424,512,CV_32FC1);
+
+      cos_tables0[i] = new cv::Mat(424,512,CV_32FC1);
+      cos_tables1[i] = new cv::Mat(424,512,CV_32FC1);
+      cos_tables2[i] = new cv::Mat(424,512,CV_32FC1);
+    }
 
     timing_acc = 0.0;
     timing_acc_n = 0.0;
@@ -219,21 +238,35 @@ public:
     return lut11to16[((i1 | i2) & 2047)];
   }
 
-  void processMeasurementTriple(cv::Mat& P0Table, float abMultiplierPerFrq, int x, int y, const int32_t* m, float* m_out)
+  void fill_trig_tables(cv::Mat& p0table, cv::Mat* cos_table[], cv::Mat* sin_table[])
   {
-    float p0 = -((float)P0Table.at<uint16_t>(y, x)) * 0.000031 * M_PI;
+    for (int i = 0; i < 512*424; i++)
+    {
+      float p0 = -((float)p0table.at<uint16_t>(i)) * 0.000031 * M_PI;
 
-    float tmp0 = p0 + phase_in_rad0;
-    float tmp1 = p0 + phase_in_rad1;
-    float tmp2 = p0 + phase_in_rad2;
+      float tmp0 = p0 + phase_in_rad0;
+      float tmp1 = p0 + phase_in_rad1;
+      float tmp2 = p0 + phase_in_rad2;
 
-    float cos_tmp0 = std::cos(tmp0);
-    float cos_tmp1 = std::cos(tmp1);
-    float cos_tmp2 = std::cos(tmp2);
+      cos_table[0]->at<float>(i) = std::cos(tmp0);
+      cos_table[1]->at<float>(i) = std::cos(tmp1);
+      cos_table[2]->at<float>(i) = std::cos(tmp2);
 
-    float sin_negtmp0 = std::sin(-tmp0);
-    float sin_negtmp1 = std::sin(-tmp1);
-    float sin_negtmp2 = std::sin(-tmp2);
+      sin_table[0]->at<float>(i) = std::sin(-tmp0);
+      sin_table[1]->at<float>(i) = std::sin(-tmp1);
+      sin_table[2]->at<float>(i) = std::sin(-tmp2);
+    }
+  }
+
+  void processMeasurementTriple(cv::Mat* cos_table[], cv::Mat* sin_table[], float abMultiplierPerFrq, int x, int y, const int32_t* m, float* m_out)
+  {
+    float cos_tmp0 = cos_table[0]->at<float>(y,x);
+    float cos_tmp1 = cos_table[1]->at<float>(y,x);
+    float cos_tmp2 = cos_table[2]->at<float>(y,x);
+
+    float sin_negtmp0 = sin_table[0]->at<float>(y,x);
+    float sin_negtmp1 = sin_table[1]->at<float>(y,x);
+    float sin_negtmp2 = sin_table[2]->at<float>(y,x);
 
     float zmultiplier = z_table.at<float>(y, x);
     bool cond0 = 0 < zmultiplier;
@@ -291,9 +324,9 @@ public:
     m2_raw[1] = decodePixelMeasurement(data, 7, x, y);
     m2_raw[2] = decodePixelMeasurement(data, 8, x, y);
 
-    processMeasurementTriple(p0_table0, ab_multiplier_per_frq0, x, y, m0_raw, m0_out);
-    processMeasurementTriple(p0_table1, ab_multiplier_per_frq1, x, y, m1_raw, m1_out);
-    processMeasurementTriple(p0_table2, ab_multiplier_per_frq2, x, y, m2_raw, m2_out);
+    processMeasurementTriple(cos_tables0, sin_tables0, ab_multiplier_per_frq0, x, y, m0_raw, m0_out);
+    processMeasurementTriple(cos_tables1, sin_tables1, ab_multiplier_per_frq1, x, y, m1_raw, m1_out);
+    processMeasurementTriple(cos_tables2, sin_tables2, ab_multiplier_per_frq2, x, y, m2_raw, m2_out);
   }
 
   void filterPixelStage1(int x, int y, const cv::Mat& m, float* m_out)
@@ -552,6 +585,10 @@ void CpuDepthPacketProcessor::loadP0TablesFromCommandResponse(unsigned char* buf
   cv::flip(cv::Mat(424, 512, CV_16UC1, p0table->p0table0), impl_->p0_table0, 0);
   cv::flip(cv::Mat(424, 512, CV_16UC1, p0table->p0table1), impl_->p0_table1, 0);
   cv::flip(cv::Mat(424, 512, CV_16UC1, p0table->p0table2), impl_->p0_table2, 0);
+
+  impl_->fill_trig_tables(impl_->p0_table0, impl_->cos_tables0, impl_->sin_tables0);
+  impl_->fill_trig_tables(impl_->p0_table1, impl_->cos_tables1, impl_->sin_tables1);
+  impl_->fill_trig_tables(impl_->p0_table2, impl_->cos_tables2, impl_->sin_tables2);
 }
 
 void CpuDepthPacketProcessor::loadXTableFromFile(const char* filename)
