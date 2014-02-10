@@ -22,8 +22,8 @@ INCLUDE_DIRECTORIES(${OpenCV_INCLUDE_DIR})
 INCLUDE_DIRECTORIES( ${Boost_INCLUDE_DIR} )
 
 # LibUSB
-INCLUDE_DIRECTORIES("${MY_DIR}/../../libusb/include/libusb-1.0/")
-LINK_DIRECTORIES("${MY_DIR}/../../libusb/lib/")
+INCLUDE_DIRECTORIES("${MY_DIR}/../../depends/libusbx/include/libusb-1.0/")
+LINK_DIRECTORIES("${MY_DIR}/../../depends/libusbx/lib/")
 
 INCLUDE_DIRECTORIES("${MY_DIR}/include")
 

@@ -15,6 +15,15 @@ winiso = Windows isochronous modifications by Joshua Blake <joshblake@gmail.com>
 ./depends/libusbx/MS64/
 3. Done
 
+= Ubuntu
+libusbx 1.0.17 with superspeed patch by Joshua Blake <joshblake@gmail.com> see https://github.com/JoshBlake/libusbx/tree/superspeed
+turbojpeg
+boost threads
+boost signals
+opencv
+
+run ./depends/install_ubuntu.sh
+
 = Non-Windows
 libusbx 1.0.17 or later
 http://libusbx.org/
