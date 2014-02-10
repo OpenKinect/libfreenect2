@@ -34,6 +34,8 @@
 #include <libfreenect2/depth_packet_processor.h>
 #include <libfreenect2/async_packet_processor.h>
 
+#include <libfreenect2/usb/transfer_pool.h>
+
 namespace libfreenect2
 {
 
@@ -48,13 +50,13 @@ struct DepthSubPacketFooter
   uint32_t fields[32];
 };
 
-class DepthPacketStreamParser
+class DepthPacketStreamParser : public libfreenect2::usb::TransferPool::DataReceivedCallback
 {
 public:
   DepthPacketStreamParser(libfreenect2::DepthPacketProcessor *processor);
   virtual ~DepthPacketStreamParser();
 
-  void handleNewData(unsigned char* buffer, size_t length);
+  virtual void onDataReceived(unsigned char* buffer, size_t length);
 private:
   libfreenect2::AsyncPacketProcessor<libfreenect2::DepthPacket, libfreenect2::DepthPacketProcessor> processor_;
 

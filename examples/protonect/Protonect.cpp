@@ -726,7 +726,7 @@ int main(int argc, char *argv[])
 
   libfreenect2::usb::BulkTransferPool rgb_bulk_transfers(handle, 0x83);
   rgb_bulk_transfers.allocate(50, 0x4000);
-  rgb_bulk_transfers.onDataReceived.connect(boost::bind(&libfreenect2::RgbPacketStreamParser::handleNewData, &rgb_packet_stream_parser, _1, _2));
+  rgb_bulk_transfers.setCallback(&rgb_packet_stream_parser);
   rgb_bulk_transfers.enableSubmission();
 
   libfreenect2::CpuDepthPacketProcessor depth_processor;
@@ -741,7 +741,7 @@ int main(int argc, char *argv[])
 
   libfreenect2::usb::IsoTransferPool depth_iso_transfers(handle, 0x84);
   depth_iso_transfers.allocate(80, 8, max_packet_size);
-  depth_iso_transfers.onDataReceived.connect(boost::bind(&libfreenect2::DepthPacketStreamParser::handleNewData, &depth_packet_stream_parser, _1, _2));
+  depth_iso_transfers.setCallback(&depth_packet_stream_parser);
   depth_iso_transfers.enableSubmission();
 
   r = libusb_get_device_speed(dev);

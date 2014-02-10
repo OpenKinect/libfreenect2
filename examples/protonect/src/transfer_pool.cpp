@@ -26,6 +26,7 @@
 
 #include <libfreenect2/usb/transfer_pool.h>
 #include <iostream>
+#include <algorithm>
 
 namespace libfreenect2
 {
@@ -33,6 +34,7 @@ namespace usb
 {
 
 TransferPool::TransferPool(libusb_device_handle* device_handle, unsigned char device_endpoint) :
+    callback_(0),
     device_handle_(device_handle),
     device_endpoint_(device_endpoint),
     buffer_(0),
@@ -120,6 +122,11 @@ void TransferPool::cancel()
   //idle_transfers_.insert(idle_transfers_.end(), pending_transfers_.begin(), pending_transfers_.end());
 }
 
+void TransferPool::setCallback(TransferPool::DataReceivedCallback *callback)
+{
+  callback_ = callback;
+}
+
 void TransferPool::allocateTransfers(size_t num_transfers, size_t transfer_size)
 {
   buffer_size_ = num_transfers * transfer_size;
@@ -201,7 +208,8 @@ void BulkTransferPool::processTransfer(libusb_transfer* transfer)
 {
   if(transfer->status != LIBUSB_TRANSFER_COMPLETED) return;
 
-  onDataReceived(transfer->buffer, transfer->actual_length);
+  if(callback_)
+    callback_->onDataReceived(transfer->buffer, transfer->actual_length);
 }
 
 IsoTransferPool::IsoTransferPool(libusb_device_handle* device_handle, unsigned char device_endpoint) :
@@ -244,7 +252,8 @@ void IsoTransferPool::processTransfer(libusb_transfer* transfer)
   {
     if(transfer->iso_packet_desc[i].status != LIBUSB_TRANSFER_COMPLETED) continue;
 
-    onDataReceived(ptr, transfer->iso_packet_desc[i].actual_length);
+    if(callback_)
+      callback_->onDataReceived(ptr, transfer->iso_packet_desc[i].actual_length);
 
     ptr += transfer->iso_packet_desc[i].length;
   }

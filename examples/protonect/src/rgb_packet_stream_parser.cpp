@@ -51,7 +51,7 @@ RgbPacketStreamParser::~RgbPacketStreamParser()
 {
 }
 
-void RgbPacketStreamParser::handleNewData(unsigned char* buffer, size_t length)
+void RgbPacketStreamParser::onDataReceived(unsigned char* buffer, size_t length)
 {
   Buffer &fb = buffer_.front();
 

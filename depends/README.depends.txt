@@ -19,7 +19,6 @@ winiso = Windows isochronous modifications by Joshua Blake <joshblake@gmail.com>
 libusbx 1.0.17 with superspeed patch by Joshua Blake <joshblake@gmail.com> see https://github.com/JoshBlake/libusbx/tree/superspeed
 turbojpeg
 boost threads
-boost signals
 opencv
 
 run ./depends/install_ubuntu.sh

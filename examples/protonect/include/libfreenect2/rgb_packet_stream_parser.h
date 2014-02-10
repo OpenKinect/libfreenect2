@@ -33,16 +33,18 @@
 #include <libfreenect2/rgb_packet_processor.h>
 #include <libfreenect2/async_packet_processor.h>
 
+#include <libfreenect2/usb/transfer_pool.h>
+
 namespace libfreenect2
 {
 
-class RgbPacketStreamParser
+class RgbPacketStreamParser : public libfreenect2::usb::TransferPool::DataReceivedCallback
 {
 public:
   RgbPacketStreamParser(libfreenect2::RgbPacketProcessor* processor);
   virtual ~RgbPacketStreamParser();
 
-  void handleNewData(unsigned char* buffer, size_t length);
+  virtual void onDataReceived(unsigned char* buffer, size_t length);
 private:
   libfreenect2::DoubleBuffer buffer_;
   libfreenect2::AsyncPacketProcessor<libfreenect2::RgbPacket, libfreenect2::RgbPacketProcessor> processor_;
