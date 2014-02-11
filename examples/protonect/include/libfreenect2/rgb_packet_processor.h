@@ -30,6 +30,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include <libfreenect2/frame_listener.h>
+
 namespace libfreenect2
 {
 
@@ -47,7 +49,11 @@ public:
   RgbPacketProcessor();
   virtual ~RgbPacketProcessor();
 
+  virtual void setFrameListener(libfreenect2::FrameListener *listener);
   virtual void process(const libfreenect2::RgbPacket &packet) = 0;
+
+protected:
+  libfreenect2::FrameListener *listener_;
 };
 
 class DumpRgbPacketProcessor : public RgbPacketProcessor

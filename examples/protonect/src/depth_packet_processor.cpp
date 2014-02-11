@@ -24,44 +24,24 @@
  * either License.
  */
 
-#include <libfreenect2/rgb_packet_processor.h>
-
-#include <fstream>
-#include <string>
+#include <libfreenect2/depth_packet_processor.h>
 
 namespace libfreenect2
 {
 
-RgbPacketProcessor::RgbPacketProcessor() :
+DepthPacketProcessor::DepthPacketProcessor() :
     listener_(0)
 {
 }
 
-RgbPacketProcessor::~RgbPacketProcessor()
+DepthPacketProcessor::~DepthPacketProcessor()
 {
 }
 
-void RgbPacketProcessor::setFrameListener(libfreenect2::FrameListener *listener)
+void DepthPacketProcessor::setFrameListener(libfreenect2::FrameListener *listener)
 {
   listener_ = listener;
 }
 
-DumpRgbPacketProcessor::DumpRgbPacketProcessor()
-{
-}
-
-DumpRgbPacketProcessor::~DumpRgbPacketProcessor()
-{
-}
-
-void DumpRgbPacketProcessor::process(const RgbPacket &packet)
-{
-  //std::stringstream name;
-  //name << packet->sequence << "_" << packet->unknown0 << "_" << jpeg_buffer_length << ".jpeg";
-  //
-  //std::ofstream file(name.str().c_str());
-  //file.write(reinterpret_cast<char *>(packet->jpeg_buffer), jpeg_buffer_length);
-  //file.close();
-}
 
 } /* namespace libfreenect2 */

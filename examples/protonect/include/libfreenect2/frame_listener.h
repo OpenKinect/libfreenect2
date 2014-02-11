@@ -24,44 +24,64 @@
  * either License.
  */
 
-#include <libfreenect2/rgb_packet_processor.h>
+#ifndef FRAME_LISTENER_H_
+#define FRAME_LISTENER_H_
 
-#include <fstream>
-#include <string>
+#include <map>
+#include <boost/thread.hpp>
 
 namespace libfreenect2
 {
 
-RgbPacketProcessor::RgbPacketProcessor() :
-    listener_(0)
+struct Frame
 {
-}
+  enum Type
+  {
+    Color = 1,
+    Ir = 2,
+    Depth = 4
+  };
 
-RgbPacketProcessor::~RgbPacketProcessor()
-{
-}
+  size_t width, height, bytes_per_pixel;
+  unsigned char* data;
 
-void RgbPacketProcessor::setFrameListener(libfreenect2::FrameListener *listener)
-{
-  listener_ = listener;
-}
+  Frame(size_t width, size_t height, size_t bytes_per_pixel) :
+    width(width),
+    height(height),
+    bytes_per_pixel(bytes_per_pixel)
+  {
+    data = new unsigned char[width * height * bytes_per_pixel];
+  }
 
-DumpRgbPacketProcessor::DumpRgbPacketProcessor()
-{
-}
+  ~Frame()
+  {
+    delete[] data;
+  }
+};
 
-DumpRgbPacketProcessor::~DumpRgbPacketProcessor()
-{
-}
+typedef std::map<Frame::Type, Frame*> FrameMap;
 
-void DumpRgbPacketProcessor::process(const RgbPacket &packet)
+// TODO: reimplement, this is just some adhoc construct, probably performance can be improved
+class FrameListener
 {
-  //std::stringstream name;
-  //name << packet->sequence << "_" << packet->unknown0 << "_" << jpeg_buffer_length << ".jpeg";
-  //
-  //std::ofstream file(name.str().c_str());
-  //file.write(reinterpret_cast<char *>(packet->jpeg_buffer), jpeg_buffer_length);
-  //file.close();
-}
+public:
+  FrameListener(unsigned int frame_types);
+  virtual ~FrameListener();
+
+  // for now the caller is responsible to release the frames when he is done
+  void waitForNewFrame(FrameMap &frame);
+
+  void release(FrameMap &frame);
+
+  bool addNewFrame(Frame::Type type, Frame *frame);
+private:
+  boost::mutex mutex_;
+  boost::condition_variable condition_;
+  FrameMap next_frame_;
+
+  const unsigned int subscribed_frame_types_;
+  unsigned int ready_frame_types_;
+};
 
 } /* namespace libfreenect2 */
+#endif /* FRAME_LISTENER_H_ */

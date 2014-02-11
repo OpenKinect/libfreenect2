@@ -24,44 +24,72 @@
  * either License.
  */
 
-#include <libfreenect2/rgb_packet_processor.h>
-
-#include <fstream>
-#include <string>
+#include <libfreenect2/frame_listener.h>
 
 namespace libfreenect2
 {
 
-RgbPacketProcessor::RgbPacketProcessor() :
-    listener_(0)
+FrameListener::FrameListener(unsigned int frame_types) :
+    subscribed_frame_types_(frame_types),
+    ready_frame_types_(0)
 {
 }
 
-RgbPacketProcessor::~RgbPacketProcessor()
+FrameListener::~FrameListener()
 {
 }
 
-void RgbPacketProcessor::setFrameListener(libfreenect2::FrameListener *listener)
+void FrameListener::waitForNewFrame(FrameMap &frame)
 {
-  listener_ = listener;
+  boost::mutex::scoped_lock l(mutex_);
+
+  while(ready_frame_types_ != subscribed_frame_types_)
+  {
+    condition_.wait(l);
+  }
+
+  frame = next_frame_;
+  next_frame_.clear();
+  ready_frame_types_ = 0;
 }
 
-DumpRgbPacketProcessor::DumpRgbPacketProcessor()
+void FrameListener::release(FrameMap &frame)
 {
+  for(FrameMap::iterator it = frame.begin(); it != frame.end(); ++it)
+  {
+    delete it->second;
+    it->second = 0;
+  }
+
+  frame.clear();
 }
 
-DumpRgbPacketProcessor::~DumpRgbPacketProcessor()
+bool FrameListener::addNewFrame(Frame::Type type, Frame *frame)
 {
-}
+  if((subscribed_frame_types_ & type) == 0) return false;
 
-void DumpRgbPacketProcessor::process(const RgbPacket &packet)
-{
-  //std::stringstream name;
-  //name << packet->sequence << "_" << packet->unknown0 << "_" << jpeg_buffer_length << ".jpeg";
-  //
-  //std::ofstream file(name.str().c_str());
-  //file.write(reinterpret_cast<char *>(packet->jpeg_buffer), jpeg_buffer_length);
-  //file.close();
+  {
+    boost::mutex::scoped_lock l(mutex_);
+
+    FrameMap::iterator it = next_frame_.find(type);
+
+    if(it != next_frame_.end())
+    {
+      // replace frame
+      delete it->second;
+      it->second = frame;
+    }
+    else
+    {
+      next_frame_[type] = frame;
+    }
+
+    ready_frame_types_ |= type;
+  }
+
+  condition_.notify_one();
+
+  return true;
 }
 
 } /* namespace libfreenect2 */

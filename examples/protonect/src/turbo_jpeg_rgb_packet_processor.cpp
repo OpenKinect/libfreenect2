@@ -26,8 +26,8 @@
 
 #include <libfreenect2/rgb_packet_processor.h>
 
-#include <turbojpeg.h>
 #include <opencv2/opencv.hpp>
+#include <turbojpeg.h>
 
 namespace libfreenect2
 {
@@ -37,7 +37,8 @@ class TurboJpegRgbPacketProcessorImpl
 public:
 
   tjhandle decompressor;
-  cv::Mat out;
+
+  Frame *frame;
 
   double timing_acc;
   double timing_acc_n;
@@ -52,7 +53,8 @@ public:
       std::cerr << "[TurboJpegRgbPacketProcessor] Failed to initialize TurboJPEG decompressor! TurboJPEG error: '" << tjGetErrorStr() << "'" << std::endl;
     }
 
-    out = cv::Mat(1080, 1920, CV_8UC3);
+    newFrame();
+
     timing_acc = 0.0;
     timing_acc_n = 0.0;
     timing_current_start = 0.0;
@@ -67,6 +69,11 @@ public:
         std::cerr << "[TurboJpegRgbPacketProcessor] Failed to destroy TurboJPEG decompressor! TurboJPEG error: '" << tjGetErrorStr() << "'" << std::endl;
       }
     }
+  }
+
+  void newFrame()
+  {
+    frame = new Frame(1920, 1080, tjPixelSize[TJPF_BGR]);
   }
 
   void startTiming()
@@ -101,17 +108,18 @@ TurboJpegRgbPacketProcessor::~TurboJpegRgbPacketProcessor()
 
 void TurboJpegRgbPacketProcessor::process(const RgbPacket &packet)
 {
-  if(impl_->decompressor != 0)
+  if(impl_->decompressor != 0 && listener_ != 0)
   {
     impl_->startTiming();
 
-    int r = tjDecompress2(impl_->decompressor, packet.jpeg_buffer, packet.jpeg_buffer_length, impl_->out.data, 1920, 1920 * tjPixelSize[TJPF_BGR], 1080, TJPF_BGR, 0);
+    int r = tjDecompress2(impl_->decompressor, packet.jpeg_buffer, packet.jpeg_buffer_length, impl_->frame->data, 1920, 1920 * tjPixelSize[TJPF_BGR], 1080, TJPF_BGR, 0);
 
     if(r == 0)
     {
-      // this takes around 15ms and leads to frame skipping :(
-      cv::imshow("rgb", impl_->out);
-      cv::waitKey(1);
+      if(listener_->addNewFrame(Frame::Color, impl_->frame))
+      {
+        impl_->newFrame();
+      }
     }
     else
     {
