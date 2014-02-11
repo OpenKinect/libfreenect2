@@ -25,6 +25,14 @@ INCLUDE_DIRECTORIES(${OpenCV_INCLUDE_DIR})
 INCLUDE_DIRECTORIES("${MY_DIR}/../../depends/libusbx/include/libusb-1.0/")
 LINK_DIRECTORIES("${MY_DIR}/../../depends/libusbx/lib/")
 
+# GLEW
+INCLUDE_DIRECTORIES("${MY_DIR}/../../depends/glew/include/")
+LINK_DIRECTORIES("${MY_DIR}/../../depends/glew/lib64/")
+
+# GLFW
+ADD_SUBDIRECTORY(${MY_DIR}/../../depends/glfw_src/ ${MY_DIR}/../../depends/glfw)
+INCLUDE_DIRECTORIES(${MY_DIR}/../../depends/glfw_src/include/)
+
 INCLUDE_DIRECTORIES("${MY_DIR}/include")
 
 ADD_EXECUTABLE(Protonect
@@ -52,4 +60,8 @@ TARGET_LINK_LIBRARIES(Protonect
   ${OpenCV_LIBS}
   turbojpeg
   ${LIBFREENECT2_THREADING_LIBRARIES}
+  
+  GLEW
+  glfw
+  ${GLFW_LIBRARIES}
 )
