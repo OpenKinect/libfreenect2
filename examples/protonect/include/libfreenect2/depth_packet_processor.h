@@ -30,7 +30,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include <boost/thread.hpp>
+#include <libfreenect2/frame_listener.h>
 
 namespace libfreenect2
 {
@@ -45,12 +45,16 @@ struct DepthPacket
 class DepthPacketProcessor
 {
 public:
-  DepthPacketProcessor() {};
-  virtual ~DepthPacketProcessor() {};
+  DepthPacketProcessor();
+  virtual ~DepthPacketProcessor();
 
+  virtual void setFrameListener(libfreenect2::FrameListener *listener);
   virtual void process(const DepthPacket &packet) = 0;
 
   virtual void loadP0TablesFromCommandResponse(unsigned char* buffer, size_t buffer_length) = 0;
+
+protected:
+  libfreenect2::FrameListener *listener_;
 };
 
 // TODO: push this to some internal namespace

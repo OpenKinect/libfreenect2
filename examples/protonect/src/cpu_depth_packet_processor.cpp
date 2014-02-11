@@ -28,8 +28,8 @@
 #include <libfreenect2/tables.h>
 
 #include <opencv2/opencv.hpp>
-#include <fstream>
 #include <iostream>
+#include <fstream>
 
 namespace libfreenect2
 {
@@ -85,9 +85,6 @@ public:
 
   float gaussian_kernel[9];
 
-  cv::Mat out_ir;
-  cv::Mat out_depth;
-
   cv::Mat* sin_tables0[3];
   cv::Mat* sin_tables1[3];
   cv::Mat* sin_tables2[3];
@@ -102,6 +99,8 @@ public:
   double timing_current_start;
 
   bool enable_bilateral_filter;
+
+  Frame *ir_frame, *depth_frame;
 
   CpuDepthPacketProcessorImpl()
   {
@@ -135,8 +134,8 @@ public:
     min_dealias_confidence = 0.3490659f;
     max_dealias_confidence = 0.6108653f;
 
-    out_ir = cv::Mat(424, 512, CV_32FC1);
-    out_depth = cv::Mat(424, 512, CV_32FC1);
+    newIrFrame();
+    newDepthFrame();
 
     for (int i = 0; i < 3; i++)
     {
@@ -153,7 +152,7 @@ public:
     timing_acc_n = 0.0;
     timing_current_start = 0.0;
 
-    enable_bilateral_filter = true;
+    enable_bilateral_filter = false;
   }
 
   void startTiming()
@@ -173,6 +172,16 @@ public:
       timing_acc = 0.0;
       timing_acc_n = 0.0;
     }
+  }
+
+  void newIrFrame()
+  {
+    ir_frame = new Frame(512, 424, 4);
+  }
+
+  void newDepthFrame()
+  {
+    depth_frame = new Frame(512, 424, 4);
   }
 
   int32_t decodePixelMeasurement(unsigned char* data, int sub, int x, int y)
@@ -618,6 +627,8 @@ void CpuDepthPacketProcessor::load11To16LutFromFile(const char* filename)
 
 void CpuDepthPacketProcessor::process(const DepthPacket &packet)
 {
+  if(listener_ == 0) return;
+
   impl_->startTiming();
 
   cv::Mat m = cv::Mat::zeros(424, 512, CV_32FC(9)), m_filtered = cv::Mat::zeros(424, 512, CV_32FC(9));
@@ -647,19 +658,22 @@ void CpuDepthPacketProcessor::process(const DepthPacket &packet)
     m_ptr = m.ptr<float>();
   }
 
+  cv::Mat out_ir(424, 512, CV_32FC1, impl_->ir_frame->data), out_depth(424, 512, CV_32FC1, impl_->depth_frame->data);
+
   for(int y = 0; y < 424; ++y)
     for(int x = 0; x < 512; ++x, m_ptr += 9)
     {
-      impl_->processPixelStage2(x, y, m_ptr + 0, m_ptr + 3, m_ptr + 6, impl_->out_ir.ptr<float>(423 - y, x), impl_->out_depth.ptr<float>(423 - y, x));
+      impl_->processPixelStage2(x, y, m_ptr + 0, m_ptr + 3, m_ptr + 6, out_ir.ptr<float>(423 - y, x), out_depth.ptr<float>(423 - y, x));
     }
 
-  cv::imshow("ir_out", impl_->out_ir / 20000.0f);
-  cv::imshow("depth_out", impl_->out_depth / 4500.0f);
-  uint8_t k = cv::waitKey(1);
-
-  if(k == 98)
+  if(listener_->addNewFrame(Frame::Ir, impl_->ir_frame))
   {
-    impl_->enable_bilateral_filter = !impl_->enable_bilateral_filter;
+    impl_->newIrFrame();
+  }
+
+  if(listener_->addNewFrame(Frame::Depth, impl_->depth_frame))
+  {
+    impl_->newDepthFrame();
   }
 
   impl_->stopTiming();
