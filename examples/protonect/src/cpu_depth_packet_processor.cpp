@@ -85,6 +85,10 @@ public:
 
   float gaussian_kernel[9];
 
+  float trig_table0[512*424][6];
+  float trig_table1[512*424][6];
+  float trig_table2[512*424][6];
+
   double timing_acc;
   double timing_acc_n;
 
@@ -228,21 +232,36 @@ public:
     return lut11to16[((i1 | i2) & 2047)];
   }
 
-  void processMeasurementTriple(cv::Mat& P0Table, float abMultiplierPerFrq, int x, int y, const int32_t* m, float* m_out)
+  void fill_trig_tables(cv::Mat& p0table, float trig_table[512*424][6])
   {
-    float p0 = -((float)P0Table.at<uint16_t>(y, x)) * 0.000031 * M_PI;
+    for (int i = 0; i < 512*424; i++)
+    {
+      float p0 = -((float)p0table.at<uint16_t>(i)) * 0.000031 * M_PI;
 
-    float tmp0 = p0 + phase_in_rad0;
-    float tmp1 = p0 + phase_in_rad1;
-    float tmp2 = p0 + phase_in_rad2;
+      float tmp0 = p0 + phase_in_rad0;
+      float tmp1 = p0 + phase_in_rad1;
+      float tmp2 = p0 + phase_in_rad2;
 
-    float cos_tmp0 = std::cos(tmp0);
-    float cos_tmp1 = std::cos(tmp1);
-    float cos_tmp2 = std::cos(tmp2);
+      trig_table[i][0] = std::cos(tmp0);
+      trig_table[i][1] = std::cos(tmp1);
+      trig_table[i][2] = std::cos(tmp2);
 
-    float sin_negtmp0 = std::sin(-tmp0);
-    float sin_negtmp1 = std::sin(-tmp1);
-    float sin_negtmp2 = std::sin(-tmp2);
+      trig_table[i][3] = std::sin(-tmp0);
+      trig_table[i][4] = std::sin(-tmp1);
+      trig_table[i][5] = std::sin(-tmp2);
+    }
+  }
+
+  void processMeasurementTriple(float trig_table[512*424][6], float abMultiplierPerFrq, int x, int y, const int32_t* m, float* m_out)
+  {
+    int offset = y * 512 + x;
+    float cos_tmp0 = trig_table[offset][0];
+    float cos_tmp1 = trig_table[offset][1];
+    float cos_tmp2 = trig_table[offset][2];
+
+    float sin_negtmp0 = trig_table[offset][3];
+    float sin_negtmp1 = trig_table[offset][4];
+    float sin_negtmp2 = trig_table[offset][5];
 
     float zmultiplier = z_table.at<float>(y, x);
     bool cond0 = 0 < zmultiplier;
@@ -300,9 +319,9 @@ public:
     m2_raw[1] = decodePixelMeasurement(data, 7, x, y);
     m2_raw[2] = decodePixelMeasurement(data, 8, x, y);
 
-    processMeasurementTriple(p0_table0, ab_multiplier_per_frq0, x, y, m0_raw, m0_out);
-    processMeasurementTriple(p0_table1, ab_multiplier_per_frq1, x, y, m1_raw, m1_out);
-    processMeasurementTriple(p0_table2, ab_multiplier_per_frq2, x, y, m2_raw, m2_out);
+    processMeasurementTriple(trig_table0, ab_multiplier_per_frq0, x, y, m0_raw, m0_out);
+    processMeasurementTriple(trig_table1, ab_multiplier_per_frq1, x, y, m1_raw, m1_out);
+    processMeasurementTriple(trig_table2, ab_multiplier_per_frq2, x, y, m2_raw, m2_out);
   }
 
   void filterPixelStage1(int x, int y, const cv::Mat& m, float* m_out)
@@ -561,6 +580,10 @@ void CpuDepthPacketProcessor::loadP0TablesFromCommandResponse(unsigned char* buf
   cv::flip(cv::Mat(424, 512, CV_16UC1, p0table->p0table0), impl_->p0_table0, 0);
   cv::flip(cv::Mat(424, 512, CV_16UC1, p0table->p0table1), impl_->p0_table1, 0);
   cv::flip(cv::Mat(424, 512, CV_16UC1, p0table->p0table2), impl_->p0_table2, 0);
+
+  impl_->fill_trig_tables(impl_->p0_table0, impl_->trig_table0);
+  impl_->fill_trig_tables(impl_->p0_table1, impl_->trig_table1);
+  impl_->fill_trig_tables(impl_->p0_table2, impl_->trig_table2);
 }
 
 void CpuDepthPacketProcessor::loadXTableFromFile(const char* filename)
