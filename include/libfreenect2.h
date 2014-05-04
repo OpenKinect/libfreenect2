@@ -45,7 +45,6 @@ extern "C" {
 /// is most useful if you have more than one Kinect.
 struct freenect2_device_attributes;
 struct freenect2_device_attributes {
-	struct freenect2_device_attributes *next; /**< Next device in the linked list */
 	const char* camera_serial; /**< Serial number of this device's camera subdevice */
 };
 
@@ -65,6 +64,12 @@ typedef enum {
 	FREENECT2_VIDEO_RAW             = 0, /**< Raw JPEG data mode */
 	FREENECT2_VIDEO_DUMMY           = 2147483647, /**< Dummy value to force enum to be 32 bits wide */
 } freenect2_video_format;
+
+/// Enumeration of ir frame formats
+typedef enum {
+	FREENECT2_IR_RAW           = 5, /**< raw infrared data */
+	FREENECT2_IR_DUMMY         = 2147483647, /**< Dummy value to force enum to be 32 bits wide */
+} freenect2_ir_format;
 
 /// Enumeration of depth frame formats
 typedef enum {
@@ -94,6 +99,7 @@ typedef struct {
 	union {
 		int32_t dummy;
 		freenect2_video_format video_format;
+		freenect2_ir_format ir_format;
 		freenect2_depth_format depth_format;
 	};                              /**< The video or depth format that this freenect2_frame_mode describes.  The caller should know which of video_format or depth_format to use, since they called freenect2_get_*_frame_mode() */
 	int32_t bytes;                  /**< Total buffer size in bytes to hold a single frame of data.  Should be equivalent to width * height * (data_bits_per_pixel+padding_bits_per_pixel) / 8 */
@@ -104,8 +110,6 @@ typedef struct {
 	int8_t framerate;               /**< Approximate expected frame rate, in Hz */
 	int8_t is_valid;                /**< If 0, this freenect2_frame_mode is invalid and does not describe a supported mode.  Otherwise, the frame_mode is valid. */
 } freenect2_frame_mode;
-
-
 
 struct _freenect2_context;
 typedef struct _freenect2_context freenect2_context; /**< Holds information about the usb context. */
@@ -184,38 +188,7 @@ FREENECT2API void freenect2_set_log_level(freenect2_context *ctx, freenect2_logl
 FREENECT2API void freenect2_set_log_callback(freenect2_context *ctx, freenect2_log_cb cb);
 
 /**
- * Calls the platform specific usb event processor
- *
- * @param ctx context to process events for
- *
- * @return 0 on success, other values on error, platform/library dependant
- */
-FREENECT2API int freenect2_process_events(freenect2_context *ctx);
-
-/**
- * Calls the platform specific usb event processor until either an event occurs
- * or the timeout parameter time has passed.  If a zero timeval is passed, this
- * function will handle any already-pending events, then return immediately.
- *
- * @param ctx Context to process events for
- * @param timeout Pointer to a timeval containing the maximum amount of time to block waiting for events, or zero for nonblocking mode
- *
- * @return 0 on success, other values on error, platform/library dependant
- */
-FREENECT2API int freenect2_process_events_timeout(freenect_context *ctx, struct timeval* timeout);
-
-/**
- * TODO: doc
- */
-FREENECT2API int freenect2_start_async_event_loop(freenect2_context *ctx);
-
-/**
- * TODO: doc
- */
-FREENECT2API int freenect2_stop_async_event_loop(freenect2_context *ctx);
-
-/**
- * Return the number of kinect devices currently connected to the
+ * Scans for kinect devices and returns the number of kinect devices currently connected to the
  * system
  *
  * @param ctx Context to access device count through
@@ -224,27 +197,15 @@ FREENECT2API int freenect2_stop_async_event_loop(freenect2_context *ctx);
  */
 FREENECT2API int freenect2_num_devices(freenect2_context *ctx);
 
-// TODO: can the following two functions be replaced with the following function, would be more consistent with the frame mode API etc.
-// FREENECT2API freenect2_device_attributes freenect2_get_device_attributes(freenect2_context *ctx, int index);
-
 /**
- * Scans for kinect devices and produces a linked list of their attributes
- * (namely, serial numbers), returning the number of devices.
+ * Gets the attributes of a kinect device at a given index.
  *
- * @param ctx Context to scan for kinect devices with
- * @param attribute_list Pointer to where this function will store the resultant linked list
+ * @param ctx Context to access device attributes through
+ * @param index Index of the kinect device
  *
  * @return Number of devices connected, < 0 on error
  */
-FREENECT2API int freenect2_list_device_attributes(freenect2_context *ctx, struct freenect2_device_attributes** attribute_list);
-
-/**
- * Free the linked list produced by freenect2_list_device_attributes().
- *
- * @param attribute_list Linked list of attributes to free.
- */
-FREENECT2API void freenect2_free_device_attributes(struct freenect2_device_attributes* attribute_list);
-
+FREENECT2API freenect2_device_attributes freenect2_get_device_attributes(freenect2_context *ctx, int index);
 
 /**
  * Opens a kinect device via a context. Index specifies the index of
@@ -281,94 +242,39 @@ FREENECT2API int freenect2_open_device_by_camera_serial(freenect2_context *ctx, 
  */
 FREENECT2API int freenect2_close_device(freenect2_device *dev);
 
-// TODO: the user pointer should be passed with every callback, allowing for different user objects?
-/**
- * Set the device user data, for passing generic information into
- * callbacks
- *
- * @param dev Device to attach user data to
- * @param user User data to attach
- */
-FREENECT2API void freenect2_set_user(freenect2_device *dev, void *user);
-
-/**
- * Retrieve the pointer to user data from the device struct
- *
- * @param dev Device from which to get user data
- *
- * @return Pointer to user data
- */
-FREENECT2API void *freenect2_get_user(freenect2_device *dev);
-
 /// Typedef for depth image received event callbacks
-typedef void (*freenect2_depth_cb)(freenect2_device *dev, void *depth, uint32_t timestamp);
+typedef void (*freenect2_depth_cb)(freenect2_device *dev, uint32_t timestamp, void *depth, void *user);
+/// Typedef for ir image received event callbacks
+typedef void (*freenect2_ir_cb)(freenect2_device *dev, uint32_t timestamp, void *ir, void *user);
 /// Typedef for video image received event callbacks
-typedef void (*freenect2_video_cb)(freenect2_device *dev, void *video, uint32_t timestamp);
-
-// TODO: define packet structures for video and depth
-/// Typedef for depth stream packet processing callbacks
-typedef void (*freenect2_depth_packet_cb)(void *buffer, void *pkt_data, int pkt_num, int datalen, void *user_data);
-/// Typedef for video stream packet processing callbacks
-typedef void (*freenect2_video_packet_cb)(void *buffer, void *pkt_data, int pkt_num, int datalen, void *user_data);
-
+typedef void (*freenect2_video_cb)(freenect2_device *dev, uint32_t timestamp, void *video, void *user);
 
 /**
  * Set callback for depth information received event
  *
  * @param dev Device to set callback for
  * @param cb Function pointer for processing depth information
+ * @param user Pointer to user data
  */
-FREENECT2API void freenect2_set_depth_callback(freenect2_device *dev, freenect2_depth_cb cb);
+FREENECT2API void freenect2_set_depth_callback(freenect2_device *dev, freenect2_depth_cb cb, void *user);
+
+/**
+ * Set callback for ir information received event
+ *
+ * @param dev Device to set callback for
+ * @param cb Function pointer for processing depth information
+ * @param user Pointer to user data
+ */
+FREENECT2API void freenect2_set_ir_callback(freenect2_device *dev, freenect2_ir_cb cb, void *user);
 
 /**
  * Set callback for video information received event
  *
  * @param dev Device to set callback for
  * @param cb Function pointer for processing video information
+ * @param user Pointer to user data
  */
-FREENECT2API void freenect2_set_video_callback(freenect2_device *dev, freenect2_video_cb cb);
-
-/**
- * Set callback for depth packet processing
- *
- * @param dev Device to set callback for
- * @param cb Function pointer for processing depth packet
- */
-FREENECT2API void freenect2_set_depth_packet_callback(freenect_device *dev, freenect2_depth_packet_cb cb);
-
-/**
- * Set callback for video packet processing
- *
- * @param dev Device to set callback for
- * @param cb Function pointer for processing video packet
- */
-FREENECT2API void freenect2_set_video_packet_callback(freenect_device *dev, freenect2_video_packet_cb cb);
-
-
-// TODO: remove the following 2 functions and do memory handling internally?
-/**
- * Set the buffer to store depth information to. Size of buffer is
- * dependant on depth format. See FREENECT2_DEPTH_*_SIZE defines for
- * more information.
- *
- * @param dev Device to set depth buffer for.
- * @param buf Buffer to store depth information to.
- *
- * @return 0 on success, < 0 on error
- */
-FREENECT2API int freenect2_set_depth_buffer(freenect2_device *dev, void *buf);
-
-/**
- * Set the buffer to store depth information to. Size of buffer is
- * dependant on video format. See FREENECT2_VIDEO_*_SIZE defines for
- * more information.
- *
- * @param dev Device to set video buffer for.
- * @param buf Buffer to store video information to.
- *
- * @return 0 on success, < 0 on error
- */
-FREENECT2API int freenect2_set_video_buffer(freenect2_device *dev, void *buf);
+FREENECT2API void freenect2_set_video_callback(freenect2_device *dev, freenect2_video_cb cb, void *user);
 
 /**
  * Start the depth information stream for a device.
@@ -378,6 +284,15 @@ FREENECT2API int freenect2_set_video_buffer(freenect2_device *dev, void *buf);
  * @return 0 on success, < 0 on error
  */
 FREENECT2API int freenect2_start_depth(freenect2_device *dev);
+
+/**
+ * Start the ir information stream for a device.
+ *
+ * @param dev Device to start ir information stream for.
+ *
+ * @return 0 on success, < 0 on error
+ */
+FREENECT2API int freenect2_start_ir(freenect2_device *dev);
 
 /**
  * Start the video information stream for a device.
@@ -396,6 +311,15 @@ FREENECT2API int freenect2_start_video(freenect2_device *dev);
  * @return 0 on success, < 0 on error
  */
 FREENECT2API int freenect2_stop_depth(freenect2_device *dev);
+
+/**
+ * Stop the ir information stream for a device
+ *
+ * @param dev Device to stop ir information stream on.
+ *
+ * @return 0 on success, < 0 on error
+ */
+FREENECT2API int freenect2_stop_ir(freenect2_device *dev);
 
 /**
  * Stop the video information stream for a device
@@ -457,6 +381,58 @@ FREENECT2API freenect2_frame_mode freenect2_find_video_mode(freenect2_resolution
  * @return 0 on success, < 0 if error
  */
 FREENECT2API int freenect2_set_video_mode(freenect2_device* dev, freenect2_frame_mode mode);
+
+/**
+ * Get the number of ir camera modes supported by the driver.
+ *
+ * @return Number of ir modes supported by the driver
+ */
+FREENECT2API int freenect2_get_ir_mode_count();
+
+/**
+ * Get the frame descriptor of the nth supported ir mode for the
+ * ir camera.
+ *
+ * @param mode_num Which of the supported modes to return information about
+ *
+ * @return A freenect2_frame_mode describing the nth ir mode
+ */
+FREENECT2API freenect2_frame_mode freenect2_get_ir_mode(int mode_num);
+
+/**
+ * Get the frame descriptor of the current ir mode for the specified
+ * freenect device.
+ *
+ * @param dev Which device to return the currently-set ir mode for
+ *
+ * @return A freenect2_frame_mode describing the ir video mode of the specified device
+ */
+FREENECT2API freenect2_frame_mode freenect2_get_current_ir_mode(freenect2_device *dev);
+
+/**
+ * Convenience function to return a mode descriptor matching the
+ * specified resolution and ir camera pixel format, if one exists.
+ *
+ * @param res Resolution desired
+ * @param fmt Pixel format desired
+ *
+ * @return A freenect2_frame_mode that matches the arguments specified, if such a valid mode exists; otherwise, an invalid freenect2_frame_mode.
+ */
+FREENECT2API freenect2_frame_mode freenect2_find_ir_mode(freenect2_resolution res, freenect2_ir_format fmt);
+
+/**
+ * Sets the current ir mode for the specified device.  If the
+ * freenect2_frame_mode specified is not one provided by the driver
+ * e.g. from freenect2_get_ir_mode() or freenect2_find_ir_mode()
+ * then behavior is undefined.  The current ir mode cannot be
+ * changed while streaming is active.
+ *
+ * @param dev Device for which to set the ir mode
+ * @param mode Frame mode to set
+ *
+ * @return 0 on success, < 0 if error
+ */
+FREENECT2API int freenect2_set_ir_mode(freenect2_device* dev, freenect2_frame_mode mode);
 
 /**
  * Get the number of depth camera modes supported by the driver.
