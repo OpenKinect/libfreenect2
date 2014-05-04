@@ -27,7 +27,7 @@
 #ifndef ASYNC_PACKET_PROCESSOR_H_
 #define ASYNC_PACKET_PROCESSOR_H_
 
-#include <boost/thread.hpp>
+#include <libfreenect2/threading.h>
 
 namespace libfreenect2
 {
@@ -42,7 +42,7 @@ public:
     processor_(processor),
     current_packet_available_(false),
     shutdown_(false),
-    thread_(boost::bind(&AsyncPacketProcessor<PacketT, PacketProcessorT>::execute, this))
+    thread_(&AsyncPacketProcessor<PacketT, PacketProcessorT>::static_execute, this)
   {
   }
   virtual ~AsyncPacketProcessor()
@@ -69,7 +69,7 @@ public:
   void process(const PacketT &packet)
   {
     {
-      boost::mutex::scoped_lock l(packet_mutex_);
+      libfreenect2::lock_guard l(packet_mutex_);
       current_packet_ = packet;
       current_packet_available_ = true;
     }
@@ -81,17 +81,22 @@ private:
   PacketT current_packet_;
 
   bool shutdown_;
-  boost::mutex packet_mutex_;
-  boost::condition_variable packet_condition_;
-  boost::thread thread_;
+  libfreenect2::mutex packet_mutex_;
+  libfreenect2::condition_variable packet_condition_;
+  libfreenect2::thread thread_;
+
+  static void static_execute(void *data)
+  {
+    static_cast<AsyncPacketProcessor<PacketT, PacketProcessorT> *>(data)->execute();
+  }
 
   void execute()
   {
-    boost::mutex::scoped_lock l(packet_mutex_);
+    libfreenect2::unique_lock l(packet_mutex_);
 
     while(!shutdown_)
     {
-      packet_condition_.wait(l);
+      WAIT_CONDITION(packet_condition_, packet_mutex_, l);
 
       if(current_packet_available_)
       {

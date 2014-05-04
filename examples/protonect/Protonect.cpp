@@ -26,8 +26,6 @@
 
 #include "Protonect.h"
 
-#include <boost/thread.hpp>
-
 #include <sstream>
 #include <iostream>
 #include <fstream>
@@ -39,8 +37,6 @@
 #include <stdio.h>
 
 #include <opencv2/opencv.hpp>
-
-#include <boost/bind.hpp>
 
 #include <libfreenect2/tables.h>
 #include <libfreenect2/usb/event_loop.h>
@@ -798,7 +794,7 @@ int main(int argc, char *argv[])
 
   // wait for all transfers to cancel
   // TODO: better implementation
-  boost::this_thread::sleep(boost::posix_time::seconds(2));
+  libfreenect2::this_thread::sleep_for(libfreenect2::chrono::seconds(2));
 
   rgb_bulk_transfers.deallocate();
   depth_iso_transfers.deallocate();

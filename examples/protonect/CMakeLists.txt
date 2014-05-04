@@ -8,18 +8,18 @@ SET(MY_DIR ${libfreenect2_SOURCE_DIR})
 # additional cmake modules
 LIST(APPEND CMAKE_MODULE_PATH ${MY_DIR}/cmake_modules)
 
+# setup threading
+INCLUDE(SetupLibfreenect2Threading)
+INCLUDE_DIRECTORIES(${LIBFREENECT2_THREADING_INCLUDE_DIR})
+
 #set the default path for built executables to the "bin" directory
 SET(EXECUTABLE_OUTPUT_PATH ${MY_DIR}/bin)
 
 # dependencies
 FIND_PACKAGE(OpenCV REQUIRED)
-FIND_PACKAGE(Boost REQUIRED)
 
 # OpenCV
 INCLUDE_DIRECTORIES(${OpenCV_INCLUDE_DIR})
-
-# Boost
-INCLUDE_DIRECTORIES( ${Boost_INCLUDE_DIR} )
 
 # LibUSB
 INCLUDE_DIRECTORIES("${MY_DIR}/../../depends/libusbx/include/libusb-1.0/")
@@ -43,11 +43,13 @@ ADD_EXECUTABLE(Protonect
   src/cpu_depth_packet_processor.cpp
   
   Protonect.cpp
+  
+  ${LIBFREENECT2_THREADING_SOURCE}
 )
 
 TARGET_LINK_LIBRARIES(Protonect
   usb-1.0
-  boost_thread
   ${OpenCV_LIBS}
   turbojpeg
+  ${LIBFREENECT2_THREADING_LIBRARIES}
 )

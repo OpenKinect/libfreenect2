@@ -26,13 +26,17 @@
 
 #include <libfreenect2/usb/event_loop.h>
 
-#include <boost/bind.hpp>
 #include <libusb.h>
 
 namespace libfreenect2
 {
 namespace usb
 {
+
+void EventLoop::static_execute(void *cookie)
+{
+  static_cast<EventLoop *>(cookie)->execute();
+}
 
 EventLoop::EventLoop() :
     shutdown_(false),
@@ -50,7 +54,7 @@ void EventLoop::start()
   if(thread_ == 0)
   {
     shutdown_ = false;
-    thread_ = new boost::thread(boost::bind(&EventLoop::execute, this));
+    thread_ = new libfreenect2::thread(&EventLoop::static_execute, this);
   }
 }
 
