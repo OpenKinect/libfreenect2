@@ -49,7 +49,8 @@
 #include <libfreenect2/rgb_packet_processor.h>
 #include <libfreenect2/depth_packet_stream_parser.h>
 #include <libfreenect2/frame_listener.h>
-#include <libfreenect2/protocol/control_command.h>
+#include <libfreenect2/protocol/command.h>
+#include <libfreenect2/protocol/command_transaction.h>
 
 bool should_resubmit = true;
 uint32_t num_iso_requests_outstanding = 0;
@@ -577,30 +578,49 @@ void RunKinect(libusb_device_handle *handle, libfreenect2::DepthPacketProcessor&
   printf("running kinect...\n");
   int r;
 
+  using namespace libfreenect2::protocol;
+
+  CommandTransaction tx(handle, 0x81, 0x02);
+  CommandTransaction::Result result;
+
+  uint32_t seq = cmd_seq;
+
   r = KSetSensorStatus(handle, KSENSOR_ENABLE);
 
-  r = KReadFirmwareVersions(handle);
+  tx.execute(ReadFirmwareVersionsCommand(seq++), result);
+  //r = KReadFirmwareVersions(handle);
 
-  r = KReadData14(handle);
+  tx.execute(ReadData0x14Command(seq++), result);
+  //r = KReadData14(handle);
 
-  r = KReadData22_1(handle);
+  tx.execute(ReadData0x22_0x01Command(seq++), result);
+  //r = KReadData22_1(handle);
 
-  r = KReadDepthCameraParams(handle);
+  tx.execute(ReadDepthCameraParametersCommand(seq++), result);
+  //r = KReadDepthCameraParams(handle);
 
-  r = KReadP0Tables(handle, depth_processor);
+  tx.execute(ReadP0TablesCommand(seq++), result);
+  depth_processor.loadP0TablesFromCommandResponse(result.data, result.length);
+  //r = KReadP0Tables(handle, depth_processor);
 
-  r = KReadCameraParams(handle);
+  tx.execute(ReadRgbCameraParametersCommand(seq++), result);
+  //r = KReadCameraParams(handle);
 
-  r = KReadStatus90000(handle);
+  tx.execute(ReadStatus0x090000Command(seq++), result);
+  //r = KReadStatus90000(handle);
 
-  r = KInitStreams(handle);
+  tx.execute(InitStreamsCommand(seq++), result);
+  //r = KInitStreams(handle);
 
   r = KSetStreamingInterfaceStatus(handle, KSTREAM_ENABLE);
 
-  r = KReadStatus90000(handle);
+  tx.execute(ReadStatus0x090000Command(seq++), result);
+  //r = KReadStatus90000(handle);
 
-  r = KSetStreamStatus(handle, KSTREAM_ENABLE);
+  tx.execute(SetStreamEnabledCommand(seq++), result);
+  //r = KSetStreamStatus(handle, KSTREAM_ENABLE);
 
+  cmd_seq = seq;
 }
 
 void CloseKinect(libusb_device_handle *handle)
@@ -619,12 +639,6 @@ void sigint_handler(int s)
 
 int main(int argc, char *argv[])
 {
-  std::cout << sizeof(libfreenect2::protocol::SetModeDisabledCommand) << std::endl;
-  std::cout << sizeof(libfreenect2::protocol::ReadFirmwareVersionsCommand) << std::endl;
-  std::cout << sizeof(libfreenect2::protocol::SetStreamDisabledCommand) << std::endl;
-
-  return 0;
-
   std::string program_path(argv[0]);
   size_t executable_name_idx = program_path.rfind("Protonect");
 
