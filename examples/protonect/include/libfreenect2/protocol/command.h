@@ -152,7 +152,7 @@ typedef CommandWith0Params<KCMD_READ_DATA_0x14, 0x5C> ReadData0x14Command;
 
 typedef CommandWith0Params<KCMD_INIT_STREAMS, 0x00> InitStreamsCommand;
 
-typedef CommandWith1Param<KCMD_READ_DATA_PAGE, 0x80, 0x01> ReadData0x22_0x01Command;
+typedef CommandWith1Param<KCMD_READ_DATA_PAGE, 0x80, 0x01> ReadSerialNumberCommand;
 typedef CommandWith1Param<KCMD_READ_DATA_PAGE, 0x1C0000, 0x02> ReadP0TablesCommand;
 typedef CommandWith1Param<KCMD_READ_DATA_PAGE, 0x1C0000, 0x03> ReadDepthCameraParametersCommand;
 typedef CommandWith1Param<KCMD_READ_DATA_PAGE, 0x1C0000, 0x04> ReadRgbCameraParametersCommand;

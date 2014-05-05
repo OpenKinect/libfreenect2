@@ -593,7 +593,7 @@ void RunKinect(libusb_device_handle *handle, libfreenect2::DepthPacketProcessor&
   tx.execute(ReadData0x14Command(seq++), result);
   //r = KReadData14(handle);
 
-  tx.execute(ReadData0x22_0x01Command(seq++), result);
+  tx.execute(ReadSerialNumberCommand(seq++), result);
   //r = KReadData22_1(handle);
 
   tx.execute(ReadDepthCameraParametersCommand(seq++), result);
