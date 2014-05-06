@@ -131,10 +131,12 @@ void DepthPacketStreamParser::onDataReceived(unsigned char* buffer, size_t in_le
 
         if(footer->subsequence * footer->length > fb.length)
         {
-          std::cerr << "[DepthPacketStreamParser::handleNewData] front buffer too short!" << std::endl;
+          std::cerr << "[DepthPacketStreamParser::handleNewData] front buffer too short! subsequence number is " << footer->subsequence << std::endl;
         }
-
-        memcpy(fb.data + (footer->subsequence * footer->length), wb.data + (wb.length - footer->length), footer->length);
+        else
+        {
+          memcpy(fb.data + (footer->subsequence * footer->length), wb.data + (wb.length - footer->length), footer->length);
+        }
       }
 
       // reset working buffer
