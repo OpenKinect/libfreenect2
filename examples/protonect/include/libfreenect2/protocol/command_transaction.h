@@ -91,14 +91,14 @@ public:
 
     bool notSuccessfulThenDeallocate()
     {
-      bool success = code == Success;
+      bool not_successful = (code != Success);
 
-      if(!success)
+      if(not_successful)
       {
         deallocate();
       }
 
-      return success;
+      return not_successful;
     }
   };
 
