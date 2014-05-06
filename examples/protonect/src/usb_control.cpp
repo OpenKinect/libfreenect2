@@ -152,6 +152,62 @@ static UsbControl::ResultCode checkLibusbResult(const char* method, int r)
   }
 }
 
+UsbControl::ResultCode UsbControl::setConfiguration()
+{
+  UsbControl::ResultCode code = Success;
+  int desired_config_id = 1;
+  int current_config_id = -1;
+  int r;
+
+  r = libusb_get_configuration(handle_, &current_config_id);
+  code = checkLibusbResult("setConfiguration", r);
+
+  if(code == Success)
+  {
+    if(current_config_id != desired_config_id)
+    {
+      r = libusb_set_configuration(handle_, desired_config_id);
+      code = checkLibusbResult("setConfiguration", r);
+    }
+  }
+
+  return code;
+}
+
+UsbControl::ResultCode UsbControl::claimInterfaces()
+{
+  UsbControl::ResultCode code = Success;
+  int r;
+
+  r = libusb_claim_interface(handle_, ControlAndRgbInterfaceId);
+  code = checkLibusbResult("claimInterfaces", r);
+
+  if(code == Success)
+  {
+    r = libusb_claim_interface(handle_, IrInterfaceId);
+    code = checkLibusbResult("claimInterfaces", r);
+  }
+
+  return code;
+}
+
+UsbControl::ResultCode UsbControl::releaseInterfaces()
+{
+  UsbControl::ResultCode code = Success;
+  int r;
+
+  r = libusb_release_interface(handle_, ControlAndRgbInterfaceId);
+  code = checkLibusbResult("releaseInterfaces", r);
+
+  if(code == Success)
+  {
+    r = libusb_release_interface(handle_, IrInterfaceId);
+    code = checkLibusbResult("releaseInterfaces", r);
+  }
+
+  return code;
+}
+
 UsbControl::ResultCode UsbControl::setIsochronousDelay()
 {
   int r = libusb_ext::set_isochronous_delay(handle_, timeout_);

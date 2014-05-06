@@ -732,38 +732,9 @@ int main(int argc, char *argv[])
     r = 0;
   printf("             speed: %s\n", speed_name[r]);
 
-  int active_cfg = -5;
-  r = libusb_get_configuration(handle, &active_cfg);
-
-  printf("active configuration: %d, err: %d", active_cfg, r);
-  int configId = 1;
-  if (active_cfg != configId)
-  {
-    printf("Setting config: %d\n", configId);
-    r = libusb_set_configuration(handle, configId);
-    if (r != LIBUSB_SUCCESS)
-    {
-      perr("  Can't set configuration. Error code: %d (%s)\n", r, libusb_error_name(r));
-    }
-  }
-
-  int iface = 0;
-  printf("\nClaiming interface %d...\n", iface);
-  r = libusb_claim_interface(handle, iface);
-  if (r != LIBUSB_SUCCESS)
-  {
-    perr("   Failed: %d.\n", r);
-  }
-
-  iface = 1;
-  printf("\nClaiming interface %d...\n", iface);
-  r = libusb_claim_interface(handle, iface);
-  if (r != LIBUSB_SUCCESS)
-  {
-    perr("   Failed: %d.\n", r);
-  }
-
   libfreenect2::protocol::UsbControl usb_ctrl(handle);
+  usb_ctrl.setConfiguration();
+  usb_ctrl.claimInterfaces();
 
   //InitKinect(handle);
 
@@ -871,13 +842,7 @@ int main(int argc, char *argv[])
     r = 0;
   printf("             speed: %s\n", speed_name[r]);
 
-  iface = 0;
-  printf("Releasing interface %d...\n", iface);
-  libusb_release_interface(handle, iface);
-
-  iface = 1;
-  printf("Releasing interface %d...\n", iface);
-  libusb_release_interface(handle, iface);
+  usb_ctrl.releaseInterfaces();
 
   printf("Closing device...\n");
   libusb_close(handle);

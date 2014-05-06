@@ -79,6 +79,10 @@ public:
     Error
   };
 
+  ResultCode setConfiguration();
+  ResultCode claimInterfaces();
+  ResultCode releaseInterfaces();
+
   ResultCode setIsochronousDelay();
   ResultCode setPowerStateLatencies();
   ResultCode enablePowerStates();
