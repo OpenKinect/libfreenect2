@@ -160,14 +160,14 @@ UsbControl::ResultCode UsbControl::setConfiguration()
   int r;
 
   r = libusb_get_configuration(handle_, &current_config_id);
-  code = checkLibusbResult("setConfiguration", r);
+  code = checkLibusbResult("setConfiguration(initial get)", r);
 
   if(code == Success)
   {
     if(current_config_id != desired_config_id)
     {
       r = libusb_set_configuration(handle_, desired_config_id);
-      code = checkLibusbResult("setConfiguration", r);
+      code = checkLibusbResult("setConfiguration(set)", r);
     }
   }
 
@@ -180,12 +180,12 @@ UsbControl::ResultCode UsbControl::claimInterfaces()
   int r;
 
   r = libusb_claim_interface(handle_, ControlAndRgbInterfaceId);
-  code = checkLibusbResult("claimInterfaces", r);
+  code = checkLibusbResult("claimInterfaces(ControlAndRgbInterfaceId)", r);
 
   if(code == Success)
   {
     r = libusb_claim_interface(handle_, IrInterfaceId);
-    code = checkLibusbResult("claimInterfaces", r);
+    code = checkLibusbResult("claimInterfaces(IrInterfaceId)", r);
   }
 
   return code;
@@ -197,12 +197,12 @@ UsbControl::ResultCode UsbControl::releaseInterfaces()
   int r;
 
   r = libusb_release_interface(handle_, ControlAndRgbInterfaceId);
-  code = checkLibusbResult("releaseInterfaces", r);
+  code = checkLibusbResult("releaseInterfaces(ControlAndRgbInterfaceId)", r);
 
   if(code == Success)
   {
     r = libusb_release_interface(handle_, IrInterfaceId);
-    code = checkLibusbResult("releaseInterfaces", r);
+    code = checkLibusbResult("releaseInterfaces(IrInterfaceId)", r);
   }
 
   return code;
