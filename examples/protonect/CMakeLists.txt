@@ -75,6 +75,8 @@ ADD_EXECUTABLE(Protonect
   src/opengl_depth_packet_processor.cpp
   src/resource.cpp
   
+  src/usb_control.cpp
+  
   Protonect.cpp
   
   ${LIBFREENECT2_THREADING_SOURCE}

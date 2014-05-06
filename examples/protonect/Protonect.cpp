@@ -51,6 +51,7 @@
 #include <libfreenect2/frame_listener.h>
 #include <libfreenect2/protocol/command.h>
 #include <libfreenect2/protocol/command_transaction.h>
+#include <libfreenect2/protocol/usb_control.h>
 
 bool should_resubmit = true;
 uint32_t num_iso_requests_outstanding = 0;
@@ -511,7 +512,7 @@ void InitKinect(libusb_device_handle *handle)
 
   printf("Control transfer 1 - set isoch delay\n");
   r = libusb_control_transfer(handle, bmRequestType, bRequest, wValue, wIndex, data, wLength, timeout);
-  if (r < 0)
+  if (r != LIBUSB_SUCCESS)
   {
     perr("Control transfer error: %d\n", r);
   }
@@ -526,7 +527,7 @@ void InitKinect(libusb_device_handle *handle)
 
   printf("Control transfer 2 - set sel u1/u2\n");
   r = libusb_control_transfer(handle, bmRequestType, bRequest, wValue, wIndex, seldata, wLength, timeout);
-  if (r < 0)
+  if (r != LIBUSB_SUCCESS)
   {
     perr("Control transfer error: %d\n", r);
   }
@@ -546,7 +547,7 @@ void InitKinect(libusb_device_handle *handle)
 
   printf("Control transfer 3 - enable u1\n");
   r = libusb_control_transfer(handle, bmRequestType, bRequest, wValue, wIndex, NULL, wLength, timeout);
-  if (r < 0)
+  if (r != LIBUSB_SUCCESS)
   {
     perr("Control transfer error: %d\n", r);
   }
@@ -559,7 +560,7 @@ void InitKinect(libusb_device_handle *handle)
 
   printf("Control transfer 4 - enable u2\n");
   r = libusb_control_transfer(handle, bmRequestType, bRequest, wValue, wIndex, NULL, wLength, timeout);
-  if (r < 0)
+  if (r != LIBUSB_SUCCESS)
   {
     perr("Control transfer error: %d\n", r);
   }
@@ -570,7 +571,21 @@ void InitKinect(libusb_device_handle *handle)
   printf("Kinect init done\n\n");
 }
 
-void RunKinect(libusb_device_handle *handle, libfreenect2::DepthPacketProcessor& depth_processor)
+bool InitKinect2(libfreenect2::protocol::UsbControl& usb_ctrl)
+{
+  using namespace libfreenect2::protocol;
+
+  if(usb_ctrl.setIsochronousDelay() != UsbControl::Success) return false;
+  // TODO: always fails right now with error 6 - TRANSFER_OVERFLOW!
+  //if(usb_ctrl.setPowerStateLatencies() != UsbControl::Success) return false;
+  if(usb_ctrl.setIrInterfaceState(UsbControl::Disabled) != UsbControl::Success) return false;
+  if(usb_ctrl.enablePowerStates() != UsbControl::Success) return false;
+  if(usb_ctrl.setVideoTransferFunctionState(UsbControl::Disabled) != UsbControl::Success) return false;
+
+  return true;
+}
+
+void RunKinect(libfreenect2::protocol::UsbControl& usb_ctrl, libusb_device_handle *handle, libfreenect2::DepthPacketProcessor& depth_processor)
 {
   if (NULL == handle)
     return;
@@ -585,15 +600,19 @@ void RunKinect(libusb_device_handle *handle, libfreenect2::DepthPacketProcessor&
 
   uint32_t seq = cmd_seq;
 
-  r = KSetSensorStatus(handle, KSENSOR_ENABLE);
+  usb_ctrl.setVideoTransferFunctionState(UsbControl::Enabled);
+  //r = KSetSensorStatus(handle, KSENSOR_ENABLE);
 
   tx.execute(ReadFirmwareVersionsCommand(seq++), result);
+  hexdump(result.data, result.length, "ReadFirmwareVersions");
   //r = KReadFirmwareVersions(handle);
 
   tx.execute(ReadData0x14Command(seq++), result);
+  hexdump(result.data, result.length, "ReadData0x14");
   //r = KReadData14(handle);
 
   tx.execute(ReadSerialNumberCommand(seq++), result);
+  hexdump(result.data, result.length, "ReadSerialNumber");
   //r = KReadData22_1(handle);
 
   tx.execute(ReadDepthCameraParametersCommand(seq++), result);
@@ -607,14 +626,17 @@ void RunKinect(libusb_device_handle *handle, libfreenect2::DepthPacketProcessor&
   //r = KReadCameraParams(handle);
 
   tx.execute(ReadStatus0x090000Command(seq++), result);
+  hexdump(result.data, result.length, "Status");
   //r = KReadStatus90000(handle);
 
   tx.execute(InitStreamsCommand(seq++), result);
   //r = KInitStreams(handle);
 
-  r = KSetStreamingInterfaceStatus(handle, KSTREAM_ENABLE);
+  usb_ctrl.setIrInterfaceState(UsbControl::Enabled);
+  //r = KSetStreamingInterfaceStatus(handle, KSTREAM_ENABLE);
 
   tx.execute(ReadStatus0x090000Command(seq++), result);
+  hexdump(result.data, result.length, "Status");
   //r = KReadStatus90000(handle);
 
   tx.execute(SetStreamEnabledCommand(seq++), result);
@@ -628,6 +650,12 @@ void CloseKinect(libusb_device_handle *handle)
   printf("closing kinect...\n");
   int r;
   r = KSetSensorStatus(handle, KSENSOR_DISABLE);
+}
+
+void CloseKinect2(libfreenect2::protocol::UsbControl& usb_ctrl)
+{
+  printf("closing kinect...\n");
+  usb_ctrl.setVideoTransferFunctionState(libfreenect2::protocol::UsbControl::Disabled);
 }
 
 bool shutdown = false;
@@ -735,7 +763,11 @@ int main(int argc, char *argv[])
     perr("   Failed: %d.\n", r);
   }
 
-  InitKinect(handle);
+  libfreenect2::protocol::UsbControl usb_ctrl(handle);
+
+  //InitKinect(handle);
+
+  if(!InitKinect2(usb_ctrl)) return -1;
 
   // install signal handler now
   signal(SIGINT,sigint_handler);
@@ -745,7 +777,7 @@ int main(int argc, char *argv[])
   usb_loop.start();
 
   libfreenect2::FrameMap frames;
-  libfreenect2::FrameListener frame_listener(libfreenect2::Frame::Color | libfreenect2::Frame::Ir | libfreenect2::Frame::Depth);
+  libfreenect2::FrameListener frame_listener(libfreenect2::Frame::Ir | libfreenect2::Frame::Depth);
 
   //libfreenect2::DumpRgbPacketProcessor rgb_processor;
   libfreenect2::TurboJpegRgbPacketProcessor rgb_processor;
@@ -786,7 +818,7 @@ int main(int argc, char *argv[])
     r = 0;
   printf("             speed: %s\n", speed_name[r]);
 
-  RunKinect(handle, depth_processor);
+  RunKinect(usb_ctrl, handle, depth_processor);
 
   rgb_bulk_transfers.submit(10);
   depth_iso_transfers.submit(60);
@@ -801,11 +833,11 @@ int main(int argc, char *argv[])
   {
     frame_listener.waitForNewFrame(frames);
 
-    libfreenect2::Frame *rgb = frames[libfreenect2::Frame::Color];
+    //libfreenect2::Frame *rgb = frames[libfreenect2::Frame::Color];
     libfreenect2::Frame *ir = frames[libfreenect2::Frame::Ir];
     libfreenect2::Frame *depth = frames[libfreenect2::Frame::Depth];
 
-    cv::imshow("rgb", cv::Mat(rgb->height, rgb->width, CV_8UC3, rgb->data));
+    //cv::imshow("rgb", cv::Mat(rgb->height, rgb->width, CV_8UC3, rgb->data));
     cv::imshow("ir", cv::Mat(ir->height, ir->width, CV_32FC1, ir->data) / 20000.0f);
     cv::imshow("depth", cv::Mat(depth->height, depth->width, CV_32FC1, depth->data) / 4500.0f);
     cv::waitKey(1);
@@ -822,8 +854,7 @@ int main(int argc, char *argv[])
 
   rgb_bulk_transfers.disableSubmission();
   depth_iso_transfers.disableSubmission();
-
-  CloseKinect(handle);
+  CloseKinect2(usb_ctrl);
 
   rgb_bulk_transfers.cancel();
   depth_iso_transfers.cancel();
