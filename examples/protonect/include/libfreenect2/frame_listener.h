@@ -28,7 +28,7 @@
 #define FRAME_LISTENER_H_
 
 #include <map>
-#include <boost/thread.hpp>
+#include <libfreenect2/threading.h>
 
 namespace libfreenect2
 {
@@ -75,8 +75,8 @@ public:
 
   bool addNewFrame(Frame::Type type, Frame *frame);
 private:
-  boost::mutex mutex_;
-  boost::condition_variable condition_;
+  libfreenect2::mutex mutex_;
+  libfreenect2::condition_variable condition_;
   FrameMap next_frame_;
 
   const unsigned int subscribed_frame_types_;

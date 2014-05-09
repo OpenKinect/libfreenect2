@@ -21,7 +21,6 @@ libusbx 1.0.17
   with superspeed patch by Joshua Blake <joshblake@gmail.com> see https://github.com/JoshBlake/libusbx/tree/superspeed
   with MAX_ISO_BUFFER_LENGTH increased to 49152 in libusb/os/libusb_usbfs.h
 turbojpeg
-boost threads
 opencv
 
 run ./depends/install_ubuntu.sh

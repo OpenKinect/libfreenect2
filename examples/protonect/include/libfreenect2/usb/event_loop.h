@@ -27,7 +27,7 @@
 #ifndef EVENT_LOOP_H_
 #define EVENT_LOOP_H_
 
-#include <boost/thread.hpp>
+#include <libfreenect2/threading.h>
 
 namespace libfreenect2
 {
@@ -45,8 +45,9 @@ public:
   void stop();
 private:
   bool shutdown_;
-  boost::thread *thread_;
+  libfreenect2::thread *thread_;
 
+  static void static_execute(void *cookie);
   void execute();
 };
 

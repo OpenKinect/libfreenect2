@@ -41,11 +41,11 @@ FrameListener::~FrameListener()
 
 void FrameListener::waitForNewFrame(FrameMap &frame)
 {
-  boost::mutex::scoped_lock l(mutex_);
+  libfreenect2::unique_lock l(mutex_);
 
   while(ready_frame_types_ != subscribed_frame_types_)
   {
-    condition_.wait(l);
+    WAIT_CONDITION(condition_, mutex_, l)
   }
 
   frame = next_frame_;
@@ -69,7 +69,7 @@ bool FrameListener::addNewFrame(Frame::Type type, Frame *frame)
   if((subscribed_frame_types_ & type) == 0) return false;
 
   {
-    boost::mutex::scoped_lock l(mutex_);
+    libfreenect2::lock_guard l(mutex_);
 
     FrameMap::iterator it = next_frame_.find(type);
 
