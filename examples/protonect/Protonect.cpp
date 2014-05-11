@@ -106,54 +106,63 @@ void RunKinect(libfreenect2::protocol::UsbControl& usb_ctrl, libusb_device_handl
   uint32_t seq = cmd_seq;
 
   usb_ctrl.setVideoTransferFunctionState(UsbControl::Enabled);
-  //r = KSetSensorStatus(handle, KSENSOR_ENABLE);
 
   tx.execute(ReadFirmwareVersionsCommand(seq++), result);
   hexdump(result.data, result.length, "ReadFirmwareVersions");
-  //r = KReadFirmwareVersions(handle);
 
   tx.execute(ReadData0x14Command(seq++), result);
   hexdump(result.data, result.length, "ReadData0x14");
-  //r = KReadData14(handle);
 
   tx.execute(ReadSerialNumberCommand(seq++), result);
   hexdump(result.data, result.length, "ReadSerialNumber");
-  //r = KReadData22_1(handle);
 
   tx.execute(ReadDepthCameraParametersCommand(seq++), result);
-  //r = KReadDepthCameraParams(handle);
 
   tx.execute(ReadP0TablesCommand(seq++), result);
   depth_processor.loadP0TablesFromCommandResponse(result.data, result.length);
-  //r = KReadP0Tables(handle, depth_processor);
 
   tx.execute(ReadRgbCameraParametersCommand(seq++), result);
-  //r = KReadCameraParams(handle);
 
   tx.execute(ReadStatus0x090000Command(seq++), result);
   hexdump(result.data, result.length, "Status");
-  //r = KReadStatus90000(handle);
 
   tx.execute(InitStreamsCommand(seq++), result);
-  //r = KInitStreams(handle);
 
   usb_ctrl.setIrInterfaceState(UsbControl::Enabled);
-  //r = KSetStreamingInterfaceStatus(handle, KSTREAM_ENABLE);
 
   tx.execute(ReadStatus0x090000Command(seq++), result);
   hexdump(result.data, result.length, "Status");
-  //r = KReadStatus90000(handle);
 
   tx.execute(SetStreamEnabledCommand(seq++), result);
-  //r = KSetStreamStatus(handle, KSTREAM_ENABLE);
 
+  /*
+   * TODO: check whether this sequence is correct
+  tx.execute(SetModeEnabledCommand(seq++), result);
+  tx.execute(SetModeDisabledCommand(seq++), result);
+  tx.execute(SetModeEnabledWith0x00640064Command(seq++), result);
+  tx.execute(ReadData0x26Command(seq++), result);
+  tx.execute(ReadStatus0x100007Command(seq++), result);
+   */
   cmd_seq = seq;
 }
 
-void CloseKinect2(libfreenect2::protocol::UsbControl& usb_ctrl)
+void CloseKinect2(libfreenect2::protocol::UsbControl& usb_ctrl, libusb_device_handle *handle)
 {
+  using namespace libfreenect2::protocol;
+
+  CommandTransaction tx(handle, 0x81, 0x02);
+  CommandTransaction::Result result;
+
+  uint32_t seq = cmd_seq;
+
   printf("closing kinect...\n");
-  usb_ctrl.setVideoTransferFunctionState(libfreenect2::protocol::UsbControl::Disabled);
+
+  usb_ctrl.setIrInterfaceState(UsbControl::Disabled);
+
+  tx.execute(Unknown0x0ACommand(seq++), result);
+  tx.execute(SetStreamDisabledCommand(seq++), result);
+
+  usb_ctrl.setVideoTransferFunctionState(UsbControl::Disabled);
 }
 
 bool shutdown = false;
@@ -321,7 +330,7 @@ int main(int argc, char *argv[])
 
   rgb_bulk_transfers.disableSubmission();
   depth_iso_transfers.disableSubmission();
-  CloseKinect2(usb_ctrl);
+  CloseKinect2(usb_ctrl, handle);
 
   rgb_bulk_transfers.cancel();
   depth_iso_transfers.cancel();

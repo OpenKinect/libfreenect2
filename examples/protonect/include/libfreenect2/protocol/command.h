@@ -39,6 +39,12 @@
 #define KCMD_SET_STREAMING 0x2B
 #define KCMD_SET_MODE 0x4B
 
+#define KCMD_0x46 0x46
+#define KCMD_0x47 0x47
+
+// observed in sensor stop/shutdown sequence
+#define KCMD_0x0A 0x0A
+
 namespace libfreenect2
 {
 
@@ -146,6 +152,18 @@ struct CommandWith1Param : public Command<CommandId, MaxResponseLength, 1>
   }
 };
 
+template<uint32_t CommandId, uint32_t MaxResponseLength, uint32_t Param1, uint32_t Param2 = 0, uint32_t Param3 = 0, uint32_t Param4 = 0>
+struct CommandWith4Params : public Command<CommandId, MaxResponseLength, 4>
+{
+  CommandWith4Params(uint32_t seq) : Command<CommandId, MaxResponseLength, 4>(seq)
+  {
+    this->data_.parameters[0] = Param1;
+    this->data_.parameters[1] = Param2;
+    this->data_.parameters[2] = Param3;
+    this->data_.parameters[3] = Param4;
+  }
+};
+
 typedef CommandWith0Params<0x02, 0x200> ReadFirmwareVersionsCommand;
 
 typedef CommandWith0Params<KCMD_READ_DATA_0x14, 0x5C> ReadData0x14Command;
@@ -159,23 +177,26 @@ typedef CommandWith1Param<KCMD_READ_DATA_PAGE, 0x1C0000, 0x04> ReadRgbCameraPara
 
 typedef CommandWith1Param<KCMD_READ_STATUS, 0x04, 0x090000> ReadStatus0x090000Command;
 typedef CommandWith1Param<KCMD_READ_STATUS, 0x04, 0x100007> ReadStatus0x100007Command;
+// TODO: are they ever used?!
+typedef CommandWith1Param<KCMD_READ_STATUS, 0x04, 0x02006F> ReadStatus0x02006FCommand;
+typedef CommandWith1Param<KCMD_READ_STATUS, 0x04, 0x020070> ReadStatus0x020070Command;
 
+// TODO: is the following actually correct?
+//typedef CommandWith0Params<KCMD_READ_DATA_0x26, 0x10> ReadData0x26Command;
 typedef CommandWith1Param<KCMD_READ_DATA_0x26, 0x10, 0x00> ReadData0x26_0x00Command;
 
 typedef CommandWith1Param<KCMD_SET_STREAMING, 0x00, 0x00> SetStreamDisabledCommand;
 typedef CommandWith1Param<KCMD_SET_STREAMING, 0x00, 0x01> SetStreamEnabledCommand;
 
-template<uint32_t Param1>
-struct SetModeCommand : public Command<KCMD_SET_MODE, 0x00, 4>
-{
-  SetModeCommand(uint32_t seq) : Command<KCMD_SET_MODE, 0x00, 4>(seq)
-  {
-    this->data_.parameters[0] = Param1;
-  }
-};
+// TODO: are they ever used?!
+typedef CommandWith4Params<KCMD_0x46, 0x00, 0x00, 0x00003840, 0x0000000B, 0x00> Unknown0x46Command;
+typedef CommandWith0Params<KCMD_0x47, 0x10> Unknown0x47Command;
 
-typedef SetModeCommand<0x00> SetModeDisabledCommand;
-typedef SetModeCommand<0x01> SetModeEnabledCommand;
+typedef CommandWith0Params<KCMD_0x0A, 0x00> Unknown0x0ACommand;
+
+typedef CommandWith4Params<KCMD_SET_MODE, 0x00, 0x00> SetModeDisabledCommand;
+typedef CommandWith4Params<KCMD_SET_MODE, 0x00, 0x01> SetModeEnabledCommand;
+typedef CommandWith4Params<KCMD_SET_MODE, 0x00, 0x01, 0x00640064> SetModeEnabledWith0x00640064Command;
 } /* namespace protocol */
 } /* namespace libfreenect2 */
 #endif /* COMMAND_H_ */
