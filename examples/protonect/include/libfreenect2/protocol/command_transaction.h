@@ -27,8 +27,6 @@
 #ifndef COMMAND_TRANSACTION_H_
 #define COMMAND_TRANSACTION_H_
 
-#include <iostream>
-
 #include <libusb.h>
 #include <libfreenect2/protocol/command.h>
 
@@ -48,6 +46,7 @@ public:
     Success,
     Error
   };
+
   struct Result
   {
     ResultCode code;
@@ -55,163 +54,28 @@ public:
     unsigned char *data;
     int capacity, length;
 
-    Result() :
-      code(Error),
-      data(NULL),
-      capacity(0),
-      length(0)
-    {
-    }
+    Result();
+    ~Result();
 
-    ~Result()
-    {
-      deallocate();
-    }
-
-    void allocate(size_t size)
-    {
-      if(capacity < size)
-      {
-        deallocate();
-        data = new unsigned char[size];
-        capacity = size;
-      }
-      length = 0;
-    }
-
-    void deallocate()
-    {
-      if(data != NULL)
-      {
-        delete[] data;
-      }
-      length = 0;
-      capacity = 0;
-    }
-
-    bool notSuccessfulThenDeallocate()
-    {
-      bool not_successful = (code != Success);
-
-      if(not_successful)
-      {
-        deallocate();
-      }
-
-      return not_successful;
-    }
+    void allocate(size_t size);
+    void deallocate();
+    bool notSuccessfulThenDeallocate();
   };
 
-  CommandTransaction(libusb_device_handle *handle, int inbound_endpoint, int outbound_endpoint) :
-    handle_(handle),
-    inbound_endpoint_(inbound_endpoint),
-    outbound_endpoint_(outbound_endpoint),
-    timeout_(1000)
-  {
-    response_complete_result_.allocate(ResponseCompleteLength);
-  }
-  ~CommandTransaction() {}
+  CommandTransaction(libusb_device_handle *handle, int inbound_endpoint, int outbound_endpoint);
+  ~CommandTransaction();
 
-  void execute(const CommandBase& command, Result& result)
-  {
-    result.allocate(command.maxResponseLength());
-
-    // send command
-    result.code = send(command);
-
-    if(result.notSuccessfulThenDeallocate()) return;
-
-    bool complete = false;
-
-    // receive response data
-    if(command.maxResponseLength() > 0)
-    {
-      receive(result);
-      complete = isResponseCompleteResult(result, command.sequence());
-
-      if(complete)
-      {
-        std::cerr << "[CommandTransaction::execute] received premature response complete!" << std::endl;
-        result.code = Error;
-      }
-
-      if(result.notSuccessfulThenDeallocate()) return;
-    }
-
-    // receive response complete
-    receive(response_complete_result_);
-    complete = isResponseCompleteResult(response_complete_result_, command.sequence());
-
-    if(!complete)
-    {
-      std::cerr << "[CommandTransaction::execute] missing response complete!" << std::endl;
-      result.code = Error;
-    }
-
-    result.notSuccessfulThenDeallocate();
-  }
+  void execute(const CommandBase& command, Result& result);
 private:
   libusb_device_handle *handle_;
   int inbound_endpoint_, outbound_endpoint_, timeout_;
   Result response_complete_result_;
 
-  ResultCode send(const CommandBase& command)
-  {
-    ResultCode code = Success;
+  ResultCode send(const CommandBase& command);
 
-    int transferred_bytes = 0;
-    int r = libusb_bulk_transfer(handle_, outbound_endpoint_, const_cast<uint8_t *>(command.data()), command.size(), &transferred_bytes, timeout_);
+  void receive(Result& result);
 
-    if(r != LIBUSB_SUCCESS)
-    {
-      std::cerr << "[CommandTransaction::send] bulk transfer failed! libusb error " << r << ": " << libusb_error_name(r) << std::endl;
-      code = Error;
-    }
-
-    if(transferred_bytes != command.size())
-    {
-      std::cerr << "[CommandTransaction::send] sent number of bytes differs from expected number! expected: " << command.size() << " got: " << transferred_bytes << std::endl;
-      code = Error;
-    }
-
-    return code;
-  }
-
-  void receive(Result& result)
-  {
-    result.code = Success;
-    result.length = 0;
-
-    int r = libusb_bulk_transfer(handle_, inbound_endpoint_, result.data, result.capacity, &result.length, timeout_);
-
-    if(r != LIBUSB_SUCCESS)
-    {
-      std::cerr << "[CommandTransaction::receive] bulk transfer failed! libusb error " << r << ": " << libusb_error_name(r) << std::endl;
-      result.code = Error;
-    }
-  }
-
-  bool isResponseCompleteResult(Result& result, uint32_t sequence)
-  {
-    bool complete = false;
-
-    if(result.code == Success && result.length == ResponseCompleteLength)
-    {
-      uint32_t *data = reinterpret_cast<uint32_t *>(result.data);
-
-      if(data[0] == ResponseCompleteMagic)
-      {
-        complete = true;
-
-        if(data[1] != sequence)
-        {
-          std::cerr << "[CommandTransaction::isResponseCompleteResult] response complete with wrong sequence number! expected: " << sequence << " got: " << data[1]<< std::endl;
-        }
-      }
-    }
-
-    return complete;
-  }
+  bool isResponseCompleteResult(Result& result, uint32_t sequence);
 };
 
 } /* namespace protocol */

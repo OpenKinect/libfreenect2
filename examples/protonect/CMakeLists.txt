@@ -76,6 +76,7 @@ ADD_EXECUTABLE(Protonect
   src/resource.cpp
   
   src/usb_control.cpp
+  src/command_transaction.cpp
   
   Protonect.cpp
   
