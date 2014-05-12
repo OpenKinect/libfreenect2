@@ -330,7 +330,6 @@ int main(int argc, char *argv[])
 
   rgb_bulk_transfers.disableSubmission();
   depth_iso_transfers.disableSubmission();
-  CloseKinect2(usb_ctrl, handle);
 
   rgb_bulk_transfers.cancel();
   depth_iso_transfers.cancel();
@@ -338,6 +337,7 @@ int main(int argc, char *argv[])
   // wait for all transfers to cancel
   // TODO: better implementation
   libfreenect2::this_thread::sleep_for(libfreenect2::chrono::seconds(2));
+  CloseKinect2(usb_ctrl, handle);
 
   rgb_bulk_transfers.deallocate();
   depth_iso_transfers.deallocate();
