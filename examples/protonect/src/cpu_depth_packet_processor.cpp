@@ -82,8 +82,13 @@ public:
 
   float joint_bilateral_ab_threshold;
   float joint_bilateral_exp;
-
+  float joint_bilateral_max_edge;
   float gaussian_kernel[9];
+
+  float min_depth, max_depth;
+
+  float edge_ab_avg_min_value, edge_ab_std_dev_threshold, edge_close_delta_threshold, edge_far_delta_threshold, edge_max_delta_threshold, edge_avg_delta_threshold;
+  float max_edge_count;
 
   float trig_table0[512*424][6];
   float trig_table1[512*424][6];
@@ -94,7 +99,7 @@ public:
 
   double timing_current_start;
 
-  bool enable_bilateral_filter;
+  bool enable_bilateral_filter, enable_edge_filter;
 
   Frame *ir_frame, *depth_frame;
 
@@ -113,6 +118,7 @@ public:
 
     joint_bilateral_ab_threshold = 3.0f;
     joint_bilateral_exp = 5.0f;
+    joint_bilateral_max_edge = 2.5f;
     gaussian_kernel[0] = 0.1069973f;
     gaussian_kernel[1] = 0.1131098f;
     gaussian_kernel[2] = 0.1069973f;
@@ -129,6 +135,17 @@ public:
     ab_confidence_offset = 0.7694894f;
     min_dealias_confidence = 0.3490659f;
     max_dealias_confidence = 0.6108653f;
+    min_depth = 500.0f;
+    max_depth = 4500.0f;
+
+    edge_ab_avg_min_value = 50;
+    edge_ab_std_dev_threshold = 0.05;
+    edge_close_delta_threshold = 50;
+    edge_far_delta_threshold = 30;
+    edge_max_delta_threshold = 100;
+    edge_avg_delta_threshold = 0;
+
+    max_edge_count = 5.0f;
 
     newIrFrame();
     newDepthFrame();
@@ -137,7 +154,8 @@ public:
     timing_acc_n = 0.0;
     timing_current_start = 0.0;
 
-    enable_bilateral_filter = false;
+    enable_bilateral_filter = true;
+    enable_edge_filter = true;
   }
 
   void startTiming()
@@ -162,6 +180,7 @@ public:
   void newIrFrame()
   {
     ir_frame = new Frame(512, 424, 4);
+    //ir_frame = new Frame(512, 424, 12);
   }
 
   void newDepthFrame()
@@ -288,9 +307,9 @@ public:
     tmp4 = !cond1 ? tmp4 : 0;
     tmp5 = !cond1 ? tmp5 : 65535.0; // some kind of norm calculated from tmp3 and tmp4
 
-    m_out[0] = tmp3;
-    m_out[1] = tmp4;
-    m_out[2] = tmp5;
+    m_out[0] = tmp3; // ir image a
+    m_out[1] = tmp4; // ir image b
+    m_out[2] = tmp5; // ir amplitude
   }
 
   void transformMeasurements(float* m)
@@ -301,8 +320,8 @@ public:
 
     float tmp1 = std::sqrt(m[0] * m[0] + m[1] * m[1]) * ab_multiplier;
 
-    m[0] = tmp0; // depth ?
-    m[1] = tmp1; // ir ?
+    m[0] = tmp0; // phase
+    m[1] = tmp1; // ir amplitude - (possibly bilateral filtered)
   }
 
   void processPixelStage1(int x, int y, unsigned char* data, float *m0_out, float *m1_out, float *m2_out)
@@ -324,9 +343,10 @@ public:
     processMeasurementTriple(trig_table2, ab_multiplier_per_frq2, x, y, m2_raw, m2_out);
   }
 
-  void filterPixelStage1(int x, int y, const cv::Mat& m, float* m_out)
+  void filterPixelStage1(int x, int y, const cv::Mat& m, float* m_out, bool& bilateral_max_edge_test)
   {
     const float *m_ptr = m.ptr<float>(y, x);
+    bilateral_max_edge_test = true;
 
     if(x < 1 || y < 1 || x > 510 || y > 422)
     {
@@ -363,6 +383,8 @@ public:
           joint_bilateral_exp = 0.0f;
         }
 
+        float dist_acc = 0.0f;
+
         for(int yi = -1; yi < 2; ++yi)
         {
           for(int xi = -1; xi < 2; ++xi, ++j)
@@ -389,7 +411,13 @@ public:
             dist += 1.0f;
             dist *= 0.5f;
 
-            float weight = other_norm2 < threshold ? 0.0f : (gaussian_kernel[j] * std::exp(-1.442695f * joint_bilateral_exp * dist));
+            float weight = 0.0f;
+
+            if(other_norm2 >= threshold)
+            {
+              weight = (gaussian_kernel[j] * std::exp(-1.442695f * joint_bilateral_exp * dist));
+              dist_acc += dist;
+            }
 
             weighted_m_acc[0] += weight * other_m_ptr[0];
             weighted_m_acc[1] += weight * other_m_ptr[1];
@@ -398,6 +426,8 @@ public:
           }
         }
 
+        bilateral_max_edge_test = bilateral_max_edge_test && dist_acc < joint_bilateral_max_edge;
+
         m_out[0] = 0.0f < weight_acc ? weighted_m_acc[0] / weight_acc : 0.0f;
         m_out[1] = 0.0f < weight_acc ? weighted_m_acc[1] / weight_acc : 0.0f;
         m_out[2] = m_ptr[2];
@@ -405,9 +435,8 @@ public:
     }
   }
 
-  void processPixelStage2(int x, int y, float *m0, float *m1, float *m2, float *ir_out, float *depth_out)
+  void processPixelStage2(int x, int y, float *m0, float *m1, float *m2, float *ir_out, float *depth_out, float *ir_sum_out)
   {
-
     //// 10th measurement
     //float m9 = 1; // decodePixelMeasurement(data, 9, x, y);
     //
@@ -420,6 +449,8 @@ public:
     transformMeasurements(m0);
     transformMeasurements(m1);
     transformMeasurements(m2);
+
+    float ir_sum = m0[1] + m1[1] + m2[1];
 
     float phase;
     // if(DISABLE_DISAMBIGUATION)
@@ -439,7 +470,6 @@ public:
     }
     else
     {
-      float ir_sum = m0[1] + m1[1] + m2[1];
       float ir_min = std::min(std::min(m0[1], m1[1]), m2[1]);
 
       if (ir_min < individual_ab_threshold || ir_sum < ab_threshold)
@@ -534,22 +564,100 @@ public:
     depth_fit = depth_fit < 0 ? 0 : depth_fit;
     float depth = cond1 ? depth_fit : depth_linear; // r1.y -> later r2.z
 
-    // TODO: edge aware bilateral filter
-
-    if (x >= 0 && y >= 0 && x < 512 && y < 424)
-    {
-        // output depth
-        // output (tmp2 + tmp3 + tmp4) * 0.3333333
-
-        // output m1[2]
-    }
-
     // depth
     *depth_out = depth;
+    if(ir_sum_out != 0)
+    {
+      *ir_sum_out = ir_sum;
+    }
+
     // ir
     //*ir_out = std::min((m1[2]) * ab_output_multiplier, 65535.0f);
     // ir avg
     *ir_out = std::min((m0[2] + m1[2] + m2[2]) * 0.3333333f * ab_output_multiplier, 65535.0f);
+    //ir_out[0] = std::min(m0[2] * ab_output_multiplier, 65535.0f);
+    //ir_out[1] = std::min(m1[2] * ab_output_multiplier, 65535.0f);
+    //ir_out[2] = std::min(m2[2] * ab_output_multiplier, 65535.0f);
+  }
+
+  void filterPixelStage2(int x, int y, cv::Mat &m, bool max_edge_test_ok, float *depth_out)
+  {
+    cv::Vec3f &depth_and_ir_sum = m.at<cv::Vec3f>(y, x);
+    float &raw_depth = depth_and_ir_sum.val[0], &ir_sum = depth_and_ir_sum.val[2];
+
+    if(raw_depth >= min_depth && raw_depth <= max_depth)
+    {
+      if(x < 1 || y < 1 || x > 510 || y > 422)
+      {
+        *depth_out = raw_depth;
+      }
+      else
+      {
+        float ir_sum_acc = ir_sum, squared_ir_sum_acc = ir_sum * ir_sum, min_depth = raw_depth, max_depth = raw_depth;
+
+        for(int yi = -1; yi < 2; ++yi)
+        {
+          for(int xi = -1; xi < 2; ++xi)
+          {
+            if(yi == 0 && xi == 0) continue;
+
+            cv::Vec3f &other = m.at<cv::Vec3f>(y + yi, x + xi);
+
+            ir_sum_acc += other.val[2];
+            squared_ir_sum_acc += other.val[2] * other.val[2];
+
+            if(0.0f < other.val[1])
+            {
+              min_depth = std::min(min_depth, other.val[1]);
+              max_depth = std::min(max_depth, other.val[1]);
+            }
+          }
+        }
+
+        float tmp0 = std::sqrt(squared_ir_sum_acc * 9.0f - ir_sum_acc * ir_sum_acc) / 9.0f;
+        float edge_avg = std::max(ir_sum_acc / 9.0f, edge_ab_avg_min_value);
+        tmp0 /= edge_avg;
+
+        float abs_min_diff = std::abs(raw_depth - min_depth);
+        float abs_max_diff = std::abs(raw_depth - max_depth);
+
+        float avg_diff = (abs_min_diff + abs_max_diff) * 0.5f;
+        float max_abs_diff = std::max(abs_min_diff, abs_max_diff);
+
+        bool cond0 =
+            0.0f < raw_depth &&
+            tmp0 >= edge_ab_std_dev_threshold &&
+            edge_close_delta_threshold < abs_min_diff &&
+            edge_far_delta_threshold < abs_max_diff &&
+            edge_max_delta_threshold < max_abs_diff &&
+            edge_avg_delta_threshold < avg_diff;
+
+        *depth_out = cond0 ? 0.0f : raw_depth;
+
+        if(!cond0)
+        {
+          if(max_edge_test_ok)
+          {
+            float tmp1 = 1500.0f > raw_depth ? 30.0f : 0.02f * raw_depth;
+            float edge_count = 0.0f;
+
+            *depth_out = edge_count > max_edge_count ? 0.0f : raw_depth;
+          }
+          else
+          {
+            *depth_out = !max_edge_test_ok ? 0.0f : raw_depth;
+            *depth_out = true ? *depth_out : raw_depth;
+          }
+        }
+      }
+    }
+    else
+    {
+      *depth_out = 0.0f;
+    }
+
+    // override raw depth
+    depth_and_ir_sum.val[0] = depth_and_ir_sum.val[1];
   }
 };
 
@@ -617,7 +725,7 @@ void CpuDepthPacketProcessor::process(const DepthPacket &packet)
 
   impl_->startTiming();
 
-  cv::Mat m = cv::Mat::zeros(424, 512, CV_32FC(9)), m_filtered = cv::Mat::zeros(424, 512, CV_32FC(9));
+  cv::Mat m = cv::Mat::zeros(424, 512, CV_32FC(9)), m_filtered = cv::Mat::zeros(424, 512, CV_32FC(9)), m_max_edge_test = cv::Mat::ones(424, 512, CV_8UC1);
 
   float *m_ptr = m.ptr<float>();
 
@@ -631,10 +739,14 @@ void CpuDepthPacketProcessor::process(const DepthPacket &packet)
   if(impl_->enable_bilateral_filter)
   {
     float *m_filtered_ptr = m_filtered.ptr<float>();
+    unsigned char *m_max_edge_test_ptr = m_max_edge_test.ptr<unsigned char>();
+
     for(int y = 0; y < 424; ++y)
-      for(int x = 0; x < 512; ++x, m_filtered_ptr += 9)
+      for(int x = 0; x < 512; ++x, m_filtered_ptr += 9, ++m_max_edge_test_ptr)
       {
-        impl_->filterPixelStage1(x, y, m, m_filtered_ptr);
+        bool max_edge_test_val = true;
+        impl_->filterPixelStage1(x, y, m, m_filtered_ptr, max_edge_test_val);
+        *m_max_edge_test_ptr = max_edge_test_val ? 1 : 0;
       }
 
     m_ptr = m_filtered.ptr<float>();
@@ -646,11 +758,40 @@ void CpuDepthPacketProcessor::process(const DepthPacket &packet)
 
   cv::Mat out_ir(424, 512, CV_32FC1, impl_->ir_frame->data), out_depth(424, 512, CV_32FC1, impl_->depth_frame->data);
 
-  for(int y = 0; y < 424; ++y)
-    for(int x = 0; x < 512; ++x, m_ptr += 9)
-    {
-      impl_->processPixelStage2(x, y, m_ptr + 0, m_ptr + 3, m_ptr + 6, out_ir.ptr<float>(423 - y, x), out_depth.ptr<float>(423 - y, x));
-    }
+  if(impl_->enable_edge_filter)
+  {
+    cv::Mat depth_ir_sum(424, 512, CV_32FC3);
+    cv::Vec3f *depth_ir_sum_ptr = depth_ir_sum.ptr<cv::Vec3f>();
+    unsigned char *m_max_edge_test_ptr = m_max_edge_test.ptr<unsigned char>();
+
+    for(int y = 0; y < 424; ++y)
+      for(int x = 0; x < 512; ++x, m_ptr += 9, ++m_max_edge_test_ptr, ++depth_ir_sum_ptr)
+      {
+        float raw_depth, ir_sum;
+
+        impl_->processPixelStage2(x, y, m_ptr + 0, m_ptr + 3, m_ptr + 6, out_ir.ptr<float>(423 - y, x), &raw_depth, &ir_sum);
+
+        depth_ir_sum_ptr->val[0] = raw_depth;
+        depth_ir_sum_ptr->val[1] = *m_max_edge_test_ptr == 1 ? raw_depth : 0;
+        depth_ir_sum_ptr->val[2] = ir_sum;
+      }
+
+    m_max_edge_test_ptr = m_max_edge_test.ptr<unsigned char>();
+
+    for(int y = 0; y < 424; ++y)
+      for(int x = 0; x < 512; ++x, ++m_max_edge_test_ptr)
+      {
+        impl_->filterPixelStage2(x, y, depth_ir_sum, *m_max_edge_test_ptr == 1, out_depth.ptr<float>(423 - y, x));
+      }
+  }
+  else
+  {
+    for(int y = 0; y < 424; ++y)
+      for(int x = 0; x < 512; ++x, m_ptr += 9)
+      {
+        impl_->processPixelStage2(x, y, m_ptr + 0, m_ptr + 3, m_ptr + 6, out_ir.ptr<float>(423 - y, x), out_depth.ptr<float>(423 - y, x), 0);
+      }
+  }
 
   if(listener_->addNewFrame(Frame::Ir, impl_->ir_frame))
   {
