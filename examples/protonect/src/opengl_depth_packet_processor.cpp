@@ -148,61 +148,22 @@ struct ShaderProgram
   }
 };
 
-struct U8C1
+template<size_t TBytesPerPixel, GLenum TInternalFormat, GLenum TFormat, GLenum TType>
+struct ImageFormat
 {
-  static const size_t BytesPerPixel = 1;
-  static const GLenum InternalFormat = GL_R8UI;
-  static const GLenum Format = GL_RED_INTEGER;
-  static const GLenum Type = GL_UNSIGNED_BYTE;
+  static const size_t BytesPerPixel = TBytesPerPixel;
+  static const GLenum InternalFormat = TInternalFormat;
+  static const GLenum Format = TFormat;
+  static const GLenum Type = TType;
 };
 
-struct S16C1
-{
-  static const size_t BytesPerPixel = 2;
-  static const GLenum InternalFormat = GL_R16I;
-  static const GLenum Format = GL_RED_INTEGER;
-  static const GLenum Type = GL_SHORT;
-};
-
-struct U16C1
-{
-  static const size_t BytesPerPixel = 2;
-  static const GLenum InternalFormat = GL_R16UI;
-  static const GLenum Format = GL_RED_INTEGER;
-  static const GLenum Type = GL_UNSIGNED_SHORT;
-};
-
-struct F32C1
-{
-  static const size_t BytesPerPixel = 4;
-  static const GLenum InternalFormat = GL_R32F;
-  static const GLenum Format = GL_RED;
-  static const GLenum Type = GL_FLOAT;
-};
-
-struct F32C2
-{
-  static const size_t BytesPerPixel = 8;
-  static const GLenum InternalFormat = GL_RG32F;
-  static const GLenum Format = GL_RG;
-  static const GLenum Type = GL_FLOAT;
-};
-
-struct F32C3
-{
-  static const size_t BytesPerPixel = 12;
-  static const GLenum InternalFormat = GL_RGB32F;
-  static const GLenum Format = GL_RGB;
-  static const GLenum Type = GL_FLOAT;
-};
-
-struct F32C4
-{
-  static const size_t BytesPerPixel = 16;
-  static const GLenum InternalFormat = GL_RGBA32F;
-  static const GLenum Format = GL_RGBA;
-  static const GLenum Type = GL_FLOAT;
-};
+typedef ImageFormat<1, GL_R8UI, GL_RED_INTEGER, GL_UNSIGNED_BYTE> U8C1;
+typedef ImageFormat<2, GL_R16I, GL_RED_INTEGER, GL_SHORT> S16C1;
+typedef ImageFormat<2, GL_R16UI, GL_RED_INTEGER, GL_UNSIGNED_SHORT> U16C1;
+typedef ImageFormat<4, GL_R32F, GL_RED, GL_FLOAT> F32C1;
+typedef ImageFormat<8, GL_RG32F, GL_RG, GL_FLOAT> F32C2;
+typedef ImageFormat<12, GL_RGB32F, GL_RGB, GL_FLOAT> F32C3;
+typedef ImageFormat<16, GL_RGBA32F, GL_RGBA, GL_FLOAT> F32C4;
 
 template<typename FormatT>
 struct Texture
