@@ -29,7 +29,6 @@
 
 #include <iostream>
 #include <fstream>
-#include <opencv2/opencv.hpp>
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
@@ -315,12 +314,12 @@ struct OpenGLDepthPacketProcessorImpl
 
   void startTiming()
   {
-    timing_current_start = cv::getTickCount();
+    timing_current_start = glfwGetTime();
   }
 
   void stopTiming()
   {
-    timing_acc += (cv::getTickCount() - timing_current_start) / cv::getTickFrequency();
+    timing_acc += (glfwGetTime() - timing_current_start);
     timing_acc_n += 1.0;
 
     if(timing_acc_n >= 100.0)
