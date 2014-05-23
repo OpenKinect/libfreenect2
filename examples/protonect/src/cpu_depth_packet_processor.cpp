@@ -679,6 +679,8 @@ void CpuDepthPacketProcessor::setConfiguration(const libfreenect2::DepthPacketPr
   
   impl_->min_depth = config.MinDepth;
   impl_->max_depth = config.MaxDepth;
+  impl_->enable_bilateral_filter = config.EnableBilateralFilter;
+  impl_->enable_edge_filter = config.EnableEdgeAwareFilter;
 }
 
 void CpuDepthPacketProcessor::loadP0TablesFromCommandResponse(unsigned char* buffer, size_t buffer_length)

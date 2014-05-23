@@ -50,6 +50,9 @@ public:
     float MinDepth;
     float MaxDepth;
     
+    bool EnableBilateralFilter;
+    bool EnableEdgeAwareFilter;
+    
     Config();
   };
 
