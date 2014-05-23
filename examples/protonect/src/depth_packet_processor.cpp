@@ -29,6 +29,13 @@
 namespace libfreenect2
 {
 
+DepthPacketProcessor::Config::Config() :
+  MinDepth(0.5f),
+  MaxDepth(4.5f)
+{
+
+}
+
 DepthPacketProcessor::DepthPacketProcessor() :
     listener_(0)
 {
@@ -36,6 +43,11 @@ DepthPacketProcessor::DepthPacketProcessor() :
 
 DepthPacketProcessor::~DepthPacketProcessor()
 {
+}
+
+void DepthPacketProcessor::setConfiguration(const libfreenect2::DepthPacketProcessor::Config &config)
+{
+  config_ = config;
 }
 
 void DepthPacketProcessor::setFrameListener(libfreenect2::FrameListener *listener)

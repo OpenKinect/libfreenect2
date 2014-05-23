@@ -673,6 +673,14 @@ CpuDepthPacketProcessor::~CpuDepthPacketProcessor()
   delete impl_;
 }
 
+void CpuDepthPacketProcessor::setConfiguration(const libfreenect2::DepthPacketProcessor::Config &config)
+{
+  DepthPacketProcessor::setConfiguration(config);
+  
+  impl_->min_depth = config.MinDepth;
+  impl_->max_depth = config.MaxDepth;
+}
+
 void CpuDepthPacketProcessor::loadP0TablesFromCommandResponse(unsigned char* buffer, size_t buffer_length)
 {
   // TODO: check known header fields (headersize, tablesize)

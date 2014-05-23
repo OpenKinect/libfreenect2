@@ -45,15 +45,25 @@ struct DepthPacket
 class DepthPacketProcessor
 {
 public:
+  struct Config
+  {
+    float MinDepth;
+    float MaxDepth;
+    
+    Config();
+  };
+
   DepthPacketProcessor();
   virtual ~DepthPacketProcessor();
 
   virtual void setFrameListener(libfreenect2::FrameListener *listener);
+  virtual void setConfiguration(const libfreenect2::DepthPacketProcessor::Config &config);
   virtual void process(const DepthPacket &packet) = 0;
 
   virtual void loadP0TablesFromCommandResponse(unsigned char* buffer, size_t buffer_length) = 0;
 
 protected:
+  libfreenect2::DepthPacketProcessor::Config config_;
   libfreenect2::FrameListener *listener_;
 };
 
@@ -66,6 +76,7 @@ class CpuDepthPacketProcessor : public DepthPacketProcessor
 public:
   CpuDepthPacketProcessor();
   virtual ~CpuDepthPacketProcessor();
+  virtual void setConfiguration(const libfreenect2::DepthPacketProcessor::Config &config);
 
   virtual void loadP0TablesFromCommandResponse(unsigned char* buffer, size_t buffer_length);
 
