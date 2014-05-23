@@ -49,6 +49,7 @@ ADD_EXECUTABLE(Protonect
   src/depth_packet_stream_parser.cpp
   src/depth_packet_processor.cpp
   src/cpu_depth_packet_processor.cpp
+  src/opengl_depth_packet_processor.cpp
   
   Protonect.cpp
   
@@ -61,6 +62,23 @@ TARGET_LINK_LIBRARIES(Protonect
   turbojpeg
   ${LIBFREENECT2_THREADING_LIBRARIES}
   
+  GLEW
+  glfw
+  ${GLFW_LIBRARIES}
+)
+
+ADD_EXECUTABLE(test_opengl
+  src/frame_listener.cpp
+  src/depth_packet_processor.cpp
+  src/opengl_depth_packet_processor.cpp
+  src/test_opengl_depth_packet_processor.cpp
+  
+  ${LIBFREENECT2_THREADING_SOURCE}
+)
+
+TARGET_LINK_LIBRARIES(test_opengl
+  ${LIBFREENECT2_THREADING_LIBRARIES}
+  ${OpenCV_LIBS}
   GLEW
   glfw
   ${GLFW_LIBRARIES}

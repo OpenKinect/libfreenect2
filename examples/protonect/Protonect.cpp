@@ -40,7 +40,7 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 
-//#include <opencv2/opencv.hpp>
+#include <opencv2/opencv.hpp>
 
 #include <libfreenect2/tables.h>
 #include <libfreenect2/usb/event_loop.h>
@@ -736,7 +736,14 @@ int main(int argc, char *argv[])
   rgb_bulk_transfers.setCallback(&rgb_packet_stream_parser);
   rgb_bulk_transfers.enableSubmission();
 
-  libfreenect2::CpuDepthPacketProcessor depth_processor;
+  glfwInit();
+  //glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+  //glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+  //glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+
+
+  GLFWwindow* window = 0;//glfwCreateWindow(800, 600, "OpenGL", 0, 0); // Windowed
+  libfreenect2::OpenGLDepthPacketProcessor depth_processor(window, (binpath + "../src/shader/").c_str());
   depth_processor.setFrameListener(&frame_listener);
   depth_processor.load11To16LutFromFile((binpath + "../11to16.bin").c_str());
   depth_processor.loadXTableFromFile((binpath + "../xTable.bin").c_str());
@@ -767,20 +774,8 @@ int main(int argc, char *argv[])
     r = 0;
   printf("             speed: %s\n", speed_name[r]);
 
-  glfwInit();
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-  glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-  glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
-
-  GLFWwindow* window = glfwCreateWindow(800, 600, "OpenGL", 0, 0); // Windowed
-  glfwMakeContextCurrent(window);
-
-  glewExperimental = GL_TRUE;
-  glewInit();
-
-  while(!shutdown && !glfwWindowShouldClose(window))
+  while(!shutdown)
   {
     frame_listener.waitForNewFrame(frames);
 
@@ -788,18 +783,15 @@ int main(int argc, char *argv[])
     libfreenect2::Frame *ir = frames[libfreenect2::Frame::Ir];
     libfreenect2::Frame *depth = frames[libfreenect2::Frame::Depth];
 
-    //cv::imshow("rgb", cv::Mat(rgb->height, rgb->width, CV_8UC3, rgb->data));
-    //cv::imshow("ir", cv::Mat(ir->height, ir->width, CV_32FC1, ir->data) / 20000.0f);
-    //cv::imshow("depth", cv::Mat(depth->height, depth->width, CV_32FC1, depth->data) / 4500.0f);
-    //cv::waitKey(1);
+    cv::imshow("rgb", cv::Mat(rgb->height, rgb->width, CV_8UC3, rgb->data));
+    cv::imshow("ir", cv::Mat(ir->height, ir->width, CV_32FC1, ir->data) / 20000.0f);
+    cv::imshow("depth", cv::Mat(depth->height, depth->width, CV_32FC1, depth->data) / 4500.0f);
+    cv::waitKey(1);
 
     frame_listener.release(frames);
-
-    glfwSwapBuffers(window);
-    glfwPollEvents();
   }
 
-  glfwDestroyWindow(window);
+  //glfwDestroyWindow(window);
 
   r = libusb_get_device_speed(dev);
   if ((r < 0) || (r > 4))
