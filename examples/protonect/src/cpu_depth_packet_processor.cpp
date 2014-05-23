@@ -105,9 +105,10 @@ public:
 
   CpuDepthPacketProcessorImpl()
   {
-    phase_in_rad0 = 0.0f;
-    phase_in_rad1 = 2.094395f;
-    phase_in_rad2 = 4.18879f;
+    // K4Wv2 is a 3-tap tof camera
+    phase_in_rad0 = 0.0f;      // 0°
+    phase_in_rad1 = 2.094395f; // 120°
+    phase_in_rad2 = 4.18879f;  // 240°
     ab_multiplier = 0.6666667f;
     ab_multiplier_per_frq0 = 1.322581f;
     ab_multiplier_per_frq1 = 1.0f;
@@ -286,6 +287,7 @@ public:
     bool cond0 = 0 < zmultiplier;
     bool cond1 = (m[0] == 32767 || m[1] == 32767 || m[2] == 32767) && cond0;
 
+    // formula given in Patent US 8,587,771 B2
     float tmp3 = cos_tmp0 * m[0] + cos_tmp1 * m[1] + cos_tmp2 * m[2];
     float tmp4 = sin_negtmp0 * m[0] + sin_negtmp1 * m[1] + sin_negtmp2 * m[2];
 
@@ -609,7 +611,7 @@ public:
             if(0.0f < other.val[1])
             {
               min_depth = std::min(min_depth, other.val[1]);
-              max_depth = std::min(max_depth, other.val[1]);
+              max_depth = std::max(max_depth, other.val[1]);
             }
           }
         }
