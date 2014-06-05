@@ -77,6 +77,7 @@ class OpenGLDepthPacketProcessor : public DepthPacketProcessor
 public:
   OpenGLDepthPacketProcessor(void *parent_opengl_context_ptr, const char* shader_folder);
   virtual ~OpenGLDepthPacketProcessor();
+  virtual void setConfiguration(const libfreenect2::DepthPacketProcessor::Config &config);
 
   virtual void loadP0TablesFromCommandResponse(unsigned char* buffer, size_t buffer_length);
 

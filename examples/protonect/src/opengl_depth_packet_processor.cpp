@@ -259,6 +259,8 @@ struct OpenGLDepthPacketProcessorImpl
 {
   GLFWwindow *opengl_context_ptr;
   std::string shader_folder;
+  libfreenect2::DepthPacketProcessor::Config config;
+
   GLuint square_vbo, square_vao, stage1_framebuffer, filter1_framebuffer, stage2_framebuffer, filter2_framebuffer;
   Texture<S16C1> lut11to16;
   Texture<U16C1> p0table[3];
@@ -477,31 +479,39 @@ struct OpenGLDepthPacketProcessorImpl
       *ir = stage1_infrared.downloadToNewFrame();
     }
 
-    // bilateral filter
-    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, filter1_framebuffer);
-    glClear(GL_COLOR_BUFFER_BIT);
+    if(config.EnableBilateralFilter)
+    {
+      // bilateral filter
+      glBindFramebuffer(GL_DRAW_FRAMEBUFFER, filter1_framebuffer);
+      glClear(GL_COLOR_BUFFER_BIT);
 
-    filter1.use();
-    stage1_data[0].bindToUnit(GL_TEXTURE0);
-    filter1.setUniform("A", 0);
-    stage1_data[1].bindToUnit(GL_TEXTURE1);
-    filter1.setUniform("B", 1);
-    stage1_data[2].bindToUnit(GL_TEXTURE2);
-    filter1.setUniform("Norm", 2);
+      filter1.use();
+      stage1_data[0].bindToUnit(GL_TEXTURE0);
+      filter1.setUniform("A", 0);
+      stage1_data[1].bindToUnit(GL_TEXTURE1);
+      filter1.setUniform("B", 1);
+      stage1_data[2].bindToUnit(GL_TEXTURE2);
+      filter1.setUniform("Norm", 2);
 
-    glBindVertexArray(square_vao);
-    glDrawArrays(GL_TRIANGLES, 0, 6);
-
+      glBindVertexArray(square_vao);
+      glDrawArrays(GL_TRIANGLES, 0, 6);
+    }
     // data processing 2
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, stage2_framebuffer);
     glClear(GL_COLOR_BUFFER_BIT);
 
     stage2.use();
-    filter1_data[0].bindToUnit(GL_TEXTURE0);
-    //stage1_data[0].bindToUnit(GL_TEXTURE0);
+    if(config.EnableBilateralFilter)
+    {
+      filter1_data[0].bindToUnit(GL_TEXTURE0);
+      filter1_data[1].bindToUnit(GL_TEXTURE1);
+    }
+    else
+    {
+      stage1_data[0].bindToUnit(GL_TEXTURE0);
+      stage1_data[1].bindToUnit(GL_TEXTURE1);
+    }
     stage2.setUniform("A", 0);
-    filter1_data[1].bindToUnit(GL_TEXTURE1);
-    //stage1_data[1].bindToUnit(GL_TEXTURE1);
     stage2.setUniform("B", 1);
     x_table.bindToUnit(GL_TEXTURE2);
     stage2.setUniform("XTable", 2);
@@ -511,23 +521,35 @@ struct OpenGLDepthPacketProcessorImpl
     glBindVertexArray(square_vao);
     glDrawArrays(GL_TRIANGLES, 0, 6);
 
-    // edge aware filter
-    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, filter2_framebuffer);
-    glClear(GL_COLOR_BUFFER_BIT);
-
-    filter2.use();
-    stage2_depth_and_ir_sum.bindToUnit(GL_TEXTURE0);
-    filter2.setUniform("DepthAndIrSum", 0);
-    filter1_max_edge_test.bindToUnit(GL_TEXTURE1);
-    filter2.setUniform("MaxEdgeTest", 1);
-
-    glBindVertexArray(square_vao);
-    glDrawArrays(GL_TRIANGLES, 0, 6);
-    if(depth != 0)
+    if(config.EnableEdgeAwareFilter)
     {
-      glBindFramebuffer(GL_READ_FRAMEBUFFER, filter2_framebuffer);
-      glReadBuffer(GL_COLOR_ATTACHMENT1);
-      *depth = filter2_depth.downloadToNewFrame();
+      // edge aware filter
+      glBindFramebuffer(GL_DRAW_FRAMEBUFFER, filter2_framebuffer);
+      glClear(GL_COLOR_BUFFER_BIT);
+
+      filter2.use();
+      stage2_depth_and_ir_sum.bindToUnit(GL_TEXTURE0);
+      filter2.setUniform("DepthAndIrSum", 0);
+      filter1_max_edge_test.bindToUnit(GL_TEXTURE1);
+      filter2.setUniform("MaxEdgeTest", 1);
+
+      glBindVertexArray(square_vao);
+      glDrawArrays(GL_TRIANGLES, 0, 6);
+      if(depth != 0)
+      {
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, filter2_framebuffer);
+        glReadBuffer(GL_COLOR_ATTACHMENT1);
+        *depth = filter2_depth.downloadToNewFrame();
+      }
+    }
+    else
+    {
+      if(depth != 0)
+      {
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, stage2_framebuffer);
+        glReadBuffer(GL_COLOR_ATTACHMENT1);
+        *depth = stage2_depth.downloadToNewFrame();
+      }
     }
 
     if(do_debug)
@@ -584,6 +606,13 @@ OpenGLDepthPacketProcessor::~OpenGLDepthPacketProcessor()
   glfwDestroyWindow(impl_->opengl_context_ptr);
 
   delete impl_;
+}
+
+
+void OpenGLDepthPacketProcessor::setConfiguration(const libfreenect2::DepthPacketProcessor::Config &config)
+{
+  DepthPacketProcessor::setConfiguration(config);
+  impl_->config = config;
 }
 
 void OpenGLDepthPacketProcessor::loadP0TablesFromCommandResponse(unsigned char* buffer, size_t buffer_length)
