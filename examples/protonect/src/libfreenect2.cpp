@@ -79,6 +79,8 @@ private:
   DepthPacketStreamParser depth_packet_parser_;
 
   std::string serial_, firmware_;
+  Freenect2Device::IrCameraParams ir_camera_params_;
+  Freenect2Device::ColorCameraParams rgb_camera_params_;
 public:
   Freenect2DeviceImpl(Freenect2Impl *context, libusb_device *usb_device, libusb_device_handle *usb_device_handle);
   virtual ~Freenect2DeviceImpl();
@@ -87,6 +89,9 @@ public:
 
   virtual std::string getSerialNumber();
   virtual std::string getFirmwareVersion();
+
+  virtual Freenect2Device::ColorCameraParams getColorCameraParams();
+  virtual Freenect2Device::IrCameraParams getIrCameraParams();
 
   int nextCommandSeq();
 
@@ -318,11 +323,22 @@ std::string Freenect2DeviceImpl::getSerialNumber()
 {
   return serial_;
 }
+
 std::string Freenect2DeviceImpl::getFirmwareVersion()
 {
   return firmware_;
 }
 
+Freenect2Device::ColorCameraParams Freenect2DeviceImpl::getColorCameraParams()
+{
+  return rgb_camera_params_;
+}
+
+
+Freenect2Device::IrCameraParams Freenect2DeviceImpl::getIrCameraParams()
+{
+  return ir_camera_params_;
+}
 void Freenect2DeviceImpl::setColorFrameListener(libfreenect2::FrameListener* rgb_frame_listener)
 {
   // TODO: should only be possible, if not started
@@ -390,11 +406,28 @@ void Freenect2DeviceImpl::start()
   serial_ = SerialNumberResponse(serial_result.data, serial_result.length).toString();
 
   command_tx_.execute(ReadDepthCameraParametersCommand(nextCommandSeq()), result);
+  DepthCameraParamsResponse *ir_p = reinterpret_cast<DepthCameraParamsResponse *>(result.data);
+
+  ir_camera_params_.fx = ir_p->fx;
+  ir_camera_params_.fy = ir_p->fy;
+  ir_camera_params_.cx = ir_p->cx;
+  ir_camera_params_.cy = ir_p->cy;
+  ir_camera_params_.k1 = ir_p->k1;
+  ir_camera_params_.k2 = ir_p->k2;
+  ir_camera_params_.k3 = ir_p->k3;
+  ir_camera_params_.p1 = ir_p->p1;
+  ir_camera_params_.p2 = ir_p->p2;
 
   command_tx_.execute(ReadP0TablesCommand(nextCommandSeq()), result);
   depth_packet_processor_.loadP0TablesFromCommandResponse(result.data, result.length);
 
   command_tx_.execute(ReadRgbCameraParametersCommand(nextCommandSeq()), result);
+  RgbCameraParamsResponse *rgb_p = reinterpret_cast<RgbCameraParamsResponse *>(result.data);
+
+  rgb_camera_params_.fx = rgb_p->intrinsics[0];
+  rgb_camera_params_.fy = rgb_p->intrinsics[0];
+  rgb_camera_params_.cx = rgb_p->intrinsics[1];
+  rgb_camera_params_.cy = rgb_p->intrinsics[2];
 
   command_tx_.execute(ReadStatus0x090000Command(nextCommandSeq()), result);
   std::cout << "[Freenect2DeviceImpl] ReadStatus0x090000 response" << std::endl;

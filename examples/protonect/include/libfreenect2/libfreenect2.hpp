@@ -38,10 +38,24 @@ public:
   static const unsigned int VendorId = 0x045E;
   static const unsigned int ProductId = 0x02C4;
 
+  struct ColorCameraParams
+  {
+    float fx, fy, cx, cy;
+  };
+
+  struct IrCameraParams
+  {
+    float fx, fy, cx, cy, k1, k2, k3, p1, p2;
+  };
+
   virtual ~Freenect2Device();
 
   virtual std::string getSerialNumber() = 0;
   virtual std::string getFirmwareVersion() = 0;
+
+  virtual Freenect2Device::ColorCameraParams getColorCameraParams() = 0;
+  virtual Freenect2Device::IrCameraParams getIrCameraParams() = 0;
+
 
   virtual void setColorFrameListener(libfreenect2::FrameListener* rgb_frame_listener) = 0;
   virtual void setIrAndDepthFrameListener(libfreenect2::FrameListener* ir_frame_listener) = 0;
