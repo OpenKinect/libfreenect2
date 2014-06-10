@@ -78,6 +78,8 @@ int main(int argc, char *argv[])
   dev->setIrAndDepthFrameListener(&listener);
   dev->start();
 
+  std::cout << "device serial: " << dev->getSerialNumber() << std::endl;
+  std::cout << "device firmware: " << dev->getFirmwareVersion() << std::endl;
 
   while(!shutdown)
   {

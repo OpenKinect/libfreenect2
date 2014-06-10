@@ -26,7 +26,7 @@
 
 #include <libfreenect2/depth_packet_processor.h>
 #include <libfreenect2/resource.h>
-#include <libfreenect2/tables.h>
+#include <libfreenect2/protocol/response.h>
 
 #include <opencv2/opencv.hpp>
 #include <iostream>
@@ -619,9 +619,9 @@ void CpuDepthPacketProcessor::setConfiguration(const libfreenect2::DepthPacketPr
 void CpuDepthPacketProcessor::loadP0TablesFromCommandResponse(unsigned char* buffer, size_t buffer_length)
 {
   // TODO: check known header fields (headersize, tablesize)
-  p0tables* p0table = (p0tables*)buffer;
+  libfreenect2::protocol::P0TablesResponse* p0table = (libfreenect2::protocol::P0TablesResponse*)buffer;
 
-  if(buffer_length < sizeof(p0tables))
+  if(buffer_length < sizeof(libfreenect2::protocol::P0TablesResponse))
   {
     std::cerr << "[CpuDepthPacketProcessor::loadP0TablesFromCommandResponse] P0Table response too short!" << std::endl;
     return;

@@ -182,8 +182,8 @@ typedef CommandWith1Param<KCMD_READ_STATUS, 0x04, 0x02006F> ReadStatus0x02006FCo
 typedef CommandWith1Param<KCMD_READ_STATUS, 0x04, 0x020070> ReadStatus0x020070Command;
 
 // TODO: is the following actually correct?
-//typedef CommandWith0Params<KCMD_READ_DATA_0x26, 0x10> ReadData0x26Command;
-typedef CommandWith1Param<KCMD_READ_DATA_0x26, 0x10, 0x00> ReadData0x26_0x00Command;
+typedef CommandWith0Params<KCMD_READ_DATA_0x26, 0x10> ReadData0x26Command;
+//typedef CommandWith1Param<KCMD_READ_DATA_0x26, 0x10, 0x00> ReadData0x26_0x00Command;
 
 typedef CommandWith1Param<KCMD_SET_STREAMING, 0x00, 0x00> SetStreamDisabledCommand;
 typedef CommandWith1Param<KCMD_SET_STREAMING, 0x00, 0x01> SetStreamEnabledCommand;
@@ -197,6 +197,7 @@ typedef CommandWith0Params<KCMD_0x0A, 0x00> Unknown0x0ACommand;
 typedef CommandWith4Params<KCMD_SET_MODE, 0x00, 0x00> SetModeDisabledCommand;
 typedef CommandWith4Params<KCMD_SET_MODE, 0x00, 0x01> SetModeEnabledCommand;
 typedef CommandWith4Params<KCMD_SET_MODE, 0x00, 0x01, 0x00640064> SetModeEnabledWith0x00640064Command;
+typedef CommandWith4Params<KCMD_SET_MODE, 0x00, 0x01, 0x00500050> SetModeEnabledWith0x00500050Command;
 } /* namespace protocol */
 } /* namespace libfreenect2 */
 #endif /* COMMAND_H_ */

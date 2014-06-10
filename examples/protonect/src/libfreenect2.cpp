@@ -38,6 +38,7 @@
 #include <libfreenect2/depth_packet_stream_parser.h>
 #include <libfreenect2/protocol/usb_control.h>
 #include <libfreenect2/protocol/command.h>
+#include <libfreenect2/protocol/response.h>
 #include <libfreenect2/protocol/command_transaction.h>
 
 namespace libfreenect2
@@ -76,6 +77,8 @@ private:
 
   RgbPacketStreamParser rgb_packet_parser_;
   DepthPacketStreamParser depth_packet_parser_;
+
+  std::string serial_, firmware_;
 public:
   Freenect2DeviceImpl(Freenect2Impl *context, libusb_device *usb_device, libusb_device_handle *usb_device_handle);
   virtual ~Freenect2DeviceImpl();
@@ -83,6 +86,7 @@ public:
   bool isSameUsbDevice(libusb_device* other);
 
   virtual std::string getSerialNumber();
+  virtual std::string getFirmwareVersion();
 
   int nextCommandSeq();
 
@@ -269,7 +273,9 @@ Freenect2DeviceImpl::Freenect2DeviceImpl(Freenect2Impl *context, libusb_device *
   rgb_packet_processor_(),
   depth_packet_processor_(),
   rgb_packet_parser_(&rgb_packet_processor_),
-  depth_packet_parser_(&depth_packet_processor_)
+  depth_packet_parser_(&depth_packet_processor_),
+  serial_("<unknown>"),
+  firmware_("<unknown>")
 {
   rgb_transfer_pool_.setCallback(&rgb_packet_parser_);
   ir_transfer_pool_.setCallback(&depth_packet_parser_);
@@ -310,7 +316,11 @@ bool Freenect2DeviceImpl::isSameUsbDevice(libusb_device* other)
 
 std::string Freenect2DeviceImpl::getSerialNumber()
 {
-  throw std::exception();
+  return serial_;
+}
+std::string Freenect2DeviceImpl::getFirmwareVersion()
+{
+  return firmware_;
 }
 
 void Freenect2DeviceImpl::setColorFrameListener(libfreenect2::FrameListener* rgb_frame_listener)
@@ -365,18 +375,19 @@ void Freenect2DeviceImpl::start()
   std::cout << "[Freenect2DeviceImpl] starting..." << std::endl;
   if(state_ != Open) return;
 
-  CommandTransaction::Result result;
+  CommandTransaction::Result serial_result, firmware_result, result;
 
   usb_control_.setVideoTransferFunctionState(UsbControl::Enabled);
 
-  command_tx_.execute(ReadFirmwareVersionsCommand(nextCommandSeq()), result);
-  //hexdump(result.data, result.length, "ReadFirmwareVersions");
+  command_tx_.execute(ReadFirmwareVersionsCommand(nextCommandSeq()), firmware_result);
+  firmware_ = FirmwareVersionResponse(firmware_result.data, firmware_result.length).toString();
 
   command_tx_.execute(ReadData0x14Command(nextCommandSeq()), result);
-  //hexdump(result.data, result.length, "ReadData0x14");
+  std::cout << "[Freenect2DeviceImpl] ReadData0x14 response" << std::endl;
+  std::cout << GenericResponse(result.data, result.length).toString() << std::endl;
 
-  command_tx_.execute(ReadSerialNumberCommand(nextCommandSeq()), result);
-  //hexdump(result.data, result.length, "ReadSerialNumber");
+  command_tx_.execute(ReadSerialNumberCommand(nextCommandSeq()), serial_result);
+  serial_ = SerialNumberResponse(serial_result.data, serial_result.length).toString();
 
   command_tx_.execute(ReadDepthCameraParametersCommand(nextCommandSeq()), result);
 
@@ -386,26 +397,36 @@ void Freenect2DeviceImpl::start()
   command_tx_.execute(ReadRgbCameraParametersCommand(nextCommandSeq()), result);
 
   command_tx_.execute(ReadStatus0x090000Command(nextCommandSeq()), result);
-  //hexdump(result.data, result.length, "Status");
+  std::cout << "[Freenect2DeviceImpl] ReadStatus0x090000 response" << std::endl;
+  std::cout << GenericResponse(result.data, result.length).toString() << std::endl;
 
   command_tx_.execute(InitStreamsCommand(nextCommandSeq()), result);
 
   usb_control_.setIrInterfaceState(UsbControl::Enabled);
 
   command_tx_.execute(ReadStatus0x090000Command(nextCommandSeq()), result);
-  //hexdump(result.data, result.length, "Status");
+  std::cout << "[Freenect2DeviceImpl] ReadStatus0x090000 response" << std::endl;
+  std::cout << GenericResponse(result.data, result.length).toString() << std::endl;
 
   command_tx_.execute(SetStreamEnabledCommand(nextCommandSeq()), result);
 
   //command_tx_.execute(Unknown0x47Command(nextCommandSeq()), result);
   //command_tx_.execute(Unknown0x46Command(nextCommandSeq()), result);
+/*
+  command_tx_.execute(SetModeEnabledCommand(nextCommandSeq()), result);
+  command_tx_.execute(SetModeDisabledCommand(nextCommandSeq()), result);
 
-  //command_tx_.execute(SetModeEnabledCommand(nextCommandSeq()), result);
-  //command_tx_.execute(SetModeDisabledCommand(nextCommandSeq()), result);
-  //command_tx_.execute(SetModeEnabledWith0x00640064Command(nextCommandSeq()), result);
-  //command_tx_.execute(ReadData0x26Command(nextCommandSeq(), result);
-  //command_tx_.execute(ReadStatus0x100007Command(nextCommandSeq()), result);
+  usb_control_.setIrInterfaceState(UsbControl::Enabled);
 
+  command_tx_.execute(SetModeEnabledWith0x00640064Command(nextCommandSeq()), result);
+  command_tx_.execute(ReadData0x26Command(nextCommandSeq()), result);
+  command_tx_.execute(ReadStatus0x100007Command(nextCommandSeq()), result);
+  command_tx_.execute(SetModeEnabledWith0x00500050Command(nextCommandSeq()), result);
+  command_tx_.execute(ReadData0x26Command(nextCommandSeq()), result);
+  command_tx_.execute(ReadStatus0x100007Command(nextCommandSeq()), result);
+  command_tx_.execute(ReadData0x26Command(nextCommandSeq()), result);
+  command_tx_.execute(ReadData0x26Command(nextCommandSeq()), result);
+*/
   std::cout << "[Freenect2DeviceImpl] enabling usb transfer submission..." << std::endl;
   rgb_transfer_pool_.enableSubmission();
   ir_transfer_pool_.enableSubmission();

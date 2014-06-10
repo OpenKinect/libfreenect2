@@ -41,6 +41,7 @@ public:
   virtual ~Freenect2Device();
 
   virtual std::string getSerialNumber() = 0;
+  virtual std::string getFirmwareVersion() = 0;
 
   virtual void setColorFrameListener(libfreenect2::FrameListener* rgb_frame_listener) = 0;
   virtual void setIrAndDepthFrameListener(libfreenect2::FrameListener* ir_frame_listener) = 0;
