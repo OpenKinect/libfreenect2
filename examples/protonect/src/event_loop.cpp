@@ -27,6 +27,11 @@
 #include <libfreenect2/usb/event_loop.h>
 
 #include <libusb.h>
+#ifdef _WIN32
+#include <winsock.h>
+#else
+#include <sys/time.h>
+#endif
 
 namespace libfreenect2
 {
@@ -40,7 +45,8 @@ void EventLoop::static_execute(void *cookie)
 
 EventLoop::EventLoop() :
     shutdown_(false),
-    thread_(0)
+    thread_(0),
+    usb_context_(0)
 {
 }
 
@@ -49,11 +55,12 @@ EventLoop::~EventLoop()
   stop();
 }
 
-void EventLoop::start()
+void EventLoop::start(void *usb_context)
 {
   if(thread_ == 0)
   {
     shutdown_ = false;
+    usb_context_ = usb_context;
     thread_ = new libfreenect2::thread(&EventLoop::static_execute, this);
   }
 }
@@ -66,14 +73,19 @@ void EventLoop::stop()
     thread_->join();
     delete thread_;
     thread_ = 0;
+    usb_context_ = 0;
   }
 }
 
 void EventLoop::execute()
 {
+  timeval t;
+  t.tv_sec = 0;
+  t.tv_usec = 100000;
+
   while(!shutdown_)
   {
-    libusb_handle_events(NULL);
+    libusb_handle_events_timeout_completed(reinterpret_cast<libusb_context *>(usb_context_), &t, 0);
   }
 }
 

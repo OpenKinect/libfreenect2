@@ -27,6 +27,8 @@
 #ifndef LIBFREENECT2_HPP_
 #define LIBFREENECT2_HPP_
 
+#include <libfreenect2/frame_listener.hpp>
+
 namespace libfreenect2
 {
 
@@ -36,8 +38,15 @@ public:
   static const unsigned int VendorId = 0x045E;
   static const unsigned int ProductId = 0x02C4;
 
+  virtual ~Freenect2Device();
+
   virtual std::string getSerialNumber() = 0;
 
+  virtual void setColorFrameListener(libfreenect2::FrameListener* rgb_frame_listener) = 0;
+  virtual void setIrAndDepthFrameListener(libfreenect2::FrameListener* ir_frame_listener) = 0;
+
+  virtual void start() = 0;
+  virtual void stop() = 0;
   virtual void close() = 0;
 };
 
@@ -46,7 +55,7 @@ class Freenect2Impl;
 class Freenect2
 {
 public:
-  Freenect2(void *usb_context = 0);
+  Freenect2(const std::string& protonect_path, void *usb_context = 0);
   virtual ~Freenect2();
 
   int enumerateDevices();

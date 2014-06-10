@@ -1,7 +1,7 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
 
 PROJECT(libfreenect2)
-SET(CMAKE_BUILD_TYPE Release)
+SET(CMAKE_BUILD_TYPE RelWithDebInfo)
 
 SET(MY_DIR ${libfreenect2_SOURCE_DIR})
 
@@ -63,7 +63,7 @@ ADD_EXECUTABLE(Protonect
   src/event_loop.cpp
   
   src/double_buffer.cpp
-  src/frame_listener.cpp
+  src/frame_listener_impl.cpp
   
   src/rgb_packet_stream_parser.cpp
   src/rgb_packet_processor.cpp
@@ -77,6 +77,7 @@ ADD_EXECUTABLE(Protonect
   
   src/usb_control.cpp
   src/command_transaction.cpp
+  src/libfreenect2.cpp
   
   Protonect.cpp
   
