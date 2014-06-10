@@ -397,6 +397,9 @@ void Freenect2DeviceImpl::start()
 
   command_tx_.execute(SetStreamEnabledCommand(nextCommandSeq()), result);
 
+  //command_tx_.execute(Unknown0x47Command(nextCommandSeq()), result);
+  //command_tx_.execute(Unknown0x46Command(nextCommandSeq()), result);
+
   //command_tx_.execute(SetModeEnabledCommand(nextCommandSeq()), result);
   //command_tx_.execute(SetModeDisabledCommand(nextCommandSeq()), result);
   //command_tx_.execute(SetModeEnabledWith0x00640064Command(nextCommandSeq()), result);
@@ -435,7 +438,7 @@ void Freenect2DeviceImpl::stop()
 
   // wait for completion of transfer cancelation
   // TODO: better implementation
-  libfreenect2::this_thread::sleep_for(libfreenect2::chrono::seconds(2));
+  libfreenect2::this_thread::sleep_for(libfreenect2::chrono::milliseconds(1500));
 
   usb_control_.setIrInterfaceState(UsbControl::Disabled);
 

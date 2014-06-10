@@ -189,7 +189,7 @@ typedef CommandWith1Param<KCMD_SET_STREAMING, 0x00, 0x00> SetStreamDisabledComma
 typedef CommandWith1Param<KCMD_SET_STREAMING, 0x00, 0x01> SetStreamEnabledCommand;
 
 // TODO: are they ever used?!
-typedef CommandWith4Params<KCMD_0x46, 0x00, 0x00, 0x00003840, 0x0000000B, 0x00> Unknown0x46Command;
+typedef CommandWith4Params<KCMD_0x46, 0x00, 0x00, 0x00003840, 0x00000037, 0x00> Unknown0x46Command;
 typedef CommandWith0Params<KCMD_0x47, 0x10> Unknown0x47Command;
 
 typedef CommandWith0Params<KCMD_0x0A, 0x00> Unknown0x0ACommand;
