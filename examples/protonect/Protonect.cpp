@@ -24,10 +24,8 @@
  * either License.
  */
 
-#include "Protonect.h"
 
 #include <iostream>
-
 #include <signal.h>
 
 #define GLEW_STATIC

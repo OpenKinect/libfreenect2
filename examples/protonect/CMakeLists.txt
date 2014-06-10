@@ -17,6 +17,9 @@ INCLUDE(GenerateResources)
 #set the default path for built executables to the "bin" directory
 SET(EXECUTABLE_OUTPUT_PATH ${MY_DIR}/bin)
 
+#set the default path for built libraries to the "lib" directory
+SET(LIBRARY_OUTPUT_PATH ${MY_DIR}/lib)
+
 # dependencies
 FIND_PACKAGE(OpenCV REQUIRED)
 
@@ -57,7 +60,7 @@ GENERATE_RESOURCES(${RESOURCES_INC_FILE} ${MY_DIR}
 INCLUDE_DIRECTORIES("${MY_DIR}/include")
 
 ADD_DEFINITIONS(-DRESOURCES_INC)
-ADD_EXECUTABLE(Protonect
+ADD_LIBRARY(freenect2 SHARED
   src/opengl.cpp
   src/transfer_pool.cpp
   src/event_loop.cpp
@@ -78,41 +81,32 @@ ADD_EXECUTABLE(Protonect
   src/usb_control.cpp
   src/command_transaction.cpp
   src/libfreenect2.cpp
-  
-  Protonect.cpp
-  
   ${LIBFREENECT2_THREADING_SOURCE}
   ${RESOURCES_INC_FILE}
 )
 
-TARGET_LINK_LIBRARIES(Protonect
+TARGET_LINK_LIBRARIES(freenect2
   usb-1.0
   ${OpenCV_LIBS}
   turbojpeg
   ${LIBFREENECT2_THREADING_LIBRARIES}
-  
   GLEWmx
   glfw
   ${GLFW_LIBRARIES}
 )
 
 ADD_EXECUTABLE(test_opengl
-  src/opengl.cpp
-  src/frame_listener.cpp
-  src/depth_packet_processor.cpp
-  src/opengl_depth_packet_processor.cpp
-  src/cpu_depth_packet_processor.cpp
   src/test_opengl_depth_packet_processor.cpp
-  
-  src/resource.cpp
-  ${LIBFREENECT2_THREADING_SOURCE}
-  ${RESOURCES_INC_FILE}
 )
 
 TARGET_LINK_LIBRARIES(test_opengl
-  ${LIBFREENECT2_THREADING_LIBRARIES}
-  ${OpenCV_LIBS}
-  GLEWmx
-  glfw
-  ${GLFW_LIBRARIES}
+  freenect2
+)
+  
+ADD_EXECUTABLE(Protonect
+  Protonect.cpp
+)
+  
+TARGET_LINK_LIBRARIES(Protonect
+  freenect2
 )
