@@ -804,12 +804,12 @@ void CpuDepthPacketProcessor::process(const DepthPacket &packet)
       }
   }
 
-  if(listener_->addNewFrame(Frame::Ir, impl_->ir_frame))
+  if(listener_->onNewFrame(Frame::Ir, impl_->ir_frame))
   {
     impl_->newIrFrame();
   }
 
-  if(listener_->addNewFrame(Frame::Depth, impl_->depth_frame))
+  if(listener_->onNewFrame(Frame::Depth, impl_->depth_frame))
   {
     impl_->newDepthFrame();
   }
