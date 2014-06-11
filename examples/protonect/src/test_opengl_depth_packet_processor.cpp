@@ -34,6 +34,7 @@
 
 #include <libfreenect2/async_packet_processor.h>
 #include <libfreenect2/depth_packet_processor.h>
+#include <libfreenect2/resource.h>
 
 void loadBufferFromFile(const std::string& filename, unsigned char *buffer, size_t n)
 {

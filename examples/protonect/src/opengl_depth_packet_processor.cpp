@@ -26,6 +26,7 @@
 
 #include <libfreenect2/depth_packet_processor.h>
 #include <libfreenect2/tables.h>
+#include <libfreenect2/resource.h>
 
 #include <iostream>
 #include <fstream>
@@ -40,11 +41,16 @@ namespace libfreenect2
 
 std::string loadShaderSource(const std::string& filename)
 {
-  std::ifstream in(filename.c_str());
-  std::string result((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
-  in.close();
+  const unsigned char* data;
+  size_t length = 0;
 
-  return result;
+  if(!loadResource(filename, &data, &length))
+  {
+    std::cerr << "failed to load shader source!" << std::endl;
+    return "";
+  }
+
+  return std::string(reinterpret_cast<const char*>(data), length);
 }
 
 bool loadBufferFromFile(const std::string& filename, unsigned char *buffer, size_t n)
@@ -301,7 +307,7 @@ struct OpenGLDepthPacketProcessorImpl
 
   OpenGLDepthPacketProcessorImpl(GLFWwindow *new_opengl_context_ptr, const char* new_shader_folder) :
     opengl_context_ptr(new_opengl_context_ptr),
-    shader_folder(new_shader_folder),
+    shader_folder("src/shader/"),
     square_vao(0),
     square_vbo(0),
     stage1_framebuffer(0),
@@ -676,13 +682,17 @@ void OpenGLDepthPacketProcessor::loadXTableFromFile(const char* filename)
   ChangeCurrentOpenGLContext ctx(impl_->opengl_context_ptr);
 
   impl_->x_table.allocate(512, 424);
-  if(loadBufferFromFile(filename, impl_->x_table.data, impl_->x_table.size))
+  const unsigned char *data;
+  size_t length;
+
+  if(loadResource("xTable.bin", &data, &length))
   {
+    std::copy(data, data + length, impl_->x_table.data);
     impl_->x_table.upload();
   }
   else
   {
-    std::cerr << "[OpenGLDepthPacketProcessor::loadXTableFromFile] Loading xtable from '" << filename << "' failed!" << std::endl;
+    std::cerr << "[OpenGLDepthPacketProcessor::loadXTableFromFile] Loading xtable from resource 'xTable.bin' failed!" << std::endl;
   }
 }
 
@@ -691,13 +701,18 @@ void OpenGLDepthPacketProcessor::loadZTableFromFile(const char* filename)
   ChangeCurrentOpenGLContext ctx(impl_->opengl_context_ptr);
 
   impl_->z_table.allocate(512, 424);
-  if(loadBufferFromFile(filename, impl_->z_table.data, impl_->z_table.size))
+
+  const unsigned char *data;
+  size_t length;
+
+  if(loadResource("zTable.bin", &data, &length))
   {
+    std::copy(data, data + length, impl_->z_table.data);
     impl_->z_table.upload();
   }
   else
   {
-    std::cerr << "[OpenGLDepthPacketProcessor::loadZTableFromFile] Loading ztable from '" << filename << "' failed!" << std::endl;
+    std::cerr << "[OpenGLDepthPacketProcessor::loadZTableFromFile] Loading ztable from resource 'zTable.bin' failed!" << std::endl;
   }
 }
 
@@ -706,13 +721,18 @@ void OpenGLDepthPacketProcessor::load11To16LutFromFile(const char* filename)
   ChangeCurrentOpenGLContext ctx(impl_->opengl_context_ptr);
 
   impl_->lut11to16.allocate(2048, 1);
-  if(loadBufferFromFile(filename, impl_->lut11to16.data, impl_->lut11to16.size))
+
+  const unsigned char *data;
+  size_t length;
+
+  if(loadResource("11to16.bin", &data, &length))
   {
+    std::copy(data, data + length, impl_->lut11to16.data);
     impl_->lut11to16.upload();
   }
   else
   {
-    std::cerr << "[OpenGLDepthPacketProcessor::load11To16LutFromFile] Loading 11to16 lut from '" << filename << "' failed!" << std::endl;
+    std::cerr << "[OpenGLDepthPacketProcessor::load11To16LutFromFile] Loading 11to16 lut from resource '11to16.bin' failed!" << std::endl;
   }
 }
 

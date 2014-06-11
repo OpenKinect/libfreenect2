@@ -12,6 +12,8 @@ LIST(APPEND CMAKE_MODULE_PATH ${MY_DIR}/cmake_modules)
 INCLUDE(SetupLibfreenect2Threading)
 INCLUDE_DIRECTORIES(${LIBFREENECT2_THREADING_INCLUDE_DIR})
 
+INCLUDE(GenerateResources)
+
 #set the default path for built executables to the "bin" directory
 SET(EXECUTABLE_OUTPUT_PATH ${MY_DIR}/bin)
 
@@ -30,11 +32,30 @@ INCLUDE_DIRECTORIES("${MY_DIR}/../../depends/glew/include/")
 LINK_DIRECTORIES("${MY_DIR}/../../depends/glew/lib64/")
 
 # GLFW
+SET(BUILD_SHARED_LIBS ON CACHE BOOL "Build shared libraries")
+SET(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "Build the GLFW example programs")
+SET(GLFW_BUILD_TESTS OFF CACHE BOOL "Build the GLFW test programs")
+SET(GLFW_BUILD_DOCS OFF CACHE BOOL "Build the GLFW documentation")
+
 ADD_SUBDIRECTORY(${MY_DIR}/../../depends/glfw_src/ ${MY_DIR}/../../depends/glfw)
 INCLUDE_DIRECTORIES(${MY_DIR}/../../depends/glfw_src/include/)
 
+SET(RESOURCES_INC_FILE "${MY_DIR}/src/resources.inc")
+GENERATE_RESOURCES(${RESOURCES_INC_FILE} ${MY_DIR} 
+  11to16.bin 
+  xTable.bin 
+  zTable.bin 
+  src/shader/debug.fs
+  src/shader/default.vs
+  src/shader/filter1.fs
+  src/shader/filter2.fs
+  src/shader/stage1.fs
+  src/shader/stage2.fs
+)
+
 INCLUDE_DIRECTORIES("${MY_DIR}/include")
 
+ADD_DEFINITIONS(-DRESOURCES_INC)
 ADD_EXECUTABLE(Protonect
   src/transfer_pool.cpp
   src/event_loop.cpp
@@ -50,10 +71,12 @@ ADD_EXECUTABLE(Protonect
   src/depth_packet_processor.cpp
   src/cpu_depth_packet_processor.cpp
   src/opengl_depth_packet_processor.cpp
+  src/resource.cpp
   
   Protonect.cpp
   
   ${LIBFREENECT2_THREADING_SOURCE}
+  ${RESOURCES_INC_FILE}
 )
 
 TARGET_LINK_LIBRARIES(Protonect
@@ -73,7 +96,9 @@ ADD_EXECUTABLE(test_opengl
   src/opengl_depth_packet_processor.cpp
   src/test_opengl_depth_packet_processor.cpp
   
+  src/resource.cpp
   ${LIBFREENECT2_THREADING_SOURCE}
+  ${RESOURCES_INC_FILE}
 )
 
 TARGET_LINK_LIBRARIES(test_opengl
