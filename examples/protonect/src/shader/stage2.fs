@@ -9,9 +9,9 @@ in VertexData {
     vec2 TexCoord;
 } FragmentIn;
 
-out layout(location = 0) vec4 Debug;
-out layout(location = 1) float Depth;
-out layout(location = 2) vec2 DepthAndIrSum;
+layout(location = 0) out vec4 Debug;
+layout(location = 1) out float Depth;
+layout(location = 2) out vec2 DepthAndIrSum;
 
 #define M_PI 3.1415926535897932384626433832795
 

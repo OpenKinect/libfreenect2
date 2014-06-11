@@ -7,8 +7,8 @@ in VertexData {
     vec2 TexCoord;
 } FragmentIn;
 
-out layout(location = 0) vec4 Debug;
-out layout(location = 1) float FilterDepth;
+layout(location = 0) out vec4 Debug;
+layout(location = 1) out float FilterDepth;
 
 void filter(ivec2 uv)
 {

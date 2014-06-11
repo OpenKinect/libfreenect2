@@ -6,7 +6,7 @@ in VertexData {
     vec2 TexCoord;
 } FragmentIn;
 
-out layout(location = 0) vec4 Color;
+layout(location = 0) out vec4 Color;
 
 void main(void)
 {

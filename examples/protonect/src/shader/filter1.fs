@@ -8,10 +8,10 @@ in VertexData {
     vec2 TexCoord;
 } FragmentIn;
 
-out layout(location = 0) vec4 Debug;
-out layout(location = 1) vec3 FilterA;
-out layout(location = 2) vec3 FilterB;
-out layout(location = 3) int MaxEdgeTest;
+layout(location = 0) out vec4 Debug;
+layout(location = 1) out vec3 FilterA;
+layout(location = 2) out vec3 FilterB;
+layout(location = 3) out int MaxEdgeTest;
 
 void filter(ivec2 uv)
 {
