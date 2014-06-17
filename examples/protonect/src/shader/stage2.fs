@@ -1,9 +1,45 @@
 #version 330
 
+struct Parameters
+{
+  float ab_multiplier;
+  vec3 ab_multiplier_per_frq;
+  float ab_output_multiplier;
+  
+  vec3 phase_in_rad;
+  
+  float joint_bilateral_ab_threshold;
+  float joint_bilateral_max_edge;
+  float joint_bilateral_exp;
+  mat3 gaussian_kernel;
+  
+  float phase_offset;
+  float unambigious_dist;
+  float individual_ab_threshold;
+  float ab_threshold;
+  float ab_confidence_slope;
+  float ab_confidence_offset;
+  float min_dealias_confidence;
+  float max_dealias_confidence;
+  
+  float edge_ab_avg_min_value;
+  float edge_ab_std_dev_threshold;
+  float edge_close_delta_threshold;
+  float edge_far_delta_threshold;
+  float edge_max_delta_threshold;
+  float edge_avg_delta_threshold;
+  float max_edge_count;
+  
+  float min_depth;
+  float max_depth;
+};
+
 uniform sampler2DRect A;
 uniform sampler2DRect B;
 uniform sampler2DRect XTable;
 uniform sampler2DRect ZTable;
+
+uniform Parameters Params;
 
 in VertexData {
     vec2 TexCoord;
@@ -18,24 +54,14 @@ layout(location = 2) out vec2 DepthAndIrSum;
 void main(void)
 {
   ivec2 uv = ivec2(FragmentIn.TexCoord.x, FragmentIn.TexCoord.y);
-  
-  float phase_offset = 0.0f;
-  float unambigious_dist = 2083.333f;
-  float ab_multiplier = 0.6666667;
-  float individual_ab_threshold = 3.0f;
-  float ab_threshold = 10.0f;
-  float ab_confidence_slope = -0.5330578f;
-  float ab_confidence_offset = 0.7694894f;
-  float min_dealias_confidence = 0.3490659f;
-  float max_dealias_confidence = 0.6108653f;
-    
+      
   vec3 a = texelFetch(A, uv).xyz;
   vec3 b = texelFetch(B, uv).xyz;
   
   vec3 phase = atan(b, a);
   phase = mix(phase, phase + 2.0 * M_PI, lessThan(phase, vec3(0.0)));
   phase = mix(phase, vec3(0.0), notEqual(phase, phase));
-  vec3 ir = sqrt(a * a + b * b) * ab_multiplier;
+  vec3 ir = sqrt(a * a + b * b) * Params.ab_multiplier;
   
   float ir_sum = ir.x + ir.y + ir.z;
   float ir_min = min(ir.x, min(ir.y, ir.z));
@@ -43,7 +69,7 @@ void main(void)
   
   float phase_final = 0;
   
-  if(ir_min >= individual_ab_threshold && ir_sum >= ab_threshold)
+  if(ir_min >= Params.individual_ab_threshold && ir_sum >= Params.ab_threshold)
   {
     vec3 t = phase / (2.0 * M_PI) * vec3(3.0, 15.0, 2.0);
   
@@ -92,21 +118,21 @@ void main(void)
     float mask = t9 >= 0.0f ? 1.0f : 0.0f;
     t10 *= mask;
 
-    bool slope_positive = 0 < ab_confidence_slope;
+    bool slope_positive = 0 < Params.ab_confidence_slope;
 
     float ir_x = slope_positive ? ir_min : ir_max;
 
     ir_x = log(ir_x);
-    ir_x = (ir_x * ab_confidence_slope * 0.301030f + ab_confidence_offset) * 3.321928f;
+    ir_x = (ir_x * Params.ab_confidence_slope * 0.301030f + Params.ab_confidence_offset) * 3.321928f;
     ir_x = exp(ir_x);
-    ir_x = min(max_dealias_confidence, max(min_dealias_confidence, ir_x));
+    ir_x = min(Params.max_dealias_confidence, max(Params.min_dealias_confidence, ir_x));
     ir_x *= ir_x;
 
     float mask2 = ir_x >= norm ? 1.0f : 0.0f;
 
     float t11 = t10 * mask2;
 
-    float mask3 = max_dealias_confidence * max_dealias_confidence >= norm ? 1.0f : 0.0f;
+    float mask3 = Params.max_dealias_confidence * Params.max_dealias_confidence >= norm ? 1.0f : 0.0f;
     t10 *= mask3;
     phase_final = true/*(modeMask & 2) != 0*/ ? t11 : t10;
   }
@@ -114,10 +140,10 @@ void main(void)
   float zmultiplier = texelFetch(ZTable, uv).x;
   float xmultiplier = texelFetch(XTable, uv).x;
 
-  phase_final = 0 < phase_final ? phase_final + phase_offset : phase_final;
+  phase_final = 0 < phase_final ? phase_final + Params.phase_offset : phase_final;
 
   float depth_linear = zmultiplier * phase_final;
-  float max_depth = phase_final * unambigious_dist * 2.0;
+  float max_depth = phase_final * Params.unambigious_dist * 2.0;
 
   bool cond1 = /*(modeMask & 32) != 0*/ true && 0 < depth_linear && 0 < max_depth;
 

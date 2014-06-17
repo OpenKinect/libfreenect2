@@ -144,7 +144,34 @@ struct ShaderProgram
 
   void setUniform(const std::string& name, GLint value)
   {
-    glUniform1i(glGetUniformLocation(program, name.c_str()), value);
+    GLint idx = glGetUniformLocation(program, name.c_str());
+    if(idx == -1) return;
+
+    glUniform1i(idx, value);
+  }
+
+  void setUniform(const std::string& name, GLfloat value)
+  {
+    GLint idx = glGetUniformLocation(program, name.c_str());
+    if(idx == -1) return;
+
+    glUniform1f(idx, value);
+  }
+
+  void setUniformVector3(const std::string& name, GLfloat value[3])
+  {
+    GLint idx = glGetUniformLocation(program, name.c_str());
+    if(idx == -1) return;
+
+    glUniform3fv(idx, 1, value);
+  }
+
+  void setUniformMatrix3(const std::string& name, GLfloat value[9])
+  {
+    GLint idx = glGetUniformLocation(program, name.c_str());
+    if(idx == -1) return;
+
+    glUniformMatrix3fv(idx, 1, false, value);
   }
 
   void use()
@@ -292,6 +319,9 @@ struct OpenGLDepthPacketProcessorImpl
 
   ShaderProgram stage1, filter1, stage2, filter2, debug;
 
+  DepthPacketProcessor::Parameters params;
+  bool params_need_update;
+
   double timing_acc;
   double timing_acc_n;
 
@@ -314,6 +344,7 @@ struct OpenGLDepthPacketProcessorImpl
     filter1_framebuffer(0),
     stage2_framebuffer(0),
     filter2_framebuffer(0),
+    params_need_update(true),
     timing_acc(0),
     timing_acc_n(0),
     timing_current_start(0)
@@ -453,11 +484,48 @@ struct OpenGLDepthPacketProcessorImpl
   {
   }
 
+  void updateShaderParametersForProgram(ShaderProgram &program)
+  {
+    if(!params_need_update) return;
+
+    program.setUniform("Params.ab_multiplier", params.ab_multiplier);
+    program.setUniformVector3("Params.ab_multiplier_per_frq", params.ab_multiplier_per_frq);
+    program.setUniform("Params.ab_output_multiplier", params.ab_output_multiplier);
+
+    program.setUniformVector3("Params.phase_in_rad", params.phase_in_rad);
+
+    program.setUniform("Params.joint_bilateral_ab_threshold", params.joint_bilateral_ab_threshold);
+    program.setUniform("Params.joint_bilateral_max_edge", params.joint_bilateral_max_edge);
+    program.setUniform("Params.joint_bilateral_exp", params.joint_bilateral_exp);
+    program.setUniformMatrix3("Params.gaussian_kernel", params.gaussian_kernel);
+
+    program.setUniform("Params.phase_offset", params.phase_offset);
+    program.setUniform("Params.unambigious_dist", params.unambigious_dist);
+    program.setUniform("Params.individual_ab_threshold", params.individual_ab_threshold);
+    program.setUniform("Params.ab_threshold", params.ab_threshold);
+    program.setUniform("Params.ab_confidence_slope", params.ab_confidence_slope);
+    program.setUniform("Params.ab_confidence_offset", params.ab_confidence_offset);
+    program.setUniform("Params.min_dealias_confidence", params.min_dealias_confidence);
+    program.setUniform("Params.max_dealias_confidence", params.max_dealias_confidence);
+
+    program.setUniform("Params.edge_ab_avg_min_value", params.edge_ab_avg_min_value);
+    program.setUniform("Params.edge_ab_std_dev_threshold", params.edge_ab_std_dev_threshold);
+    program.setUniform("Params.edge_close_delta_threshold", params.edge_close_delta_threshold);
+    program.setUniform("Params.edge_far_delta_threshold", params.edge_far_delta_threshold);
+    program.setUniform("Params.edge_max_delta_threshold", params.edge_max_delta_threshold);
+    program.setUniform("Params.edge_avg_delta_threshold", params.edge_avg_delta_threshold);
+    program.setUniform("Params.max_edge_count", params.max_edge_count);
+
+    program.setUniform("Params.min_depth", params.min_depth);
+    program.setUniform("Params.max_depth", params.max_depth);
+  }
+
   void run(Frame **ir, Frame **depth)
   {
     // data processing 1
     glViewport(0, 0, 512, 424);
     stage1.use();
+    updateShaderParametersForProgram(stage1);
 
     p0table[0].bindToUnit(GL_TEXTURE0);
     stage1.setUniform("P0Table0", 0);
@@ -492,6 +560,8 @@ struct OpenGLDepthPacketProcessorImpl
       glClear(GL_COLOR_BUFFER_BIT);
 
       filter1.use();
+      updateShaderParametersForProgram(filter1);
+
       stage1_data[0].bindToUnit(GL_TEXTURE0);
       filter1.setUniform("A", 0);
       stage1_data[1].bindToUnit(GL_TEXTURE1);
@@ -507,6 +577,8 @@ struct OpenGLDepthPacketProcessorImpl
     glClear(GL_COLOR_BUFFER_BIT);
 
     stage2.use();
+    updateShaderParametersForProgram(stage2);
+
     if(config.EnableBilateralFilter)
     {
       filter1_data[0].bindToUnit(GL_TEXTURE0);
@@ -534,6 +606,8 @@ struct OpenGLDepthPacketProcessorImpl
       glClear(GL_COLOR_BUFFER_BIT);
 
       filter2.use();
+      updateShaderParametersForProgram(filter2);
+
       stage2_depth_and_ir_sum.bindToUnit(GL_TEXTURE0);
       filter2.setUniform("DepthAndIrSum", 0);
       filter1_max_edge_test.bindToUnit(GL_TEXTURE1);
@@ -584,6 +658,8 @@ struct OpenGLDepthPacketProcessorImpl
 
       glDrawArrays(GL_TRIANGLES, 0, 6);
     }
+
+    params_need_update = false;
   }
 };
 
@@ -619,6 +695,10 @@ void OpenGLDepthPacketProcessor::setConfiguration(const libfreenect2::DepthPacke
 {
   DepthPacketProcessor::setConfiguration(config);
   impl_->config = config;
+  impl_->params_need_update = true;
+
+  impl_->params.min_depth = impl_->config.MinDepth;
+  impl_->params.max_depth = impl_->config.MaxDepth;
 }
 
 void OpenGLDepthPacketProcessor::loadP0TablesFromCommandResponse(unsigned char* buffer, size_t buffer_length)

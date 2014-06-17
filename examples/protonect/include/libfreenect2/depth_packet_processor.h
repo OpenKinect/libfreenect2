@@ -56,6 +56,42 @@ public:
     Config();
   };
 
+  struct Parameters
+  {
+    float ab_multiplier;
+    float ab_multiplier_per_frq[3];
+    float ab_output_multiplier;
+
+    float phase_in_rad[3];
+
+    float joint_bilateral_ab_threshold;
+    float joint_bilateral_max_edge;
+    float joint_bilateral_exp;
+    float gaussian_kernel[9];
+
+    float phase_offset;
+    float unambigious_dist;
+    float individual_ab_threshold;
+    float ab_threshold;
+    float ab_confidence_slope;
+    float ab_confidence_offset;
+    float min_dealias_confidence;
+    float max_dealias_confidence;
+
+    float edge_ab_avg_min_value;
+    float edge_ab_std_dev_threshold;
+    float edge_close_delta_threshold;
+    float edge_far_delta_threshold;
+    float edge_max_delta_threshold;
+    float edge_avg_delta_threshold;
+    float max_edge_count;
+
+    float min_depth;
+    float max_depth;
+
+    Parameters();
+  };
+
   DepthPacketProcessor();
   virtual ~DepthPacketProcessor();
 

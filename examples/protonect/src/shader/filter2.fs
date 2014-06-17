@@ -1,7 +1,43 @@
 #version 330
 
+struct Parameters
+{
+  float ab_multiplier;
+  vec3 ab_multiplier_per_frq;
+  float ab_output_multiplier;
+  
+  vec3 phase_in_rad;
+  
+  float joint_bilateral_ab_threshold;
+  float joint_bilateral_max_edge;
+  float joint_bilateral_exp;
+  mat3 gaussian_kernel;
+  
+  float phase_offset;
+  float unambigious_dist;
+  float individual_ab_threshold;
+  float ab_threshold;
+  float ab_confidence_slope;
+  float ab_confidence_offset;
+  float min_dealias_confidence;
+  float max_dealias_confidence;
+  
+  float edge_ab_avg_min_value;
+  float edge_ab_std_dev_threshold;
+  float edge_close_delta_threshold;
+  float edge_far_delta_threshold;
+  float edge_max_delta_threshold;
+  float edge_avg_delta_threshold;
+  float max_edge_count;
+  
+  float min_depth;
+  float max_depth;
+};
+
 uniform sampler2DRect DepthAndIrSum;
 uniform usampler2DRect MaxEdgeTest;
+
+uniform Parameters Params;
 
 in VertexData {
     vec2 TexCoord;
@@ -12,19 +48,9 @@ layout(location = 1) out float FilterDepth;
 
 void filter(ivec2 uv)
 {
-  const float min_depth = 100.0f;
-  const float max_depth = 10000.0f;
-  const float edge_ab_avg_min_value = 50;
-  const float edge_ab_std_dev_threshold = 0.05;
-  const float edge_close_delta_threshold = 50;
-  const float edge_far_delta_threshold = 30;
-  const float edge_max_delta_threshold = 100;
-  const float edge_avg_delta_threshold = 0;
-  const float max_edge_count = 5.0f;
-
   vec2 v = texelFetch(DepthAndIrSum, uv).xy;
   
-  if(v.x >= min_depth && v.x <= max_depth)
+  if(v.x >= Params.min_depth && v.x <= Params.max_depth)
   {
     if(uv.x < 1 || uv.y < 1 || uv.x > 510 || uv.y > 422)
     {
@@ -56,7 +82,7 @@ void filter(ivec2 uv)
       }
 
       float tmp0 = sqrt(squared_ir_sum_acc * 9.0f - ir_sum_acc * ir_sum_acc) / 9.0f;
-      float edge_avg = max(ir_sum_acc / 9.0f, edge_ab_avg_min_value);
+      float edge_avg = max(ir_sum_acc / 9.0f, Params.edge_ab_avg_min_value);
       tmp0 /= edge_avg;
 
       float abs_min_diff = abs(v.x - min_depth);
@@ -67,11 +93,11 @@ void filter(ivec2 uv)
 
       bool cond0 =
           0.0f < v.x &&
-          tmp0 >= edge_ab_std_dev_threshold &&
-          edge_close_delta_threshold < abs_min_diff &&
-          edge_far_delta_threshold < abs_max_diff &&
-          edge_max_delta_threshold < max_abs_diff &&
-          edge_avg_delta_threshold < avg_diff;
+          tmp0 >= Params.edge_ab_std_dev_threshold &&
+          Params.edge_close_delta_threshold < abs_min_diff &&
+          Params.edge_far_delta_threshold < abs_max_diff &&
+          Params.edge_max_delta_threshold < max_abs_diff &&
+          Params.edge_avg_delta_threshold < avg_diff;
 
       FilterDepth = cond0 ? 0.0f : v.x;
 
@@ -82,7 +108,7 @@ void filter(ivec2 uv)
           float tmp1 = 1500.0f > v.x ? 30.0f : 0.02f * v.x;
           float edge_count = 0.0f;
 
-          FilterDepth = edge_count > max_edge_count ? 0.0f : v.x;
+          FilterDepth = edge_count > Params.max_edge_count ? 0.0f : v.x;
         }
         else
         {
@@ -104,5 +130,5 @@ void main(void)
   
   filter(uv);
   
-  Debug = vec4(vec3(FilterDepth / 4500.0), 1);
+  Debug = vec4(vec3(FilterDepth / Params.max_depth), 1);
 }
