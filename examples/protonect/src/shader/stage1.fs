@@ -81,13 +81,13 @@ float decode_data(ivec2 uv, int sub)
   return float(texelFetch(Lut11to16, ivec2(int(lut_idx), 0)).x);
 }
 
-vec2 processMeasurementTriple(in ivec2 uv, in usampler2DRect p0table, in int offset, in float ab_multiplier_per_frq, inout bool invalid)
+vec2 processMeasurementTriple(in ivec2 uv, in usampler2DRect p0table, in int offset, in float ab_multiplier_per_frq, inout bool saturated)
 {
   float p0 = -float(texelFetch(p0table, uv).x) * 0.000031 * M_PI;
   
   vec3 v = vec3(decode_data(uv, offset + 0), decode_data(uv, offset + 1), decode_data(uv, offset + 2));
   
-  invalid = invalid && any(equal(v, vec3(32767.0)));
+  saturated = saturated && any(equal(v, vec3(32767.0)));
   
   float a = dot(v, cos( p0 + Params.phase_in_rad)) * ab_multiplier_per_frq;
   float b = dot(v, sin(-p0 - Params.phase_in_rad)) * ab_multiplier_per_frq;
@@ -99,25 +99,23 @@ void main(void)
 {
   ivec2 uv = ivec2(FragmentIn.TexCoord.x, FragmentIn.TexCoord.y);
     
-  bool invalid_pixel = 0.0 < texelFetch(ZTable, uv).x;
-  bvec3 invalid = bvec3(invalid_pixel);
+  bool valid_pixel = 0.0 < texelFetch(ZTable, uv).x;
+  bvec3 saturated = bvec3(valid_pixel);
   
-  vec2 ab0 = processMeasurementTriple(uv, P0Table0, 0, Params.ab_multiplier_per_frq.x, invalid.x);
-  vec2 ab1 = processMeasurementTriple(uv, P0Table1, 3, Params.ab_multiplier_per_frq.y, invalid.y);
-  vec2 ab2 = processMeasurementTriple(uv, P0Table2, 6, Params.ab_multiplier_per_frq.z, invalid.z);
+  vec2 ab0 = processMeasurementTriple(uv, P0Table0, 0, Params.ab_multiplier_per_frq.x, saturated.x);
+  vec2 ab1 = processMeasurementTriple(uv, P0Table1, 3, Params.ab_multiplier_per_frq.y, saturated.y);
+  vec2 ab2 = processMeasurementTriple(uv, P0Table2, 6, Params.ab_multiplier_per_frq.z, saturated.z);
   
-  bvec3 invalid2 = bvec3(!invalid_pixel);
+  bvec3 invalid_pixel = bvec3(!valid_pixel);
   
-  A = mix(vec3(ab0.x, ab1.x, ab2.x), vec3(0.0), invalid2);
-  B = mix(vec3(ab0.y, ab1.y, ab2.y), vec3(0.0), invalid2);
-  Norm = mix(sqrt(A * A + B * B), vec3(0), invalid2);
+  A    = mix(vec3(ab0.x, ab1.x, ab2.x), vec3(0.0), invalid_pixel);
+  B    = mix(vec3(ab0.y, ab1.y, ab2.y), vec3(0.0), invalid_pixel);
+  Norm = sqrt(A * A + B * B);
   
-  A = mix(A, vec3(0.0), invalid);
-  B = mix(B, vec3(0.0), invalid);
-  Norm = mix(Norm, vec3(65535.0), invalid);
+  A = mix(A, vec3(0.0), saturated);
+  B = mix(B, vec3(0.0), saturated);
   
-  
-  Infrared = min(dot(Norm, vec3(0.333333333  * Params.ab_multiplier * Params.ab_output_multiplier)), 65535.0);
+  Infrared = min(dot(mix(Norm, vec3(65535.0), saturated || invalid_pixel), vec3(0.333333333  * Params.ab_multiplier * Params.ab_output_multiplier)), 65535.0);
   
   Debug = vec4(sqrt(vec3(Infrared / 65535.0)), 1.0);
 }
