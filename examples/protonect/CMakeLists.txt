@@ -94,6 +94,7 @@ ADD_EXECUTABLE(test_opengl
   src/frame_listener.cpp
   src/depth_packet_processor.cpp
   src/opengl_depth_packet_processor.cpp
+  src/cpu_depth_packet_processor.cpp
   src/test_opengl_depth_packet_processor.cpp
   
   src/resource.cpp

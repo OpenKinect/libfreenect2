@@ -60,7 +60,7 @@ void main(void)
   
   vec3 phase = atan(b, a);
   phase = mix(phase, phase + 2.0 * M_PI, lessThan(phase, vec3(0.0)));
-  phase = mix(phase, vec3(0.0), notEqual(phase, phase));
+  phase = mix(phase, vec3(0.0), isnan(phase));
   vec3 ir = sqrt(a * a + b * b) * Params.ab_multiplier;
   
   float ir_sum = ir.x + ir.y + ir.z;
@@ -140,17 +140,17 @@ void main(void)
   float zmultiplier = texelFetch(ZTable, uv).x;
   float xmultiplier = texelFetch(XTable, uv).x;
 
-  phase_final = 0 < phase_final ? phase_final + Params.phase_offset : phase_final;
+  phase_final = 0.0 < phase_final ? phase_final + Params.phase_offset : phase_final;
 
   float depth_linear = zmultiplier * phase_final;
   float max_depth = phase_final * Params.unambigious_dist * 2.0;
 
-  bool cond1 = /*(modeMask & 32) != 0*/ true && 0 < depth_linear && 0 < max_depth;
+  bool cond1 = /*(modeMask & 32) != 0*/ true && 0.0 < depth_linear && 0.0 < max_depth;
 
   xmultiplier = (xmultiplier * 90.0) / (max_depth * max_depth * 8192.0);
 
   float depth_fit = depth_linear / (-depth_linear * xmultiplier + 1);
-  depth_fit = depth_fit < 0 ? 0 : depth_fit;
+  depth_fit = depth_fit < 0.0 ? 0.0 : depth_fit;
   
   Depth = cond1 ? depth_fit : depth_linear; // r1.y -> later r2.z
   DepthAndIrSum = vec2(Depth, ir_sum);

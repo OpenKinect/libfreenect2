@@ -30,9 +30,23 @@
 
 #include <opencv2/opencv.hpp>
 #include <iostream>
+#include <fstream>
 
 namespace libfreenect2
 {
+
+bool loadBufferFromFile2(const std::string& filename, unsigned char *buffer, size_t n)
+{
+  bool success = true;
+  std::ifstream in(filename.c_str());
+
+  in.read(reinterpret_cast<char*>(buffer), n);
+  success = in.gcount() == n;
+
+  in.close();
+
+  return success;
+}
 
 inline int bfi(int width, int offset, int src2, int src3)
 {
@@ -61,6 +75,8 @@ public:
 
   Frame *ir_frame, *depth_frame;
 
+  bool flip_ptables;
+
   CpuDepthPacketProcessorImpl()
   {
     newIrFrame();
@@ -72,6 +88,8 @@ public:
 
     enable_bilateral_filter = true;
     enable_edge_filter = true;
+
+    flip_ptables = false;
   }
 
   void startTiming()
@@ -609,16 +627,59 @@ void CpuDepthPacketProcessor::loadP0TablesFromCommandResponse(unsigned char* buf
     return;
   }
 
-  //cv::Mat(424, 512, CV_16UC1, p0table->p0table0).copyTo(impl_->p0_table0);
-  //cv::Mat(424, 512, CV_16UC1, p0table->p0table1).copyTo(impl_->p0_table1);
-  //cv::Mat(424, 512, CV_16UC1, p0table->p0table2).copyTo(impl_->p0_table2);
-  cv::flip(cv::Mat(424, 512, CV_16UC1, p0table->p0table0), impl_->p0_table0, 0);
-  cv::flip(cv::Mat(424, 512, CV_16UC1, p0table->p0table1), impl_->p0_table1, 0);
-  cv::flip(cv::Mat(424, 512, CV_16UC1, p0table->p0table2), impl_->p0_table2, 0);
+  if(impl_->flip_ptables)
+  {
+    cv::flip(cv::Mat(424, 512, CV_16UC1, p0table->p0table0), impl_->p0_table0, 0);
+    cv::flip(cv::Mat(424, 512, CV_16UC1, p0table->p0table1), impl_->p0_table1, 0);
+    cv::flip(cv::Mat(424, 512, CV_16UC1, p0table->p0table2), impl_->p0_table2, 0);
 
-  impl_->fill_trig_tables(impl_->p0_table0, impl_->trig_table0);
-  impl_->fill_trig_tables(impl_->p0_table1, impl_->trig_table1);
-  impl_->fill_trig_tables(impl_->p0_table2, impl_->trig_table2);
+    impl_->fill_trig_tables(impl_->p0_table0, impl_->trig_table0);
+    impl_->fill_trig_tables(impl_->p0_table1, impl_->trig_table1);
+    impl_->fill_trig_tables(impl_->p0_table2, impl_->trig_table2);
+  }
+  else
+  {
+    cv::Mat(424, 512, CV_16UC1, p0table->p0table0).copyTo(impl_->p0_table0);
+    cv::Mat(424, 512, CV_16UC1, p0table->p0table1).copyTo(impl_->p0_table1);
+    cv::Mat(424, 512, CV_16UC1, p0table->p0table2).copyTo(impl_->p0_table2);
+  }
+}
+void CpuDepthPacketProcessor::loadP0TablesFromFiles(const char* p0_filename, const char* p1_filename, const char* p2_filename)
+{
+  cv::Mat p0_table0(424, 512, CV_16UC1);
+  if(!loadBufferFromFile2(p0_filename, p0_table0.data, p0_table0.total() * p0_table0.elemSize()))
+  {
+    std::cerr << "[CpuDepthPacketProcessor::loadP0TablesFromFiles] Loading p0table 0 from '" << p0_filename << "' failed!" << std::endl;
+  }
+
+  cv::Mat p0_table1(424, 512, CV_16UC1);
+  if(!loadBufferFromFile2(p1_filename, p0_table1.data, p0_table1.total() * p0_table1.elemSize()))
+  {
+    std::cerr << "[CpuDepthPacketProcessor::loadP0TablesFromFiles] Loading p0table 1 from '" << p1_filename << "' failed!" << std::endl;
+  }
+
+  cv::Mat p0_table2(424, 512, CV_16UC1);
+  if(!loadBufferFromFile2(p2_filename, p0_table2.data, p0_table2.total() * p0_table2.elemSize()))
+  {
+    std::cerr << "[CpuDepthPacketProcessor::loadP0TablesFromFiles] Loading p0table 2 from '" << p2_filename << "' failed!" << std::endl;
+  }
+
+  if(impl_->flip_ptables)
+  {
+    cv::flip(p0_table0, impl_->p0_table0, 0);
+    cv::flip(p0_table1, impl_->p0_table1, 0);
+    cv::flip(p0_table2, impl_->p0_table2, 0);
+
+    impl_->fill_trig_tables(impl_->p0_table0, impl_->trig_table0);
+    impl_->fill_trig_tables(impl_->p0_table1, impl_->trig_table1);
+    impl_->fill_trig_tables(impl_->p0_table2, impl_->trig_table2);
+  }
+  else
+  {
+    impl_->fill_trig_tables(p0_table0, impl_->trig_table0);
+    impl_->fill_trig_tables(p0_table1, impl_->trig_table1);
+    impl_->fill_trig_tables(p0_table2, impl_->trig_table2);
+  }
 }
 
 void CpuDepthPacketProcessor::loadXTableFromFile(const char* filename)

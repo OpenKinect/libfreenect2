@@ -106,9 +106,17 @@ void main(void)
   vec2 ab1 = processMeasurementTriple(uv, P0Table1, 3, Params.ab_multiplier_per_frq.y, invalid.y);
   vec2 ab2 = processMeasurementTriple(uv, P0Table2, 6, Params.ab_multiplier_per_frq.z, invalid.z);
   
-  A = mix(vec3(ab0.x, ab1.x, ab2.x), vec3(0.0), invalid);
-  B = mix(vec3(ab0.y, ab1.y, ab2.y), vec3(0.0), invalid);
-  Norm = mix(sqrt(A * A + B * B), vec3(65535.0), invalid);
+  bvec3 invalid2 = bvec3(!invalid_pixel);
+  
+  A = mix(vec3(ab0.x, ab1.x, ab2.x), vec3(0.0), invalid2);
+  B = mix(vec3(ab0.y, ab1.y, ab2.y), vec3(0.0), invalid2);
+  Norm = mix(sqrt(A * A + B * B), vec3(0), invalid2);
+  
+  A = mix(A, vec3(0.0), invalid);
+  B = mix(B, vec3(0.0), invalid);
+  Norm = mix(Norm, vec3(65535.0), invalid);
+  
+  
   Infrared = min(dot(Norm, vec3(0.333333333  * Params.ab_multiplier * Params.ab_output_multiplier)), 65535.0);
   
   Debug = vec4(sqrt(vec3(Infrared / 65535.0)), 1.0);

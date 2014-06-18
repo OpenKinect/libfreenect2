@@ -70,11 +70,29 @@ int main(int argc, char **argv) {
   glewInit();
   glfwMakeContextCurrent(0);
 
+  libfreenect2::FrameListener fl(libfreenect2::Frame::Ir | libfreenect2::Frame::Depth);
+  libfreenect2::FrameMap frames;
+
+  libfreenect2::DepthPacketProcessor::Config cfg;
+  cfg.EnableBilateralFilter = true;
+  cfg.EnableEdgeAwareFilter = true;
+
   libfreenect2::OpenGLDepthPacketProcessor processor(window);
+  processor.setConfiguration(cfg);
+  processor.setFrameListener(&fl);
   processor.loadP0TablesFromFiles((binpath + "../p00.bin").c_str(), (binpath + "../p01.bin").c_str(), (binpath + "../p02.bin").c_str());
-  processor.load11To16LutFromFile((binpath + "../11to16.bin").c_str());
-  processor.loadXTableFromFile((binpath + "../xTable.bin").c_str());
-  processor.loadZTableFromFile((binpath + "../zTable.bin").c_str());
+  processor.load11To16LutFromFile("");
+  processor.loadXTableFromFile("");
+  processor.loadZTableFromFile("");
+
+  libfreenect2::CpuDepthPacketProcessor ref_processor;
+  ref_processor.setConfiguration(cfg);
+  ref_processor.setFrameListener(&fl);
+  ref_processor.loadP0TablesFromFiles((binpath + "../p00.bin").c_str(), (binpath + "../p01.bin").c_str(), (binpath + "../p02.bin").c_str());
+  ref_processor.load11To16LutFromFile("");
+  ref_processor.loadXTableFromFile("");
+  ref_processor.loadZTableFromFile("");
+
   glfwMakeContextCurrent(0);
 
   libfreenect2::AsyncPacketProcessor<libfreenect2::DepthPacket, libfreenect2::DepthPacketProcessor> async(&processor);
@@ -85,6 +103,35 @@ int main(int argc, char **argv) {
 
   loadBufferFromFile(binpath + "../rawir/rawir_4599.bin", p.buffer, p.buffer_length);
 
+  libfreenect2::Frame *ir, *depth;
+  cv::Mat cpu_ir, cpu_depth, ogl_ir, ogl_depth;
+
+  ref_processor.process(p);
+  fl.waitForNewFrame(frames);
+
+  ir = frames[libfreenect2::Frame::Ir];
+  depth = frames[libfreenect2::Frame::Depth];
+  cv::Mat(ir->height, ir->width, CV_32FC1, ir->data).copyTo(cpu_ir);
+  cv::Mat(depth->height, depth->width, CV_32FC1, depth->data).copyTo(cpu_depth);
+
+  fl.release(frames);
+
+  processor.process(p);
+  fl.waitForNewFrame(frames);
+
+  ir = frames[libfreenect2::Frame::Ir];
+  depth = frames[libfreenect2::Frame::Depth];
+  cv::Mat(ir->height, ir->width, CV_32FC1, ir->data).copyTo(ogl_ir);
+  cv::Mat(depth->height, depth->width, CV_32FC1, depth->data).copyTo(ogl_depth);
+
+  fl.release(frames);
+
+  cv::Mat diff_ir = cv::abs(cpu_ir - ogl_ir);
+  cv::Mat diff_depth = cv::abs(cpu_depth - ogl_depth);
+
+  cv::imshow("diff_ir", diff_ir);
+  cv::imshow("diff_depth", diff_depth);
+  cv::waitKey(0);
 
   while(!glfwWindowShouldClose(window))
   {

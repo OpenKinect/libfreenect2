@@ -102,7 +102,7 @@ void filter(ivec2 uv)
   FilterA = mix(vec3(0.0), weighted_a_acc.xyz / weight_acc.xyz, c2);
   FilterB = mix(vec3(0.0), weighted_b_acc.xyz / weight_acc.xyz, c2);
   
-  if(uv.x < 1 || uv.y < 1 || uv.x > 510 || uv.y > 510)
+  if(uv.x < 1 || uv.y < 1 || uv.x > 510 || uv.y > 422)
   {
     FilterA = self_a;
     FilterB = self_b;
