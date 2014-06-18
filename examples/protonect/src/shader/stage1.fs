@@ -115,7 +115,7 @@ void main(void)
   A = mix(A, vec3(0.0), saturated);
   B = mix(B, vec3(0.0), saturated);
   
-  Infrared = min(dot(mix(Norm, vec3(65535.0), saturated || invalid_pixel), vec3(0.333333333  * Params.ab_multiplier * Params.ab_output_multiplier)), 65535.0);
+  Infrared = min(dot(mix(Norm, vec3(65535.0), saturated), vec3(0.333333333  * Params.ab_multiplier * Params.ab_output_multiplier)), 65535.0);
   
   Debug = vec4(sqrt(vec3(Infrared / 65535.0)), 1.0);
 }
