@@ -618,8 +618,8 @@ void CpuDepthPacketProcessor::setConfiguration(const libfreenect2::DepthPacketPr
 {
   DepthPacketProcessor::setConfiguration(config);
   
-  impl_->params.min_depth = config.MinDepth;
-  impl_->params.max_depth = config.MaxDepth;
+  impl_->params.min_depth = config.MinDepth * 1000.0f;
+  impl_->params.max_depth = config.MaxDepth * 1000.0f;
   impl_->enable_bilateral_filter = config.EnableBilateralFilter;
   impl_->enable_edge_filter = config.EnableEdgeAwareFilter;
 }

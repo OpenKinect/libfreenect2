@@ -155,5 +155,5 @@ void main(void)
   Depth = cond1 ? depth_fit : depth_linear; // r1.y -> later r2.z
   DepthAndIrSum = vec2(Depth, ir_sum);
   
-  Debug = vec4(vec3(Depth / 4500), 1.0);
+  Debug = vec4(vec3(Depth / Params.max_depth), 1.0);
 }

@@ -695,10 +695,11 @@ void OpenGLDepthPacketProcessor::setConfiguration(const libfreenect2::DepthPacke
 {
   DepthPacketProcessor::setConfiguration(config);
   impl_->config = config;
-  impl_->params_need_update = true;
 
-  impl_->params.min_depth = impl_->config.MinDepth;
-  impl_->params.max_depth = impl_->config.MaxDepth;
+  impl_->params.min_depth = impl_->config.MinDepth * 1000.0f;
+  impl_->params.max_depth = impl_->config.MaxDepth * 1000.0f;
+
+  impl_->params_need_update = true;
 }
 
 void OpenGLDepthPacketProcessor::loadP0TablesFromCommandResponse(unsigned char* buffer, size_t buffer_length)
