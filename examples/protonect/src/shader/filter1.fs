@@ -47,7 +47,7 @@ in VertexData {
 layout(location = 0) out vec4 Debug;
 layout(location = 1) out vec3 FilterA;
 layout(location = 2) out vec3 FilterB;
-layout(location = 3) out int MaxEdgeTest;
+layout(location = 3) out uint MaxEdgeTest;
 
 void filter(ivec2 uv)
 {
@@ -109,7 +109,7 @@ void filter(ivec2 uv)
   }
   
   vec3 dist_acc = vec3(weighted_a_acc.w, weighted_b_acc.w, weight_acc.w);
-  MaxEdgeTest = int(all(lessThan(dist_acc, vec3(Params.joint_bilateral_max_edge))));
+  MaxEdgeTest = uint(all(lessThan(dist_acc, vec3(Params.joint_bilateral_max_edge))));
   //Debug = vec4(vec3(MaxEdgeTest), 1);
 }
 
