@@ -25,40 +25,14 @@
  */
 
 #include <libfreenect2/depth_packet_processor.h>
+#include <libfreenect2/resource.h>
 #include <libfreenect2/tables.h>
 
 #include <opencv2/opencv.hpp>
 #include <iostream>
-#include <fstream>
 
 namespace libfreenect2
 {
-
-template<typename T>
-cv::Mat loadTableFromFile(const std::string& filename)
-{
-  std::ifstream file(filename.c_str());
-
-  size_t h =  424, w = 512;
-  size_t n = w * h * sizeof(T);
-
-  cv::Mat r(h, w, cv::DataType<T>::type), r_final;
-
-  file.read(reinterpret_cast<char*>(r.data), n);
-
-  if(file.gcount() != n)
-  {
-    std::cerr << "file '" << filename << "' too short!" << std::endl;
-    return cv::Mat();
-  }
-
-  file.close();
-
-  cv::flip(r, r_final, 0);
-  //r = r_final;
-
-  return r_final;
-}
 
 inline int bfi(int width, int offset, int src2, int src3)
 {
@@ -649,27 +623,50 @@ void CpuDepthPacketProcessor::loadP0TablesFromCommandResponse(unsigned char* buf
 
 void CpuDepthPacketProcessor::loadXTableFromFile(const char* filename)
 {
-  impl_->x_table = loadTableFromFile<float>(filename);
+  impl_->x_table.create(424, 512, CV_32FC1);
+  const unsigned char *data;
+  size_t length;
+
+  if(loadResource("xTable.bin", &data, &length))
+  {
+    std::copy(data, data + length, impl_->x_table.data);
+  }
+  else
+  {
+    std::cerr << "[CpuDepthPacketProcessor::loadXTableFromFile] Loading xtable from resource 'xTable.bin' failed!" << std::endl;
+  }
 }
 
 void CpuDepthPacketProcessor::loadZTableFromFile(const char* filename)
 {
-  impl_->z_table = loadTableFromFile<float>(filename);
+  impl_->z_table.create(424, 512, CV_32FC1);
+
+  const unsigned char *data;
+  size_t length;
+
+  if(loadResource("zTable.bin", &data, &length))
+  {
+    std::copy(data, data + length, impl_->z_table.data);
+  }
+  else
+  {
+    std::cerr << "[CpuDepthPacketProcessor::loadZTableFromFile] Loading ztable from resource 'zTable.bin' failed!" << std::endl;
+  }
 }
 
 void CpuDepthPacketProcessor::load11To16LutFromFile(const char* filename)
 {
-  size_t n = 2048 * sizeof(int16_t);
+  const unsigned char *data;
+  size_t length;
 
-  std::ifstream file(filename);
-  file.read(reinterpret_cast<char *>(impl_->lut11to16), n);
-
-  if(file.gcount() != n)
+  if(loadResource("11to16.bin", &data, &length))
   {
-    std::cerr << "file '" << filename << "' too short!" << std::endl;
+    std::copy(data, data + length, reinterpret_cast<unsigned char*>(impl_->lut11to16));
   }
-
-  file.close();
+  else
+  {
+    std::cerr << "[CpuDepthPacketProcessor::load11To16LutFromFile] Loading 11to16 lut from resource '11to16.bin' failed!" << std::endl;
+  }
 }
 
 void CpuDepthPacketProcessor::process(const DepthPacket &packet)
