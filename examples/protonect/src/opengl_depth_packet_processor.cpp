@@ -335,7 +335,7 @@ struct OpenGLDepthPacketProcessorImpl
     float u, v;
   };
 
-  OpenGLDepthPacketProcessorImpl(GLFWwindow *new_opengl_context_ptr, const char* new_shader_folder) :
+  OpenGLDepthPacketProcessorImpl(GLFWwindow *new_opengl_context_ptr) :
     opengl_context_ptr(new_opengl_context_ptr),
     shader_folder("src/shader/"),
     square_vao(0),
@@ -663,7 +663,7 @@ struct OpenGLDepthPacketProcessorImpl
   }
 };
 
-OpenGLDepthPacketProcessor::OpenGLDepthPacketProcessor(void *parent_opengl_context_ptr, const char* shader_folder)
+OpenGLDepthPacketProcessor::OpenGLDepthPacketProcessor(void *parent_opengl_context_ptr)
 {
   GLFWwindow* parent_window = (GLFWwindow *)parent_opengl_context_ptr;
 
@@ -679,7 +679,7 @@ OpenGLDepthPacketProcessor::OpenGLDepthPacketProcessor(void *parent_opengl_conte
   glewExperimental = GL_TRUE;
   glewInit();
 
-  impl_ = new OpenGLDepthPacketProcessorImpl(window, shader_folder);
+  impl_ = new OpenGLDepthPacketProcessorImpl(window);
   impl_->initialize();
 }
 

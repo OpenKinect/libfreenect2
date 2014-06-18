@@ -70,7 +70,7 @@ int main(int argc, char **argv) {
   glewInit();
   glfwMakeContextCurrent(0);
 
-  libfreenect2::OpenGLDepthPacketProcessor processor(window, (binpath + "../src/shader/").c_str());
+  libfreenect2::OpenGLDepthPacketProcessor processor(window);
   processor.loadP0TablesFromFiles((binpath + "../p00.bin").c_str(), (binpath + "../p01.bin").c_str(), (binpath + "../p02.bin").c_str());
   processor.load11To16LutFromFile((binpath + "../11to16.bin").c_str());
   processor.loadXTableFromFile((binpath + "../xTable.bin").c_str());

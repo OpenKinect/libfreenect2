@@ -743,7 +743,8 @@ int main(int argc, char *argv[])
 
 
   GLFWwindow* window = 0;//glfwCreateWindow(800, 600, "OpenGL", 0, 0); // Windowed
-  libfreenect2::OpenGLDepthPacketProcessor depth_processor(window, (binpath + "../src/shader/").c_str());
+
+  libfreenect2::OpenGLDepthPacketProcessor depth_processor(window);
   depth_processor.setFrameListener(&frame_listener);
   depth_processor.load11To16LutFromFile((binpath + "../11to16.bin").c_str());
   depth_processor.loadXTableFromFile((binpath + "../xTable.bin").c_str());
