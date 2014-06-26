@@ -30,6 +30,7 @@ LINK_DIRECTORIES("${MY_DIR}/../../depends/libusbx/lib/")
 # GLEW
 INCLUDE_DIRECTORIES("${MY_DIR}/../../depends/glew/include/")
 LINK_DIRECTORIES("${MY_DIR}/../../depends/glew/lib64/")
+ADD_DEFINITIONS(-DGLEW_MX -DGLEW_STATIC)
 
 # GLFW
 SET(BUILD_SHARED_LIBS ON CACHE BOOL "Build shared libraries")
@@ -57,6 +58,7 @@ INCLUDE_DIRECTORIES("${MY_DIR}/include")
 
 ADD_DEFINITIONS(-DRESOURCES_INC)
 ADD_EXECUTABLE(Protonect
+  src/opengl.cpp
   src/transfer_pool.cpp
   src/event_loop.cpp
   
@@ -85,12 +87,13 @@ TARGET_LINK_LIBRARIES(Protonect
   turbojpeg
   ${LIBFREENECT2_THREADING_LIBRARIES}
   
-  GLEW
+  GLEWmx
   glfw
   ${GLFW_LIBRARIES}
 )
 
 ADD_EXECUTABLE(test_opengl
+  src/opengl.cpp
   src/frame_listener.cpp
   src/depth_packet_processor.cpp
   src/opengl_depth_packet_processor.cpp
@@ -105,7 +108,7 @@ ADD_EXECUTABLE(test_opengl
 TARGET_LINK_LIBRARIES(test_opengl
   ${LIBFREENECT2_THREADING_LIBRARIES}
   ${OpenCV_LIBS}
-  GLEW
+  GLEWmx
   glfw
   ${GLFW_LIBRARIES}
 )

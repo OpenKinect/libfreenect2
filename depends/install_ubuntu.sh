@@ -44,6 +44,6 @@ git clone https://github.com/nigels-com/glew.git $GLEW_SOURCE_DIR
 cd $GLEW_SOURCE_DIR
 git checkout glew-1.10.0
 export GLEW_DEST=$GLEW_INSTALL_DIR
-make extensions && make && make install
+make extensions && make all && make install.all
 
 cd $DEPENDS_DIR

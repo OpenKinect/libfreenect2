@@ -24,9 +24,7 @@
  * either License.
  */
 
-#define GLEW_STATIC
-#include <GL/glew.h>
-#include <GLFW/glfw3.h>
+#include <libfreenect2/opengl.h>
 #include <opencv2/opencv.hpp>
 
 #include <iostream>
@@ -64,20 +62,16 @@ int main(int argc, char **argv) {
   glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
 
   GLFWwindow* window = glfwCreateWindow(1200, 600, "OpenGL", 0, 0); // Windowed
-  glfwMakeContextCurrent(window);
-
-  glewExperimental = GL_TRUE;
-  glewInit();
-  glfwMakeContextCurrent(0);
+  libfreenect2::OpenGLContext opengl_ctx(window);
 
   libfreenect2::FrameListener fl(libfreenect2::Frame::Ir | libfreenect2::Frame::Depth);
   libfreenect2::FrameMap frames;
 
   libfreenect2::DepthPacketProcessor::Config cfg;
-  cfg.EnableBilateralFilter = true;
-  cfg.EnableEdgeAwareFilter = true;
+  cfg.EnableBilateralFilter = false;
+  cfg.EnableEdgeAwareFilter = false;
 
-  libfreenect2::OpenGLDepthPacketProcessor processor(window);
+  libfreenect2::OpenGLDepthPacketProcessor processor(opengl_ctx.glfw_ctx);
   processor.setConfiguration(cfg);
   processor.setFrameListener(&fl);
   processor.loadP0TablesFromFiles((binpath + "../p00.bin").c_str(), (binpath + "../p01.bin").c_str(), (binpath + "../p02.bin").c_str());
@@ -92,8 +86,6 @@ int main(int argc, char **argv) {
   ref_processor.load11To16LutFromFile("");
   ref_processor.loadXTableFromFile("");
   ref_processor.loadZTableFromFile("");
-
-  glfwMakeContextCurrent(0);
 
   libfreenect2::AsyncPacketProcessor<libfreenect2::DepthPacket, libfreenect2::DepthPacketProcessor> async(&processor);
 
@@ -129,25 +121,28 @@ int main(int argc, char **argv) {
   cv::Mat diff_ir = cv::abs(cpu_ir - ogl_ir);
   cv::Mat diff_depth = cv::abs(cpu_depth - ogl_depth);
 
+  cv::imshow("cpu_ir", cpu_ir / 65535.0f);
+  cv::imshow("cpu_depth", cpu_depth / 4500.0f);
+
   cv::imshow("diff_ir", diff_ir);
   cv::imshow("diff_depth", diff_depth);
   cv::waitKey(0);
 
+  double mi, ma;
+  cv::minMaxIdx(diff_depth, &mi, &ma);
+  std::cout << "depth difference min: " << mi << " max: " << ma << std::endl;
+
   while(!glfwWindowShouldClose(window))
   {
-    glfwMakeContextCurrent(0);
-
     if(async.ready())
       async.process(p);
     //processor.process(p);
 
-    glfwMakeContextCurrent(window);
-    glfwSwapBuffers(window);
+    opengl_ctx.makeCurrent();
+    glfwSwapBuffers(opengl_ctx.glfw_ctx);
     //glfwSwapBuffers(window_background);
     glfwPollEvents();
   }
-
-  glfwDestroyWindow(window);
 
   return 0;
 }

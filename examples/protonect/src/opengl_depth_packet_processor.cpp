@@ -27,12 +27,11 @@
 #include <libfreenect2/depth_packet_processor.h>
 #include <libfreenect2/tables.h>
 #include <libfreenect2/resource.h>
+#include <libfreenect2/opengl.h>
 
 #include <iostream>
 #include <fstream>
 
-#include <GL/glew.h>
-#include <GLFW/glfw3.h>
 
 #include <stdint.h>
 
@@ -272,25 +271,9 @@ public:
   }
 };
 
-struct ChangeCurrentOpenGLContext
-{
-  GLFWwindow *last_ctx;
-
-  ChangeCurrentOpenGLContext(GLFWwindow *new_context)
-  {
-    last_ctx = glfwGetCurrentContext();
-    glfwMakeContextCurrent(new_context);
-  }
-
-  ~ChangeCurrentOpenGLContext()
-  {
-    glfwMakeContextCurrent(last_ctx);
-  }
-};
-
 struct OpenGLDepthPacketProcessorImpl
 {
-  GLFWwindow *opengl_context_ptr;
+  OpenGLContext *opengl_context_ptr;
   std::string shader_folder;
   libfreenect2::DepthPacketProcessor::Config config;
 
@@ -335,7 +318,7 @@ struct OpenGLDepthPacketProcessorImpl
     float u, v;
   };
 
-  OpenGLDepthPacketProcessorImpl(GLFWwindow *new_opengl_context_ptr) :
+  OpenGLDepthPacketProcessorImpl(OpenGLContext *new_opengl_context_ptr) :
     opengl_context_ptr(new_opengl_context_ptr),
     shader_folder("src/shader/"),
     square_vao(0),
@@ -349,6 +332,11 @@ struct OpenGLDepthPacketProcessorImpl
     timing_acc_n(0),
     timing_current_start(0)
   {
+  }
+
+  ~OpenGLDepthPacketProcessorImpl()
+  {
+    delete opengl_context_ptr;
   }
 
   void startTiming()
@@ -372,6 +360,8 @@ struct OpenGLDepthPacketProcessorImpl
 
   void initialize()
   {
+    ChangeCurrentOpenGLContext ctx(*opengl_context_ptr);
+
     input_data.allocate(352, 424 * 10);
 
     for(int i = 0; i < 3; ++i)
@@ -674,19 +664,14 @@ OpenGLDepthPacketProcessor::OpenGLDepthPacketProcessor(void *parent_opengl_conte
   glfwWindowHint(GLFW_VISIBLE, impl_->do_debug ? GL_TRUE : GL_FALSE);
 
   GLFWwindow* window = glfwCreateWindow(1024, 848, "OpenGLDepthPacketProcessor", 0, parent_window);
-  ChangeCurrentOpenGLContext ctx(window);
+  OpenGLContext *opengl_ctx = new OpenGLContext(window);
 
-  glewExperimental = GL_TRUE;
-  glewInit();
-
-  impl_ = new OpenGLDepthPacketProcessorImpl(window);
+  impl_ = new OpenGLDepthPacketProcessorImpl(opengl_ctx);
   impl_->initialize();
 }
 
 OpenGLDepthPacketProcessor::~OpenGLDepthPacketProcessor()
 {
-  glfwDestroyWindow(impl_->opengl_context_ptr);
-
   delete impl_;
 }
 
@@ -704,7 +689,7 @@ void OpenGLDepthPacketProcessor::setConfiguration(const libfreenect2::DepthPacke
 
 void OpenGLDepthPacketProcessor::loadP0TablesFromCommandResponse(unsigned char* buffer, size_t buffer_length)
 {
-  ChangeCurrentOpenGLContext ctx(impl_->opengl_context_ptr);
+  ChangeCurrentOpenGLContext ctx(*impl_->opengl_context_ptr);
 
   size_t n = 512 * 424;
   p0tables* p0table = (p0tables*)buffer;
@@ -725,7 +710,7 @@ void OpenGLDepthPacketProcessor::loadP0TablesFromCommandResponse(unsigned char* 
 
 void OpenGLDepthPacketProcessor::loadP0TablesFromFiles(const char* p0_filename, const char* p1_filename, const char* p2_filename)
 {
-  ChangeCurrentOpenGLContext ctx(impl_->opengl_context_ptr);
+  ChangeCurrentOpenGLContext ctx(*impl_->opengl_context_ptr);
 
   impl_->p0table[0].allocate(512, 424);
   if(loadBufferFromFile(p0_filename, impl_->p0table[0].data, impl_->p0table[0].size))
@@ -760,7 +745,7 @@ void OpenGLDepthPacketProcessor::loadP0TablesFromFiles(const char* p0_filename, 
 
 void OpenGLDepthPacketProcessor::loadXTableFromFile(const char* filename)
 {
-  ChangeCurrentOpenGLContext ctx(impl_->opengl_context_ptr);
+  ChangeCurrentOpenGLContext ctx(*impl_->opengl_context_ptr);
 
   impl_->x_table.allocate(512, 424);
   const unsigned char *data;
@@ -779,7 +764,7 @@ void OpenGLDepthPacketProcessor::loadXTableFromFile(const char* filename)
 
 void OpenGLDepthPacketProcessor::loadZTableFromFile(const char* filename)
 {
-  ChangeCurrentOpenGLContext ctx(impl_->opengl_context_ptr);
+  ChangeCurrentOpenGLContext ctx(*impl_->opengl_context_ptr);
 
   impl_->z_table.allocate(512, 424);
 
@@ -799,7 +784,7 @@ void OpenGLDepthPacketProcessor::loadZTableFromFile(const char* filename)
 
 void OpenGLDepthPacketProcessor::load11To16LutFromFile(const char* filename)
 {
-  ChangeCurrentOpenGLContext ctx(impl_->opengl_context_ptr);
+  ChangeCurrentOpenGLContext ctx(*impl_->opengl_context_ptr);
 
   impl_->lut11to16.allocate(2048, 1);
 
@@ -824,13 +809,13 @@ void OpenGLDepthPacketProcessor::process(const DepthPacket &packet)
 
   impl_->startTiming();
 
-  glfwMakeContextCurrent(impl_->opengl_context_ptr);
+  impl_->opengl_context_ptr->makeCurrent();
 
   std::copy(packet.buffer, packet.buffer + packet.buffer_length, impl_->input_data.data);
   impl_->input_data.upload();
   impl_->run(has_listener ? &ir : 0, has_listener ? &depth : 0);
 
-  if(impl_->do_debug) glfwSwapBuffers(impl_->opengl_context_ptr);
+  if(impl_->do_debug) glfwSwapBuffers(impl_->opengl_context_ptr->glfw_ctx);
 
   impl_->stopTiming();
 
