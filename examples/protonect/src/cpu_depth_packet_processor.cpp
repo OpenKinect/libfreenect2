@@ -89,7 +89,7 @@ public:
     enable_bilateral_filter = true;
     enable_edge_filter = true;
 
-    flip_ptables = false;
+    flip_ptables = true;
   }
 
   void startTiming()
