@@ -70,7 +70,7 @@ class Freenect2Impl;
 class Freenect2
 {
 public:
-  Freenect2(const std::string& protonect_path, void *usb_context = 0);
+  Freenect2(void *usb_context = 0);
   virtual ~Freenect2();
 
   int enumerateDevices();

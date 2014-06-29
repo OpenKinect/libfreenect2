@@ -114,16 +114,13 @@ public:
   typedef std::vector<libusb_device *> UsbDeviceVector;
   typedef std::vector<Freenect2DeviceImpl *> DeviceVector;
 
-  std::string protonect_path_;
-
   bool has_device_enumeration_;
   UsbDeviceVector enumerated_devices_;
   DeviceVector devices_;
 
-  Freenect2Impl(const std::string& protonect_path, void *usb_context) :
+  Freenect2Impl(void *usb_context) :
     managed_usb_context_(usb_context == 0),
     usb_context_(reinterpret_cast<libusb_context *>(usb_context)),
-    protonect_path_(protonect_path),
     has_device_enumeration_(false)
   {
     if(managed_usb_context_)
@@ -285,9 +282,9 @@ Freenect2DeviceImpl::Freenect2DeviceImpl(Freenect2Impl *context, libusb_device *
   rgb_transfer_pool_.setCallback(&rgb_packet_parser_);
   ir_transfer_pool_.setCallback(&depth_packet_parser_);
 
-  depth_packet_processor_.load11To16LutFromFile((context_->protonect_path_ + "/11to16.bin").c_str());
-  depth_packet_processor_.loadXTableFromFile((context_->protonect_path_ + "/xTable.bin").c_str());
-  depth_packet_processor_.loadZTableFromFile((context_->protonect_path_ + "/zTable.bin").c_str());
+  depth_packet_processor_.load11To16LutFromFile("");
+  depth_packet_processor_.loadXTableFromFile("");
+  depth_packet_processor_.loadZTableFromFile("");
 }
 
 Freenect2DeviceImpl::~Freenect2DeviceImpl()
@@ -546,8 +543,8 @@ void Freenect2DeviceImpl::close()
   std::cout << "[Freenect2DeviceImpl] closed" << std::endl;
 }
 
-Freenect2::Freenect2(const std::string& protonect_path, void *usb_context) :
-    impl_(new Freenect2Impl(protonect_path, usb_context))
+Freenect2::Freenect2(void *usb_context) :
+    impl_(new Freenect2Impl(usb_context))
 {
 }
 
