@@ -25,8 +25,8 @@
  */
 
 #include <libfreenect2/depth_packet_processor.h>
-#include <libfreenect2/tables.h>
 #include <libfreenect2/resource.h>
+#include <libfreenect2/protocol/response.h>
 #include <libfreenect2/opengl.h>
 
 #include <iostream>
@@ -692,7 +692,7 @@ void OpenGLDepthPacketProcessor::loadP0TablesFromCommandResponse(unsigned char* 
   ChangeCurrentOpenGLContext ctx(*impl_->opengl_context_ptr);
 
   size_t n = 512 * 424;
-  p0tables* p0table = (p0tables*)buffer;
+  libfreenect2::protocol::P0TablesResponse* p0table = (libfreenect2::protocol::P0TablesResponse*)buffer;
 
   impl_->p0table[0].allocate(512, 424);
   std::copy(reinterpret_cast<unsigned char*>(p0table->p0table0), reinterpret_cast<unsigned char*>(p0table->p0table0 + n), impl_->p0table[0].data);
@@ -821,8 +821,8 @@ void OpenGLDepthPacketProcessor::process(const DepthPacket &packet)
 
   if(has_listener)
   {
-    this->listener_->addNewFrame(Frame::Ir, ir);
-    this->listener_->addNewFrame(Frame::Depth, depth);
+    this->listener_->onNewFrame(Frame::Ir, ir);
+    this->listener_->onNewFrame(Frame::Depth, depth);
   }
 }
 

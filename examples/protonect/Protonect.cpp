@@ -28,9 +28,7 @@
 #include <iostream>
 #include <signal.h>
 
-#define GLEW_STATIC
-#include <GL/glew.h>
-#include <GLFW/glfw3.h>
+#include <libfreenect2/opengl.h>
 
 #include <opencv2/opencv.hpp>
 
