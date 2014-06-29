@@ -73,7 +73,7 @@ private:
   int command_seq_;
 
   TurboJpegRgbPacketProcessor rgb_packet_processor_;
-  CpuDepthPacketProcessor depth_packet_processor_;
+  OpenGLDepthPacketProcessor depth_packet_processor_;
 
   RgbPacketStreamParser rgb_packet_parser_;
   DepthPacketStreamParser depth_packet_parser_;
@@ -273,7 +273,7 @@ Freenect2DeviceImpl::Freenect2DeviceImpl(Freenect2Impl *context, libusb_device *
   command_tx_(usb_device_handle_, 0x81, 0x02),
   command_seq_(0),
   rgb_packet_processor_(),
-  depth_packet_processor_(),
+  depth_packet_processor_(0),
   rgb_packet_parser_(&rgb_packet_processor_),
   depth_packet_parser_(&depth_packet_processor_),
   serial_("<unknown>"),
