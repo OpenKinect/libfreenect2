@@ -833,8 +833,15 @@ void OpenGLDepthPacketProcessor::process(const DepthPacket &packet)
 
   if(has_listener)
   {
-    this->listener_->onNewFrame(Frame::Ir, ir);
-    this->listener_->onNewFrame(Frame::Depth, depth);
+    if(!this->listener_->onNewFrame(Frame::Ir, ir))
+    {
+      delete ir;
+    }
+
+    if(!this->listener_->onNewFrame(Frame::Depth, depth))
+    {
+      delete depth;
+    }
   }
 }
 
