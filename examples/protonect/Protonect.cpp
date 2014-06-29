@@ -36,6 +36,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#define GLEW_STATIC
+#include <GL/glew.h>
+#include <GLFW/glfw3.h>
+
 #include <opencv2/opencv.hpp>
 
 #include <libfreenect2/tables.h>
@@ -732,7 +736,15 @@ int main(int argc, char *argv[])
   rgb_bulk_transfers.setCallback(&rgb_packet_stream_parser);
   rgb_bulk_transfers.enableSubmission();
 
-  libfreenect2::CpuDepthPacketProcessor depth_processor;
+  glfwInit();
+  //glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+  //glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+  //glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+
+
+  GLFWwindow* window = 0;//glfwCreateWindow(800, 600, "OpenGL", 0, 0); // Windowed
+
+  libfreenect2::OpenGLDepthPacketProcessor depth_processor(window);
   depth_processor.setFrameListener(&frame_listener);
   depth_processor.load11To16LutFromFile((binpath + "../11to16.bin").c_str());
   depth_processor.loadXTableFromFile((binpath + "../xTable.bin").c_str());
@@ -763,6 +775,7 @@ int main(int argc, char *argv[])
     r = 0;
   printf("             speed: %s\n", speed_name[r]);
 
+
   while(!shutdown)
   {
     frame_listener.waitForNewFrame(frames);
@@ -778,6 +791,8 @@ int main(int argc, char *argv[])
 
     frame_listener.release(frames);
   }
+
+  //glfwDestroyWindow(window);
 
   r = libusb_get_device_speed(dev);
   if ((r < 0) || (r > 4))
@@ -818,6 +833,8 @@ int main(int argc, char *argv[])
   usb_loop.stop();
 
   libusb_exit(NULL);
+  // TODO: causes segfault
+  //glfwTerminate();
 
   //system("PAUSE");
   return 0;

@@ -56,6 +56,42 @@ public:
     Config();
   };
 
+  struct Parameters
+  {
+    float ab_multiplier;
+    float ab_multiplier_per_frq[3];
+    float ab_output_multiplier;
+
+    float phase_in_rad[3];
+
+    float joint_bilateral_ab_threshold;
+    float joint_bilateral_max_edge;
+    float joint_bilateral_exp;
+    float gaussian_kernel[9];
+
+    float phase_offset;
+    float unambigious_dist;
+    float individual_ab_threshold;
+    float ab_threshold;
+    float ab_confidence_slope;
+    float ab_confidence_offset;
+    float min_dealias_confidence;
+    float max_dealias_confidence;
+
+    float edge_ab_avg_min_value;
+    float edge_ab_std_dev_threshold;
+    float edge_close_delta_threshold;
+    float edge_far_delta_threshold;
+    float edge_max_delta_threshold;
+    float edge_avg_delta_threshold;
+    float max_edge_count;
+
+    float min_depth;
+    float max_depth;
+
+    Parameters();
+  };
+
   DepthPacketProcessor();
   virtual ~DepthPacketProcessor();
 
@@ -70,6 +106,34 @@ protected:
   libfreenect2::FrameListener *listener_;
 };
 
+class OpenGLDepthPacketProcessorImpl;
+
+class OpenGLDepthPacketProcessor : public DepthPacketProcessor
+{
+public:
+  OpenGLDepthPacketProcessor(void *parent_opengl_context_ptr);
+  virtual ~OpenGLDepthPacketProcessor();
+  virtual void setConfiguration(const libfreenect2::DepthPacketProcessor::Config &config);
+
+  virtual void loadP0TablesFromCommandResponse(unsigned char* buffer, size_t buffer_length);
+
+  void loadP0TablesFromFiles(const char* p0_filename, const char* p1_filename, const char* p2_filename);
+
+  /**
+   * GUESS: the x and z table follow some polynomial, until we know the exact polynom formula and its coefficients
+   * just load them from a memory dump - although they probably vary per camera
+   */
+  void loadXTableFromFile(const char* filename);
+
+  void loadZTableFromFile(const char* filename);
+
+  void load11To16LutFromFile(const char* filename);
+
+  virtual void process(const DepthPacket &packet);
+private:
+  OpenGLDepthPacketProcessorImpl *impl_;
+};
+
 // TODO: push this to some internal namespace
 // use pimpl to hide opencv dependency
 class CpuDepthPacketProcessorImpl;
@@ -82,6 +146,8 @@ public:
   virtual void setConfiguration(const libfreenect2::DepthPacketProcessor::Config &config);
 
   virtual void loadP0TablesFromCommandResponse(unsigned char* buffer, size_t buffer_length);
+
+  void loadP0TablesFromFiles(const char* p0_filename, const char* p1_filename, const char* p2_filename);
 
   /**
    * GUESS: the x and z table follow some polynomial, until we know the exact polynom formula and its coefficients
