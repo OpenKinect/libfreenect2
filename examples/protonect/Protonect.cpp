@@ -629,7 +629,8 @@ int main(int argc, char *argv[])
   }
 
   uint16_t vid = 0x045E;
-  uint16_t pid = 0x02C4;
+  uint16_t pid_official = 0x02D8;
+  uint16_t pid_preview = 0x02C4;
   uint16_t mi = 0x00;
 
   bool debug_mode = false;
@@ -652,14 +653,20 @@ int main(int argc, char *argv[])
 
   libusb_set_debug(NULL, debug_mode ? LIBUSB_LOG_LEVEL_DEBUG : LIBUSB_LOG_LEVEL_INFO);
 
-  printf("Opening device %04X:%04X...\n", vid, pid);
-  handle = libusb_open_device_with_vid_pid(NULL, vid, pid);
+  printf("Opening official device %04X:%04X...\n", vid, pid_official);
+  handle = libusb_open_device_with_vid_pid(NULL, vid, pid_official);
 
   if (handle == NULL)
   {
-    perr("  Failed.\n");
-    //system("PAUSE");
-    return -1;
+    printf("Unable to open official device...\n");
+    printf("Trying preview device %04X:%04X...\n", vid, pid_preview);
+    handle = libusb_open_device_with_vid_pid(NULL, vid, pid_preview);
+    if (handle == NULL)
+    {
+      perr("  Failed.\n");
+      //system("PAUSE");
+      return -1;
+    }
   }
 
   dev = libusb_get_device(handle);
