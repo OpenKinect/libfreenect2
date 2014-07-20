@@ -228,7 +228,7 @@ public:
         int r = libusb_get_device_descriptor(dev, &dev_desc);
         // TODO: error handling
 
-        if(dev_desc.idVendor == Freenect2Device::VendorId && dev_desc.idProduct == Freenect2Device::ProductId)
+        if(dev_desc.idVendor == Freenect2Device::VendorId && (dev_desc.idProduct == Freenect2Device::ProductId || dev_desc.idProduct == Freenect2Device::ProductIdPreview))
         {
           // valid Kinect v2
           enumerated_devices_.push_back(dev);
@@ -598,6 +598,7 @@ Freenect2Device *Freenect2::openDevice(int idx)
       }
       else
       {
+        std::cout << "[Freenect2DeviceImpl] Unable to open device: " << idx << std::endl;
         delete device;
 
         // TODO: error handling
@@ -607,6 +608,7 @@ Freenect2Device *Freenect2::openDevice(int idx)
   }
   else
   {
+    std::cout << "[Freenect2DeviceImpl] Requested device" << idx << "doesn't exist" << std::endl;
     // TODO: error handling
     return 0;
   }

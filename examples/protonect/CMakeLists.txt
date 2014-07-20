@@ -32,7 +32,7 @@ LINK_DIRECTORIES("${MY_DIR}/../../depends/libusbx/lib/")
 
 # GLEW
 INCLUDE_DIRECTORIES("${MY_DIR}/../../depends/glew/include/")
-LINK_DIRECTORIES("${MY_DIR}/../../depends/glew/lib64/")
+LINK_DIRECTORIES("${MY_DIR}/../../depends/glew/lib/")
 ADD_DEFINITIONS(-DGLEW_MX -DGLEW_STATIC)
 
 # GLFW

@@ -36,7 +36,8 @@ class Freenect2Device
 {
 public:
   static const unsigned int VendorId = 0x045E;
-  static const unsigned int ProductId = 0x02C4;
+  static const unsigned int ProductId = 0x02D8;
+  static const unsigned int ProductIdPreview = 0x02C4;
 
   struct ColorCameraParams
   {
