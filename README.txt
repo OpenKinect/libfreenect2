@@ -48,14 +48,29 @@ You can go back and forth between the SDK driver and the libusbK driver very qui
 ==== Mac OSX
 
 1. cd into a directory where you want to keep libfreenect2 stuff in
-1. Install opencv and git via brew (or your own favorite package manager, ie ports)
-2. brew update; brew tap homebrew/science; brew install opencv git
-1. Download the libfreenect2 repository
-2. git clone -b mac git@github.com:RyanGordon/libfreenect2.git
-1. Install a bunch of dependencies
-2. cd ./libfreenect2; sh ./depends/install_ubuntu.sh
-1. Build the actual protonect executable
-2. cd ./examples/protonect/; cmake CMakeLists.txt; make && make install
+2. Install opencv and git via brew (or your own favorite package manager, ie ports)
+
+brew update
+brew tap homebrew/science
+brew install opencv git
+
+3. Download the libfreenect2 repository
+
+git clone -b mac git@github.com:RyanGordon/libfreenect2.git
+
+4. Install a bunch of dependencies
+
+cd ./libfreenect2
+sh ./depends/install_ubuntu.sh
+
+5. Build the actual protonect executable
+
+cd ./examples/protonect/
+cmake CMakeLists.txt
+make && make install
+
+6. Run the program
+./bin/Protonect
 
 ==== Other operating systems
 
