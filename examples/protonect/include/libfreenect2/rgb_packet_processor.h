@@ -30,7 +30,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include <libfreenect2/frame_listener.h>
+#include <libfreenect2/frame_listener.hpp>
 
 namespace libfreenect2
 {

@@ -40,12 +40,13 @@ public:
   EventLoop();
   virtual ~EventLoop();
 
-  void start();
+  void start(void *usb_context);
 
   void stop();
 private:
   bool shutdown_;
   libfreenect2::thread *thread_;
+  void *usb_context_;
 
   static void static_execute(void *cookie);
   void execute();

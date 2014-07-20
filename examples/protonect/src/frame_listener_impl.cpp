@@ -24,70 +24,74 @@
  * either License.
  */
 
-#include <libfreenect2/usb/event_loop.h>
-
-#include <libusb.h>
-#ifdef _WIN32
-#include <winsock.h>
-#else
-#include <sys/time.h>
-#endif
+#include <libfreenect2/frame_listener_impl.h>
 
 namespace libfreenect2
 {
-namespace usb
-{
 
-void EventLoop::static_execute(void *cookie)
-{
-  static_cast<EventLoop *>(cookie)->execute();
-}
+FrameListener::~FrameListener() {}
 
-EventLoop::EventLoop() :
-    shutdown_(false),
-    thread_(0),
-    usb_context_(0)
+SyncMultiFrameListener::SyncMultiFrameListener(unsigned int frame_types) :
+    subscribed_frame_types_(frame_types),
+    ready_frame_types_(0)
 {
 }
 
-EventLoop::~EventLoop()
+SyncMultiFrameListener::~SyncMultiFrameListener()
 {
-  stop();
 }
 
-void EventLoop::start(void *usb_context)
+void SyncMultiFrameListener::waitForNewFrame(FrameMap &frame)
 {
-  if(thread_ == 0)
+  libfreenect2::unique_lock l(mutex_);
+
+  while(ready_frame_types_ != subscribed_frame_types_)
   {
-    shutdown_ = false;
-    usb_context_ = usb_context;
-    thread_ = new libfreenect2::thread(&EventLoop::static_execute, this);
+    WAIT_CONDITION(condition_, mutex_, l)
   }
+
+  frame = next_frame_;
+  next_frame_.clear();
+  ready_frame_types_ = 0;
 }
 
-void EventLoop::stop()
+void SyncMultiFrameListener::release(FrameMap &frame)
 {
-  if(thread_ != 0)
+  for(FrameMap::iterator it = frame.begin(); it != frame.end(); ++it)
   {
-    shutdown_ = true;
-    thread_->join();
-    delete thread_;
-    thread_ = 0;
-    usb_context_ = 0;
+    delete it->second;
+    it->second = 0;
   }
+
+  frame.clear();
 }
 
-void EventLoop::execute()
+bool SyncMultiFrameListener::onNewFrame(Frame::Type type, Frame *frame)
 {
-  timeval t;
-  t.tv_sec = 0;
-  t.tv_usec = 100000;
+  if((subscribed_frame_types_ & type) == 0) return false;
 
-  while(!shutdown_)
   {
-    libusb_handle_events_timeout_completed(reinterpret_cast<libusb_context *>(usb_context_), &t, 0);
+    libfreenect2::lock_guard l(mutex_);
+
+    FrameMap::iterator it = next_frame_.find(type);
+
+    if(it != next_frame_.end())
+    {
+      // replace frame
+      delete it->second;
+      it->second = frame;
+    }
+    else
+    {
+      next_frame_[type] = frame;
+    }
+
+    ready_frame_types_ |= type;
   }
+
+  condition_.notify_one();
+
+  return true;
 }
 
-} /* namespace usb */
 } /* namespace libfreenect2 */

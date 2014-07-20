@@ -32,6 +32,7 @@
 
 #include <libfreenect2/async_packet_processor.h>
 #include <libfreenect2/depth_packet_processor.h>
+#include <libfreenect2/frame_listener_impl.h>
 #include <libfreenect2/resource.h>
 
 void loadBufferFromFile(const std::string& filename, unsigned char *buffer, size_t n)
@@ -64,7 +65,7 @@ int main(int argc, char **argv) {
   GLFWwindow* window = glfwCreateWindow(1200, 600, "OpenGL", 0, 0); // Windowed
   libfreenect2::OpenGLContext opengl_ctx(window);
 
-  libfreenect2::FrameListener fl(libfreenect2::Frame::Ir | libfreenect2::Frame::Depth);
+  libfreenect2::SyncMultiFrameListener fl(libfreenect2::Frame::Ir | libfreenect2::Frame::Depth);
   libfreenect2::FrameMap frames;
 
   libfreenect2::DepthPacketProcessor::Config cfg;
