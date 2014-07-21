@@ -24,72 +24,45 @@
  * either License.
  */
 
-#include <libfreenect2/frame_listener.h>
+#ifndef FRAME_LISTENER_HPP_
+#define FRAME_LISTENER_HPP_
 
 namespace libfreenect2
 {
 
-FrameListener::FrameListener(unsigned int frame_types) :
-    subscribed_frame_types_(frame_types),
-    ready_frame_types_(0)
+struct Frame
 {
-}
-
-FrameListener::~FrameListener()
-{
-}
-
-void FrameListener::waitForNewFrame(FrameMap &frame)
-{
-  libfreenect2::unique_lock l(mutex_);
-
-  while(ready_frame_types_ != subscribed_frame_types_)
+  enum Type
   {
-    WAIT_CONDITION(condition_, mutex_, l)
+    Color = 1,
+    Ir = 2,
+    Depth = 4
+  };
+
+  size_t width, height, bytes_per_pixel;
+  unsigned char* data;
+
+  Frame(size_t width, size_t height, size_t bytes_per_pixel) :
+    width(width),
+    height(height),
+    bytes_per_pixel(bytes_per_pixel)
+  {
+    data = new unsigned char[width * height * bytes_per_pixel];
   }
 
-  frame = next_frame_;
-  next_frame_.clear();
-  ready_frame_types_ = 0;
-}
-
-void FrameListener::release(FrameMap &frame)
-{
-  for(FrameMap::iterator it = frame.begin(); it != frame.end(); ++it)
+  ~Frame()
   {
-    delete it->second;
-    it->second = 0;
+    delete[] data;
   }
+};
 
-  frame.clear();
-}
-
-bool FrameListener::addNewFrame(Frame::Type type, Frame *frame)
+class FrameListener
 {
-  if((subscribed_frame_types_ & type) == 0) return false;
+public:
+  virtual ~FrameListener();
 
-  {
-    libfreenect2::lock_guard l(mutex_);
-
-    FrameMap::iterator it = next_frame_.find(type);
-
-    if(it != next_frame_.end())
-    {
-      // replace frame
-      delete it->second;
-      it->second = frame;
-    }
-    else
-    {
-      next_frame_[type] = frame;
-    }
-
-    ready_frame_types_ |= type;
-  }
-
-  condition_.notify_one();
-
-  return true;
-}
+  virtual bool onNewFrame(Frame::Type type, Frame *frame) = 0;
+};
 
 } /* namespace libfreenect2 */
+#endif /* FRAME_LISTENER_HPP_ */

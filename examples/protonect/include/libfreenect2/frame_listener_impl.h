@@ -24,56 +24,31 @@
  * either License.
  */
 
-#ifndef FRAME_LISTENER_H_
-#define FRAME_LISTENER_H_
+#ifndef FRAME_LISTENER_IMPL_H_
+#define FRAME_LISTENER_IMPL_H_
 
 #include <map>
 #include <libfreenect2/threading.h>
+#include <libfreenect2/frame_listener.hpp>
 
 namespace libfreenect2
 {
 
-struct Frame
-{
-  enum Type
-  {
-    Color = 1,
-    Ir = 2,
-    Depth = 4
-  };
-
-  size_t width, height, bytes_per_pixel;
-  unsigned char* data;
-
-  Frame(size_t width, size_t height, size_t bytes_per_pixel) :
-    width(width),
-    height(height),
-    bytes_per_pixel(bytes_per_pixel)
-  {
-    data = new unsigned char[width * height * bytes_per_pixel];
-  }
-
-  ~Frame()
-  {
-    delete[] data;
-  }
-};
-
 typedef std::map<Frame::Type, Frame*> FrameMap;
 
 // TODO: reimplement, this is just some adhoc construct, probably performance can be improved
-class FrameListener
+class SyncMultiFrameListener : public FrameListener
 {
 public:
-  FrameListener(unsigned int frame_types);
-  virtual ~FrameListener();
+  SyncMultiFrameListener(unsigned int frame_types);
+  virtual ~SyncMultiFrameListener();
 
   // for now the caller is responsible to release the frames when he is done
   void waitForNewFrame(FrameMap &frame);
 
   void release(FrameMap &frame);
 
-  bool addNewFrame(Frame::Type type, Frame *frame);
+  virtual bool onNewFrame(Frame::Type type, Frame *frame);
 private:
   libfreenect2::mutex mutex_;
   libfreenect2::condition_variable condition_;
@@ -84,4 +59,4 @@ private:
 };
 
 } /* namespace libfreenect2 */
-#endif /* FRAME_LISTENER_H_ */
+#endif /* FRAME_LISTENER_IMPL_H_ */

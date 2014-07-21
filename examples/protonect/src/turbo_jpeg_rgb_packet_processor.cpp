@@ -116,7 +116,7 @@ void TurboJpegRgbPacketProcessor::process(const RgbPacket &packet)
 
     if(r == 0)
     {
-      if(listener_->addNewFrame(Frame::Color, impl_->frame))
+      if(listener_->onNewFrame(Frame::Color, impl_->frame))
       {
         impl_->newFrame();
       }

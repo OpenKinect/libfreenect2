@@ -25,8 +25,8 @@
  */
 
 #include <libfreenect2/depth_packet_processor.h>
-#include <libfreenect2/tables.h>
 #include <libfreenect2/resource.h>
+#include <libfreenect2/protocol/response.h>
 #include <libfreenect2/opengl.h>
 
 #include <iostream>
@@ -247,16 +247,18 @@ public:
     glReadPixels(0, 0, width, height, FormatT::Format, FormatT::Type, data);
   }
 
-  Frame *downloadToNewFrame()
+  void flipY()
   {
-    Frame *f = new Frame(width, height, bytes_per_pixel);
-    downloadToBuffer(f->data);
+    flipYBuffer(data);
+  }
 
+  void flipYBuffer(unsigned char *data)
+  {
     typedef unsigned char type;
 
     int linestep = width * bytes_per_pixel / sizeof(type);
 
-    type *first_line = reinterpret_cast<type *>(f->data), *last_line = reinterpret_cast<type *>(f->data) + (height - 1) * linestep;
+    type *first_line = reinterpret_cast<type *>(data), *last_line = reinterpret_cast<type *>(data) + (height - 1) * linestep;
 
     for(int y = 0; y < height / 2; ++y)
     {
@@ -266,6 +268,13 @@ public:
       }
       last_line -= 2 * linestep;
     }
+  }
+
+  Frame *downloadToNewFrame()
+  {
+    Frame *f = new Frame(width, height, bytes_per_pixel);
+    downloadToBuffer(f->data);
+    flipYBuffer(f->data);
 
     return f;
   }
@@ -692,18 +701,21 @@ void OpenGLDepthPacketProcessor::loadP0TablesFromCommandResponse(unsigned char* 
   ChangeCurrentOpenGLContext ctx(*impl_->opengl_context_ptr);
 
   size_t n = 512 * 424;
-  p0tables* p0table = (p0tables*)buffer;
+  libfreenect2::protocol::P0TablesResponse* p0table = (libfreenect2::protocol::P0TablesResponse*)buffer;
 
   impl_->p0table[0].allocate(512, 424);
   std::copy(reinterpret_cast<unsigned char*>(p0table->p0table0), reinterpret_cast<unsigned char*>(p0table->p0table0 + n), impl_->p0table[0].data);
+  impl_->p0table[0].flipY();
   impl_->p0table[0].upload();
 
   impl_->p0table[1].allocate(512, 424);
   std::copy(reinterpret_cast<unsigned char*>(p0table->p0table1), reinterpret_cast<unsigned char*>(p0table->p0table1 + n), impl_->p0table[1].data);
+  impl_->p0table[1].flipY();
   impl_->p0table[1].upload();
 
   impl_->p0table[2].allocate(512, 424);
   std::copy(reinterpret_cast<unsigned char*>(p0table->p0table2), reinterpret_cast<unsigned char*>(p0table->p0table2 + n), impl_->p0table[2].data);
+  impl_->p0table[2].flipY();
   impl_->p0table[2].upload();
 
 }
@@ -821,8 +833,15 @@ void OpenGLDepthPacketProcessor::process(const DepthPacket &packet)
 
   if(has_listener)
   {
-    this->listener_->addNewFrame(Frame::Ir, ir);
-    this->listener_->addNewFrame(Frame::Depth, depth);
+    if(!this->listener_->onNewFrame(Frame::Ir, ir))
+    {
+      delete ir;
+    }
+
+    if(!this->listener_->onNewFrame(Frame::Depth, depth))
+    {
+      delete depth;
+    }
   }
 }
 

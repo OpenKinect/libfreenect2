@@ -26,7 +26,7 @@
 
 #include <libfreenect2/depth_packet_processor.h>
 #include <libfreenect2/resource.h>
-#include <libfreenect2/tables.h>
+#include <libfreenect2/protocol/response.h>
 
 #include <opencv2/opencv.hpp>
 #include <iostream>
@@ -89,7 +89,7 @@ public:
     enable_bilateral_filter = true;
     enable_edge_filter = true;
 
-    flip_ptables = false;
+    flip_ptables = true;
   }
 
   void startTiming()
@@ -619,9 +619,9 @@ void CpuDepthPacketProcessor::setConfiguration(const libfreenect2::DepthPacketPr
 void CpuDepthPacketProcessor::loadP0TablesFromCommandResponse(unsigned char* buffer, size_t buffer_length)
 {
   // TODO: check known header fields (headersize, tablesize)
-  p0tables* p0table = (p0tables*)buffer;
+  libfreenect2::protocol::P0TablesResponse* p0table = (libfreenect2::protocol::P0TablesResponse*)buffer;
 
-  if(buffer_length < sizeof(p0tables))
+  if(buffer_length < sizeof(libfreenect2::protocol::P0TablesResponse))
   {
     std::cerr << "[CpuDepthPacketProcessor::loadP0TablesFromCommandResponse] P0Table response too short!" << std::endl;
     return;
@@ -804,12 +804,12 @@ void CpuDepthPacketProcessor::process(const DepthPacket &packet)
       }
   }
 
-  if(listener_->addNewFrame(Frame::Ir, impl_->ir_frame))
+  if(listener_->onNewFrame(Frame::Ir, impl_->ir_frame))
   {
     impl_->newIrFrame();
   }
 
-  if(listener_->addNewFrame(Frame::Depth, impl_->depth_frame))
+  if(listener_->onNewFrame(Frame::Depth, impl_->depth_frame))
   {
     impl_->newDepthFrame();
   }
