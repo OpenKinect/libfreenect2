@@ -56,7 +56,7 @@ brew install opencv git
 
 3. Download the libfreenect2 repository
 
-git clone -b mac git@github.com:RyanGordon/libfreenect2.git
+git clone git@github.com:OpenKinect/libfreenect2.git
 
 4. Install a bunch of dependencies
 
