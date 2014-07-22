@@ -608,7 +608,7 @@ Freenect2Device *Freenect2::openDevice(int idx)
   }
   else
   {
-    std::cout << "[Freenect2DeviceImpl] Requested device" << idx << "doesn't exist" << std::endl;
+    std::cout << "[Freenect2DeviceImpl] Requested device " << idx << " is not connected!" << std::endl;
     // TODO: error handling
     return 0;
   }
