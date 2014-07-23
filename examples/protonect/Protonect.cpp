@@ -91,7 +91,7 @@ int main(int argc, char *argv[])
     cv::imshow("depth", cv::Mat(depth->height, depth->width, CV_32FC1, depth->data) / 4500.0f);
 
     int key = cv::waitKey(1);
-    shutdown = key > 0 && ((key & 0xFF) == 27); // shutdown on escape
+    shutdown = shutdown || (key > 0 && ((key & 0xFF) == 27)); // shutdown on escape
 
     listener.release(frames);
     //libfreenect2::this_thread::sleep_for(libfreenect2::chrono::milliseconds(100));
