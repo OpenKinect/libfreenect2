@@ -127,6 +127,54 @@ namespace libusb_ext
 
     return libusb_control_transfer(handle, bmRequestType, bRequest, wValue, wIndex, data, wLength, timeout);
   }
+
+  int get_max_iso_packet_size(libusb_device *device, int configuration, int alternate_setting, int endpoint)
+  {
+    libusb_config_descriptor *config_desc;
+    int r = LIBUSB_ERROR_NOT_FOUND;
+
+    r = libusb_get_config_descriptor_by_value(device, configuration, &config_desc);
+
+    if(r == LIBUSB_SUCCESS)
+    {
+      for(int interface_idx = 0; interface_idx < config_desc->bNumInterfaces; ++interface_idx)
+      {
+        const libusb_interface &interface = config_desc->interface[interface_idx];
+
+        if(interface.num_altsetting > alternate_setting)
+        {
+          const libusb_interface_descriptor &interface_desc = interface.altsetting[alternate_setting];
+          const libusb_endpoint_descriptor *endpoint_desc = 0;
+
+          for(int endpoint_idx = 0; endpoint_idx < interface_desc.bNumEndpoints; ++endpoint_idx)
+          {
+            if(interface_desc.endpoint[endpoint_idx].bEndpointAddress == endpoint && (interface_desc.endpoint[endpoint_idx].bmAttributes & 0x3) == LIBUSB_TRANSFER_TYPE_ISOCHRONOUS)
+            {
+              endpoint_desc = interface_desc.endpoint + endpoint_idx;
+              break;
+            }
+          }
+
+          if(endpoint_desc != 0)
+          {
+            libusb_ss_endpoint_companion_descriptor *companion_desc;
+            // ctx is only used for error reporting, libusb should better ask for a libusb_device anyway...
+            r = libusb_get_ss_endpoint_companion_descriptor(NULL /* ctx */, endpoint_desc, &companion_desc);
+
+            if(r != LIBUSB_SUCCESS) continue;
+
+            r = companion_desc->wBytesPerInterval;
+
+            libusb_free_ss_endpoint_companion_descriptor(companion_desc);
+            break;
+          }
+        }
+      }
+    }
+    libusb_free_config_descriptor(config_desc);
+
+    return r;
+  }
 }
 
 UsbControl::UsbControl(libusb_device_handle *handle) :
@@ -253,6 +301,22 @@ UsbControl::ResultCode UsbControl::setIrInterfaceState(UsbControl::State state)
   int r = libusb_set_interface_alt_setting(handle_, IrInterfaceId, alternate_setting);
 
   return checkLibusbResult("setIrInterfaceState", r);
+}
+
+
+UsbControl::ResultCode UsbControl::getIrMaxIsoPacketSize(int &size)
+{
+  size = 0;
+  libusb_device *dev = libusb_get_device(handle_);
+  int r = libusb_ext::get_max_iso_packet_size(dev, 1, 1, 0x84);
+
+  if(r > LIBUSB_SUCCESS)
+  {
+    size = r;
+    r = LIBUSB_SUCCESS;
+  }
+
+  return checkLibusbResult("getIrMaxIsoPacketSize", r);
 }
 
 } /* namespace protocol */
