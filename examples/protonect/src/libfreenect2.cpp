@@ -247,44 +247,59 @@ public:
 
         if(dev_desc.idVendor == Freenect2Device::VendorId && dev_desc.idProduct == Freenect2Device::ProductId)
         {
-          libusb_device_handle *dev_handle;
-          r = libusb_open(dev, &dev_handle);
+          Freenect2DeviceImpl *freenect2_dev;
 
-          if(r == LIBUSB_SUCCESS)
+          // prevent error if device is already open
+          if(tryGetDevice(dev, &freenect2_dev))
           {
-            r = libusb_reset_device(dev_handle);
+            UsbDeviceWithSerial dev_with_serial;
+            dev_with_serial.dev = dev;
+            dev_with_serial.serial = freenect2_dev->getSerialNumber();
 
-            if(r == LIBUSB_SUCCESS)
-            {
-              unsigned char buffer[1024];
-              r = libusb_get_string_descriptor_ascii(dev_handle, dev_desc.iSerialNumber, buffer, sizeof(buffer));
-
-              if(r > LIBUSB_SUCCESS)
-              {
-                UsbDeviceWithSerial dev_with_serial;
-                dev_with_serial.dev = dev;
-                dev_with_serial.serial = std::string(reinterpret_cast<char *>(buffer), size_t(r));
-
-                std::cout << "[Freenect2Impl] found valid Kinect v2 " << PrintBusAndDevice(dev) << " with serial " << dev_with_serial.serial << std::endl;
-                // valid Kinect v2
-                enumerated_devices_.push_back(dev_with_serial);
-                continue;
-              }
-              else
-              {
-                std::cout << "[Freenect2Impl] failed to get serial number of Kinect v2 " << PrintBusAndDevice(dev) << "!" << std::endl;
-              }
-            }
-            else
-            {
-              std::cout << "[Freenect2Impl] failed to reset Kinect v2 " << PrintBusAndDevice(dev) << "!" << std::endl;
-            }
-
-            libusb_close(dev_handle);
+            enumerated_devices_.push_back(dev_with_serial);
+            continue;
           }
           else
           {
-            std::cout << "[Freenect2Impl] failed to open Kinect v2 " << PrintBusAndDevice(dev) << "!" << std::endl;
+            libusb_device_handle *dev_handle;
+            r = libusb_open(dev, &dev_handle);
+
+            if(r == LIBUSB_SUCCESS)
+            {
+              r = libusb_reset_device(dev_handle);
+
+              if(r == LIBUSB_SUCCESS)
+              {
+                unsigned char buffer[1024];
+                r = libusb_get_string_descriptor_ascii(dev_handle, dev_desc.iSerialNumber, buffer, sizeof(buffer));
+
+                if(r > LIBUSB_SUCCESS)
+                {
+                  UsbDeviceWithSerial dev_with_serial;
+                  dev_with_serial.dev = dev;
+                  dev_with_serial.serial = std::string(reinterpret_cast<char *>(buffer), size_t(r));
+
+                  std::cout << "[Freenect2Impl] found valid Kinect v2 " << PrintBusAndDevice(dev) << " with serial " << dev_with_serial.serial << std::endl;
+                  // valid Kinect v2
+                  enumerated_devices_.push_back(dev_with_serial);
+                  continue;
+                }
+                else
+                {
+                  std::cout << "[Freenect2Impl] failed to get serial number of Kinect v2 " << PrintBusAndDevice(dev) << "!" << std::endl;
+                }
+              }
+              else
+              {
+                std::cout << "[Freenect2Impl] failed to reset Kinect v2 " << PrintBusAndDevice(dev) << "!" << std::endl;
+              }
+
+              libusb_close(dev_handle);
+            }
+            else
+            {
+              std::cout << "[Freenect2Impl] failed to open Kinect v2 " << PrintBusAndDevice(dev) << "!" << std::endl;
+            }
           }
         }
         libusb_unref_device(dev);
