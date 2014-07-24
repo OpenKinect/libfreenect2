@@ -61,7 +61,7 @@ git clone git@github.com:OpenKinect/libfreenect2.git
 4. Install a bunch of dependencies
 
 cd ./libfreenect2
-sh ./depends/install_ubuntu.sh
+sh ./depends/install_mac.sh
 
 5. Build the actual protonect executable
 

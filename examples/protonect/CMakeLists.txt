@@ -32,7 +32,11 @@ LINK_DIRECTORIES("${MY_DIR}/../../depends/libusbx/lib/")
 
 # GLEW
 INCLUDE_DIRECTORIES("${MY_DIR}/../../depends/glew/include/")
-LINK_DIRECTORIES("${MY_DIR}/../../depends/glew/lib/")
+if (APPLE)
+  LINK_DIRECTORIES("${MY_DIR}/../../depends/glew/lib/")
+else()
+  LINK_DIRECTORIES("${MY_DIR}/../../depends/glew/lib64/")
+endif()
 ADD_DEFINITIONS(-DGLEW_MX -DGLEW_STATIC)
 
 # GLFW
@@ -44,9 +48,11 @@ SET(GLFW_BUILD_DOCS OFF CACHE BOOL "Build the GLFW documentation")
 ADD_SUBDIRECTORY(${MY_DIR}/../../depends/glfw_src/ ${MY_DIR}/../../depends/glfw)
 INCLUDE_DIRECTORIES(${MY_DIR}/../../depends/glfw_src/include/)
 
-# libjpeg-turbo
-INCLUDE_DIRECTORIES("${MY_DIR}/../../depends/libjpeg_turbo/include/")
-LINK_DIRECTORIES("${MY_DIR}/../../depends/libjpeg_turbo/lib/")
+if (APPLE)
+  # libjpeg-turbo
+  INCLUDE_DIRECTORIES("${MY_DIR}/../../depends/libjpeg_turbo/include/")
+  LINK_DIRECTORIES("${MY_DIR}/../../depends/libjpeg_turbo/lib/")
+endif()
 
 SET(RESOURCES_INC_FILE "${MY_DIR}/src/resources.inc")
 GENERATE_RESOURCES(${RESOURCES_INC_FILE} ${MY_DIR} 

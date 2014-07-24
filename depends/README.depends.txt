@@ -25,6 +25,11 @@ opencv
 
 run ./depends/install_ubuntu.sh
 
+= Mac OSX
+Same as Ubuntu
+
+run ./depends/install_mac.sh
+
 = Non-Windows
 libusbx 1.0.17 or later
 http://libusbx.org/
