@@ -12,6 +12,7 @@ int main(int argc, char** argv) {
   std::lock_guard<std::mutex> lock_guard(mutex);
   std::unique_lock<std::mutex> unique_lock(mutex);
   std::condition_variable condition_variable;
+  thread_local int i;
   
   return 0;
 }

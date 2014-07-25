@@ -45,6 +45,33 @@ This will enumerate the Kinect sensor again and it will pick up the K4W2 SDK dri
 
 You can go back and forth between the SDK driver and the libusbK driver very quickly and easily with these steps.
 
+==== Mac OSX
+
+1. cd into a directory where you want to keep libfreenect2 stuff in
+2. Install opencv and git via brew (or your own favorite package manager, ie ports)
+
+brew update
+brew tap homebrew/science
+brew install opencv git
+
+3. Download the libfreenect2 repository
+
+git clone git@github.com:OpenKinect/libfreenect2.git
+
+4. Install a bunch of dependencies
+
+cd ./libfreenect2
+sh ./depends/install_mac.sh
+
+5. Build the actual protonect executable
+
+cd ./examples/protonect/
+cmake CMakeLists.txt
+make && make install
+
+6. Run the program
+./bin/Protonect
+
 ==== Other operating systems
 
 I'm not sure, but look for libusbx installation instructions for your OS. Figure out how to attach the driver to the Xbox NUI Sensor composite parent device, VID 045E PID 02C4, then contribute your procedure.

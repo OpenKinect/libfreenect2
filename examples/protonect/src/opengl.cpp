@@ -56,7 +56,6 @@ OpenGLContext::~OpenGLContext()
   glfwDestroyWindow(glfw_ctx);
 }
 
-// TODO: thread local not available on MacOSX!
 static thread_local const OpenGLContext* current_ctx = 0;
 
 void OpenGLContext::makeCurrent() const
