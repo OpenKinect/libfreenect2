@@ -49,7 +49,7 @@ layout(location = 1) out vec3 FilterA;
 layout(location = 2) out vec3 FilterB;
 layout(location = 3) out uint MaxEdgeTest;
 
-void filter(ivec2 uv)
+void applyBilateralFilter(ivec2 uv)
 {
   vec3 threshold = vec3((Params.joint_bilateral_ab_threshold * Params.joint_bilateral_ab_threshold) / (Params.ab_multiplier * Params.ab_multiplier));
   vec3 joint_bilateral_exp = vec3(Params.joint_bilateral_exp);
@@ -117,7 +117,7 @@ void main(void)
 {
   ivec2 uv = ivec2(FragmentIn.TexCoord.x, FragmentIn.TexCoord.y);
     
-  filter(uv);
+  applyBilateralFilter(uv);
   
   vec3 norm = sqrt(FilterA * FilterA + FilterB * FilterB);
   float i = min(dot(norm, vec3(0.333333333  * Params.ab_multiplier * Params.ab_output_multiplier)), 65535.0);
