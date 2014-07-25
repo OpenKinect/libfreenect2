@@ -46,7 +46,7 @@ in VertexData {
 layout(location = 0) out vec4 Debug;
 layout(location = 1) out float FilterDepth;
 
-void filter(ivec2 uv)
+void applyEdgeAwareFilter(ivec2 uv)
 {
   vec2 v = texelFetch(DepthAndIrSum, uv).xy;
   
@@ -128,7 +128,7 @@ void main(void)
 {
   ivec2 uv = ivec2(FragmentIn.TexCoord.x, FragmentIn.TexCoord.y);
   
-  filter(uv);
+  applyEdgeAwareFilter(uv);
   
   Debug = vec4(vec3(FilterDepth / Params.max_depth), 1);
 }

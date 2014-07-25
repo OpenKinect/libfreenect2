@@ -245,7 +245,7 @@ public:
 
         int r = libusb_get_device_descriptor(dev, &dev_desc); // this is always successful
 
-        if(dev_desc.idVendor == Freenect2Device::VendorId && dev_desc.idProduct == Freenect2Device::ProductId)
+        if(dev_desc.idVendor == Freenect2Device::VendorId && (dev_desc.idProduct == Freenect2Device::ProductId || dev_desc.idProduct == Freenect2Device::ProductIdPreview))
         {
           Freenect2DeviceImpl *freenect2_dev;
 
@@ -659,7 +659,7 @@ Freenect2Device *Freenect2::openDevice(int idx)
             delete device;
             device = 0;
 
-            // TODO: error handling
+            std::cout << "[Freenect2DeviceImpl] failed to open Kinect v2 " << PrintBusAndDevice(dev.dev) << "!" << std::endl;
           }
         }
         else
@@ -672,6 +672,10 @@ Freenect2Device *Freenect2::openDevice(int idx)
         std::cout << "[Freenect2Impl] failed to open Kinect v2 " << PrintBusAndDevice(dev.dev) << "!" << std::endl;
       }
     }
+  }
+  else
+  {
+    std::cout << "[Freenect2Impl] requested device " << idx << " is not connected!" << std::endl;
   }
 
   return device;
