@@ -19,7 +19,7 @@ cd $LIBJPEG_SOURCE_DIR
 # libjpeg-turbo is missing some files config files (config.guess and config.sub)
 cp $LIBUSBX_SOURCE_DIR/config.guess ./
 cp $LIBUSBX_SOURCE_DIR/config.sub ./
-./configure --disable-dependency-tracking --with-jpeg8 --prefix=$LIBJPEG_INSTALL_DIR 
+./configure --disable-dependency-tracking --host x86_64-apple-darwin --with-jpeg8 --prefix=$LIBJPEG_INSTALL_DIR 
 make && make install
 
 cd $DEPENDS_DIR
