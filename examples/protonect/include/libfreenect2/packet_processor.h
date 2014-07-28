@@ -24,49 +24,38 @@
  * either License.
  */
 
-#ifndef DEPTH_PACKET_STREAM_PARSER_H_
-#define DEPTH_PACKET_STREAM_PARSER_H_
-
-#include <stddef.h>
-#include <stdint.h>
-
-#include <libfreenect2/double_buffer.h>
-#include <libfreenect2/depth_packet_processor.h>
-
-#include <libfreenect2/usb/transfer_pool.h>
+#ifndef PACKET_PROCESSOR_H_
+#define PACKET_PROCESSOR_H_
 
 namespace libfreenect2
 {
 
-struct DepthSubPacketFooter
-{
-  uint32_t magic0;
-  uint32_t magic1;
-  uint32_t timestamp;
-  uint32_t sequence;
-  uint32_t subsequence;
-  uint32_t length;
-  uint32_t fields[32];
-};
-
-class DepthPacketStreamParser : public libfreenect2::usb::TransferPool::DataReceivedCallback
+template<typename PacketT>
+class PacketProcessor
 {
 public:
-  DepthPacketStreamParser();
-  virtual ~DepthPacketStreamParser();
+  virtual ~PacketProcessor() {}
 
-  void setPacketProcessor(libfreenect2::BaseDepthPacketProcessor *processor);
-
-  virtual void onDataReceived(unsigned char* buffer, size_t length);
-private:
-  libfreenect2::BaseDepthPacketProcessor *processor_;
-
-  libfreenect2::DoubleBuffer buffer_;
-  libfreenect2::Buffer work_buffer_;
-
-  uint32_t current_sequence_;
-  uint32_t current_subsequence_;
+  virtual bool ready() { return true; }
+  virtual void process(const PacketT &packet) = 0;
 };
 
+template<typename PacketT>
+class NoopPacketProcessor : public PacketProcessor<PacketT>
+{
+public:
+  NoopPacketProcessor() {}
+  virtual ~NoopPacketProcessor() {}
+
+  virtual void process(const PacketT &packet) {}
+};
+
+template<typename PacketT>
+PacketProcessor<PacketT> *noopProcessor()
+{
+  static NoopPacketProcessor<PacketT> noop_processor_;
+  return &noop_processor_;
+}
+
 } /* namespace libfreenect2 */
-#endif /* DEPTH_PACKET_STREAM_PARSER_H_ */
+#endif /* PACKET_PROCESSOR_H_ */

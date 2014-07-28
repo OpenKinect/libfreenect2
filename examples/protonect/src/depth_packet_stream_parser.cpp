@@ -31,8 +31,8 @@
 namespace libfreenect2
 {
 
-DepthPacketStreamParser::DepthPacketStreamParser(libfreenect2::DepthPacketProcessor *processor) :
-    processor_(processor),
+DepthPacketStreamParser::DepthPacketStreamParser() :
+    processor_(noopProcessor<DepthPacket>()),
     current_sequence_(0),
     current_subsequence_(0)
 {
@@ -49,6 +49,11 @@ DepthPacketStreamParser::DepthPacketStreamParser(libfreenect2::DepthPacketProces
 
 DepthPacketStreamParser::~DepthPacketStreamParser()
 {
+}
+
+void DepthPacketStreamParser::setPacketProcessor(libfreenect2::BaseDepthPacketProcessor *processor)
+{
+  processor_ = (processor != 0) ? processor : noopProcessor<DepthPacket>();
 }
 
 void DepthPacketStreamParser::onDataReceived(unsigned char* buffer, size_t in_length)
@@ -99,7 +104,7 @@ void DepthPacketStreamParser::onDataReceived(unsigned char* buffer, size_t in_le
         {
           if(current_subsequence_ == 0x3ff)
           {
-            if(processor_.ready())
+            if(processor_->ready())
             {
               buffer_.swap();
 
@@ -108,7 +113,7 @@ void DepthPacketStreamParser::onDataReceived(unsigned char* buffer, size_t in_le
               packet.buffer = buffer_.back().data;
               packet.buffer_length = buffer_.back().length;
 
-              processor_.process(packet);
+              processor_->process(packet);
             }
             else
             {

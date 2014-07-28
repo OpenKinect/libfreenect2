@@ -28,21 +28,22 @@
 #define ASYNC_PACKET_PROCESSOR_H_
 
 #include <libfreenect2/threading.h>
+#include <libfreenect2/packet_processor.h>
 
 namespace libfreenect2
 {
 
-template<typename PacketT, typename PacketProcessorT>
-class AsyncPacketProcessor
+template<typename PacketT>
+class AsyncPacketProcessor : public PacketProcessor<PacketT>
 {
 public:
-  typedef PacketProcessorT* PacketProcessorPtr;
+  typedef PacketProcessor<PacketT>* PacketProcessorPtr;
 
   AsyncPacketProcessor(PacketProcessorPtr processor) :
     processor_(processor),
     current_packet_available_(false),
     shutdown_(false),
-    thread_(&AsyncPacketProcessor<PacketT, PacketProcessorT>::static_execute, this)
+    thread_(&AsyncPacketProcessor<PacketT>::static_execute, this)
   {
   }
   virtual ~AsyncPacketProcessor()
@@ -53,7 +54,7 @@ public:
     thread_.join();
   }
 
-  bool ready()
+  virtual bool ready()
   {
     // try to aquire lock, if we succeed the background thread is waiting on packet_condition_
     bool locked = packet_mutex_.try_lock();
@@ -66,7 +67,7 @@ public:
     return locked;
   }
 
-  void process(const PacketT &packet)
+  virtual void process(const PacketT &packet)
   {
     {
       libfreenect2::lock_guard l(packet_mutex_);
@@ -87,7 +88,7 @@ private:
 
   static void static_execute(void *data)
   {
-    static_cast<AsyncPacketProcessor<PacketT, PacketProcessorT> *>(data)->execute();
+    static_cast<AsyncPacketProcessor<PacketT> *>(data)->execute();
   }
 
   void execute()

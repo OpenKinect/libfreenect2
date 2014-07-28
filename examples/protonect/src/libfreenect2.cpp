@@ -33,9 +33,7 @@
 
 #include <libfreenect2/usb/event_loop.h>
 #include <libfreenect2/usb/transfer_pool.h>
-#include <libfreenect2/rgb_packet_stream_parser.h>
-#include <libfreenect2/rgb_packet_processor.h>
-#include <libfreenect2/depth_packet_stream_parser.h>
+#include <libfreenect2/packet_processor_factory.h>
 #include <libfreenect2/protocol/usb_control.h>
 #include <libfreenect2/protocol/command.h>
 #include <libfreenect2/protocol/response.h>
@@ -72,17 +70,17 @@ private:
   CommandTransaction command_tx_;
   int command_seq_;
 
-  TurboJpegRgbPacketProcessor rgb_packet_processor_;
-  OpenGLDepthPacketProcessor depth_packet_processor_;
+  RgbPacketProcessor *rgb_packet_processor_;
+  DepthPacketProcessor *depth_packet_processor_;
 
-  RgbPacketStreamParser rgb_packet_parser_;
-  DepthPacketStreamParser depth_packet_parser_;
+  PacketProcessorFactory::PacketStreamParser *rgb_packet_parser_;
+  PacketProcessorFactory::PacketStreamParser *depth_packet_parser_;
 
   std::string serial_, firmware_;
   Freenect2Device::IrCameraParams ir_camera_params_;
   Freenect2Device::ColorCameraParams rgb_camera_params_;
 public:
-  Freenect2DeviceImpl(Freenect2Impl *context, libusb_device *usb_device, libusb_device_handle *usb_device_handle);
+  Freenect2DeviceImpl(Freenect2Impl *context, PacketProcessorFactory *factory, libusb_device *usb_device, libusb_device_handle *usb_device_handle);
   virtual ~Freenect2DeviceImpl();
 
   bool isSameUsbDevice(libusb_device* other);
@@ -261,7 +259,7 @@ Freenect2Device::~Freenect2Device()
 {
 }
 
-Freenect2DeviceImpl::Freenect2DeviceImpl(Freenect2Impl *context, libusb_device *usb_device, libusb_device_handle *usb_device_handle) :
+Freenect2DeviceImpl::Freenect2DeviceImpl(Freenect2Impl *context, PacketProcessorFactory *factory, libusb_device *usb_device, libusb_device_handle *usb_device_handle) :
   state_(Created),
   has_usb_interfaces_(false),
   context_(context),
@@ -272,25 +270,34 @@ Freenect2DeviceImpl::Freenect2DeviceImpl(Freenect2Impl *context, libusb_device *
   usb_control_(usb_device_handle_),
   command_tx_(usb_device_handle_, 0x81, 0x02),
   command_seq_(0),
-  rgb_packet_processor_(),
-  depth_packet_processor_(0),
-  rgb_packet_parser_(&rgb_packet_processor_),
-  depth_packet_parser_(&depth_packet_processor_),
   serial_("<unknown>"),
   firmware_("<unknown>")
 {
-  rgb_transfer_pool_.setCallback(&rgb_packet_parser_);
-  ir_transfer_pool_.setCallback(&depth_packet_parser_);
+  factory->create(&rgb_packet_parser_, &depth_packet_parser_, &rgb_packet_processor_, &depth_packet_processor_);
 
-  depth_packet_processor_.load11To16LutFromFile("");
-  depth_packet_processor_.loadXTableFromFile("");
-  depth_packet_processor_.loadZTableFromFile("");
+  rgb_transfer_pool_.setCallback(rgb_packet_parser_);
+  ir_transfer_pool_.setCallback(depth_packet_parser_);
+}
+
+template<typename T>
+void deleteIfNotNull(T* &ptr)
+{
+  if(ptr != 0)
+  {
+    delete ptr;
+    ptr = 0;
+  }
 }
 
 Freenect2DeviceImpl::~Freenect2DeviceImpl()
 {
   close();
   context_->removeDevice(this);
+
+  deleteIfNotNull(rgb_packet_parser_);
+  deleteIfNotNull(depth_packet_parser_);
+  deleteIfNotNull(rgb_packet_processor_);
+  deleteIfNotNull(depth_packet_processor_);
 }
 
 int Freenect2DeviceImpl::nextCommandSeq()
@@ -339,13 +346,15 @@ Freenect2Device::IrCameraParams Freenect2DeviceImpl::getIrCameraParams()
 void Freenect2DeviceImpl::setColorFrameListener(libfreenect2::FrameListener* rgb_frame_listener)
 {
   // TODO: should only be possible, if not started
-  rgb_packet_processor_.setFrameListener(rgb_frame_listener);
+  if(rgb_packet_processor_ != 0)
+    rgb_packet_processor_->setFrameListener(rgb_frame_listener);
 }
 
 void Freenect2DeviceImpl::setIrAndDepthFrameListener(libfreenect2::FrameListener* ir_frame_listener)
 {
   // TODO: should only be possible, if not started
-  depth_packet_processor_.setFrameListener(ir_frame_listener);
+  if(depth_packet_processor_ != 0)
+    depth_packet_processor_->setFrameListener(ir_frame_listener);
 }
 
 bool Freenect2DeviceImpl::open()
@@ -416,7 +425,7 @@ void Freenect2DeviceImpl::start()
   ir_camera_params_.p2 = ir_p->p2;
 
   command_tx_.execute(ReadP0TablesCommand(nextCommandSeq()), result);
-  depth_packet_processor_.loadP0TablesFromCommandResponse(result.data, result.length);
+  depth_packet_processor_->loadP0TablesFromCommandResponse(result.data, result.length);
 
   command_tx_.execute(ReadRgbCameraParametersCommand(nextCommandSeq()), result);
   RgbCameraParamsResponse *rgb_p = reinterpret_cast<RgbCameraParamsResponse *>(result.data);
@@ -518,8 +527,11 @@ void Freenect2DeviceImpl::close()
     stop();
   }
 
-  rgb_packet_processor_.setFrameListener(0);
-  depth_packet_processor_.setFrameListener(0);
+  if(rgb_packet_processor_ != 0)
+    rgb_packet_processor_->setFrameListener(0);
+
+  if(depth_packet_processor_ != 0)
+    depth_packet_processor_->setFrameListener(0);
 
   if(has_usb_interfaces_)
   {
@@ -569,7 +581,7 @@ std::string Freenect2::getDefaultDeviceSerialNumber()
   return getDeviceSerialNumber(0);
 }
 
-Freenect2Device *Freenect2::openDevice(int idx)
+Freenect2Device *Freenect2::openDevice(int idx, PacketProcessorFactory *factory)
 {
   int num_devices = impl_->getNumDevices();
 
@@ -589,7 +601,9 @@ Freenect2Device *Freenect2::openDevice(int idx)
       int r = libusb_open(dev, &dev_handle);
       // TODO: error handling
 
-      device = new Freenect2DeviceImpl(impl_, dev, dev_handle);
+      factory = (factory != 0) ? factory : DefaultPacketProcessorFactory::instance();
+
+      device = new Freenect2DeviceImpl(impl_, factory, dev, dev_handle);
       impl_->addDevice(device);
 
       if(device->open())
@@ -614,14 +628,14 @@ Freenect2Device *Freenect2::openDevice(int idx)
   }
 }
 
-Freenect2Device *Freenect2::openDevice(const std::string &serial)
+Freenect2Device *Freenect2::openDevice(const std::string &serial, PacketProcessorFactory *factory)
 {
   throw std::exception();
 }
 
-Freenect2Device *Freenect2::openDefaultDevice()
+Freenect2Device *Freenect2::openDefaultDevice(PacketProcessorFactory *factory)
 {
-  return openDevice(0);
+  return openDevice(0, factory);
 }
 
 } /* namespace libfreenect2 */
