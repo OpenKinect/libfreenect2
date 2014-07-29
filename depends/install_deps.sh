@@ -17,8 +17,6 @@ git apply $DEPENDS_DIR/linux_usbfs_increase_max_iso_buffer_length.patch
 ./configure --prefix=$LIBUSB_INSTALL_DIR
 make && make install
 
-exit 0
-
 cd $DEPENDS_DIR
 
 # glfw
