@@ -3,18 +3,21 @@ cd `dirname $0`
 DEPENDS_DIR=`pwd`
 
 # libusbx with superspeed patch
-LIBUSBX_SOURCE_DIR=$DEPENDS_DIR/libusbx_src
-LIBUSBX_INSTALL_DIR=$DEPENDS_DIR/libusbx
+LIBUSB_SOURCE_DIR=$DEPENDS_DIR/libusb_src
+LIBUSB_INSTALL_DIR=$DEPENDS_DIR/libusb
 
-rm -rf $LIBUSBX_SOURCE_DIR $LIBUSBX_INSTALL_DIR
+rm -rf $LIBUSB_SOURCE_DIR $LIBUSB_INSTALL_DIR
 
-git clone -b superspeed https://github.com/JoshBlake/libusbx.git $LIBUSBX_SOURCE_DIR
+git clone https://github.com/libusb/libusb.git $LIBUSB_SOURCE_DIR
 
-cd $LIBUSBX_SOURCE_DIR
+cd $LIBUSB_SOURCE_DIR
+git checkout v1.0.19
 git apply $DEPENDS_DIR/linux_usbfs_increase_max_iso_buffer_length.patch
 ./bootstrap.sh
-./configure --prefix=$LIBUSBX_INSTALL_DIR
+./configure --prefix=$LIBUSB_INSTALL_DIR
 make && make install
+
+exit 0
 
 cd $DEPENDS_DIR
 
