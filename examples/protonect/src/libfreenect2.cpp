@@ -581,6 +581,11 @@ std::string Freenect2::getDefaultDeviceSerialNumber()
   return getDeviceSerialNumber(0);
 }
 
+Freenect2Device *Freenect2::openDevice(int idx)
+{
+  return openDevice(0, new DefaultPacketProcessorFactory());
+}
+
 Freenect2Device *Freenect2::openDevice(int idx, PacketProcessorFactory *factory)
 {
   int num_devices = impl_->getNumDevices();
@@ -628,9 +633,19 @@ Freenect2Device *Freenect2::openDevice(int idx, PacketProcessorFactory *factory)
   }
 }
 
+Freenect2Device *Freenect2::openDevice(const std::string &serial)
+{
+  return openDevice(serial, new DefaultPacketProcessorFactory());
+}
+
 Freenect2Device *Freenect2::openDevice(const std::string &serial, PacketProcessorFactory *factory)
 {
   throw std::exception();
+}
+
+Freenect2Device *Freenect2::openDefaultDevice()
+{
+  return openDevice(0);
 }
 
 Freenect2Device *Freenect2::openDefaultDevice(PacketProcessorFactory *factory)
