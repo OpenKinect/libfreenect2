@@ -34,33 +34,17 @@ namespace libfreenect2
 {
 
 RgbPacketProcessor::RgbPacketProcessor() :
-    listener_(0),
-    async_processor_(0)
+    listener_(0)
 {
 }
 
 RgbPacketProcessor::~RgbPacketProcessor()
 {
-  if(async_processor_ != 0)
-  {
-    delete async_processor_;
-    async_processor_ = 0;
-  }
 }
 
 void RgbPacketProcessor::setFrameListener(libfreenect2::FrameListener *listener)
 {
   listener_ = listener;
-}
-
-BaseRgbPacketProcessor *RgbPacketProcessor::makeAsync()
-{
-  if(async_processor_ == 0)
-  {
-    async_processor_ = new AsyncPacketProcessor<RgbPacket>(this);
-  }
-
-  return async_processor_;
 }
 
 DumpRgbPacketProcessor::DumpRgbPacketProcessor()

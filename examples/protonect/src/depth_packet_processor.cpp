@@ -87,18 +87,12 @@ DepthPacketProcessor::Parameters::Parameters()
 }
 
 DepthPacketProcessor::DepthPacketProcessor() :
-    listener_(0),
-    async_processor_(0)
+    listener_(0)
 {
 }
 
 DepthPacketProcessor::~DepthPacketProcessor()
 {
-  if(async_processor_ != 0)
-  {
-    delete async_processor_;
-    async_processor_ = 0;
-  }
 }
 
 void DepthPacketProcessor::setConfiguration(const libfreenect2::DepthPacketProcessor::Config &config)
@@ -109,15 +103,6 @@ void DepthPacketProcessor::setConfiguration(const libfreenect2::DepthPacketProce
 void DepthPacketProcessor::setFrameListener(libfreenect2::FrameListener *listener)
 {
   listener_ = listener;
-}
-
-BaseDepthPacketProcessor *DepthPacketProcessor::makeAsync()
-{
-  if(async_processor_ == 0)
-  {
-    async_processor_ = new AsyncPacketProcessor<DepthPacket>(this);
-  }
-  return async_processor_;
 }
 
 } /* namespace libfreenect2 */

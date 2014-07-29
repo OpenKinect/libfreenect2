@@ -24,50 +24,63 @@
  * either License.
  */
 
-#include <libfreenect2/packet_processor_factory.h>
-#include <libfreenect2/rgb_packet_stream_parser.h>
-#include <libfreenect2/depth_packet_stream_parser.h>
-
+#include <libfreenect2/packet_pipeline.h>
 #include <libfreenect2/async_packet_processor.h>
-#include <libfreenect2/rgb_packet_processor.h>
-#include <libfreenect2/depth_packet_processor.h>
 
 namespace libfreenect2
 {
 
-PacketProcessorFactory::~PacketProcessorFactory()
+PacketPipeline::~PacketPipeline()
 {
 }
 
-DefaultPacketProcessorFactory *DefaultPacketProcessorFactory::instance()
+DefaultPacketPipeline::DefaultPacketPipeline()
 {
-  static DefaultPacketProcessorFactory factory;
-  return &factory;
-}
+  rgb_parser_ = new RgbPacketStreamParser();
+  depth_parser_ = new DepthPacketStreamParser();
 
-DefaultPacketProcessorFactory::DefaultPacketProcessorFactory() {}
-
-DefaultPacketProcessorFactory::~DefaultPacketProcessorFactory() {}
-
-void DefaultPacketProcessorFactory::create(PacketStreamParser **rgb_packet_stream_parser, PacketStreamParser **depth_packet_stream_parser, RgbPacketProcessor **rgb_packet_processor, DepthPacketProcessor **depth_packet_processor)
-{
-  RgbPacketStreamParser *rgb_parser = new RgbPacketStreamParser();
-  DepthPacketStreamParser *depth_parser = new DepthPacketStreamParser();
-
-  TurboJpegRgbPacketProcessor *rgb_processor = new TurboJpegRgbPacketProcessor();
+  rgb_processor_ = new TurboJpegRgbPacketProcessor();
   OpenGLDepthPacketProcessor *depth_processor = new OpenGLDepthPacketProcessor(0);
   depth_processor->load11To16LutFromFile("");
   depth_processor->loadXTableFromFile("");
   depth_processor->loadZTableFromFile("");
+  depth_processor_ = depth_processor;
 
-  rgb_parser->setPacketProcessor(rgb_processor->makeAsync());
-  depth_parser->setPacketProcessor(depth_processor->makeAsync());
+  async_rgb_processor_ = new AsyncPacketProcessor<RgbPacket>(rgb_processor_);
+  async_depth_processor_ = new AsyncPacketProcessor<DepthPacket>(depth_processor_);
 
-  *rgb_packet_stream_parser = rgb_parser;
-  *depth_packet_stream_parser = depth_parser;
+  rgb_parser_->setPacketProcessor(async_rgb_processor_);
+  depth_parser_->setPacketProcessor(async_depth_processor_);
+}
 
-  *rgb_packet_processor = rgb_processor;
-  *depth_packet_processor = depth_processor;
+DefaultPacketPipeline::~DefaultPacketPipeline()
+{
+  delete async_rgb_processor_;
+  delete async_depth_processor_;
+  delete rgb_processor_;
+  delete depth_processor_;
+  delete rgb_parser_;
+  delete depth_parser_;
+}
+
+DefaultPacketPipeline::PacketParser *DefaultPacketPipeline::getRgbPacketParser() const
+{
+  return rgb_parser_;
+}
+
+DefaultPacketPipeline::PacketParser *DefaultPacketPipeline::getIrPacketParser() const
+{
+  return depth_parser_;
+}
+
+RgbPacketProcessor *DefaultPacketPipeline::getRgbPacketProcessor() const
+{
+  return rgb_processor_;
+}
+
+DepthPacketProcessor *DefaultPacketPipeline::getDepthPacketProcessor() const
+{
+  return depth_processor_;
 }
 
 } /* namespace libfreenect2 */

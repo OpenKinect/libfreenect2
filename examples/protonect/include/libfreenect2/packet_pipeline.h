@@ -24,34 +24,51 @@
  * either License.
  */
 
-#ifndef PACKET_PROCESSOR_FACTORY_H_
-#define PACKET_PROCESSOR_FACTORY_H_
+#ifndef PACKET_PIPELINE_H_
+#define PACKET_PIPELINE_H_
 
 #include <libfreenect2/usb/transfer_pool.h>
+#include <libfreenect2/rgb_packet_stream_parser.h>
+#include <libfreenect2/depth_packet_stream_parser.h>
 #include <libfreenect2/depth_packet_processor.h>
 #include <libfreenect2/rgb_packet_processor.h>
 
 namespace libfreenect2
 {
 
-class PacketProcessorFactory
+class PacketPipeline
 {
 public:
-  typedef libfreenect2::usb::TransferPool::DataReceivedCallback PacketStreamParser;
-  virtual ~PacketProcessorFactory();
+  typedef libfreenect2::usb::TransferPool::DataReceivedCallback PacketParser;
+  virtual ~PacketPipeline();
 
-  virtual void create(PacketStreamParser **rgb_packet_stream_parser, PacketStreamParser **depth_packet_stream_parser, RgbPacketProcessor **rgb_packet_processor, DepthPacketProcessor **depth_packet_processor) = 0;
+  virtual PacketParser *getRgbPacketParser() const = 0;
+  virtual PacketParser *getIrPacketParser() const = 0;
+
+  virtual RgbPacketProcessor *getRgbPacketProcessor() const = 0;
+  virtual DepthPacketProcessor *getDepthPacketProcessor() const = 0;
 };
 
-class DefaultPacketProcessorFactory : public PacketProcessorFactory
+class DefaultPacketPipeline : public PacketPipeline
 {
-public:
-  static DefaultPacketProcessorFactory *instance();
+private:
+  RgbPacketStreamParser *rgb_parser_;
+  DepthPacketStreamParser *depth_parser_;
 
-  DefaultPacketProcessorFactory();
-  virtual ~DefaultPacketProcessorFactory();
-  virtual void create(PacketStreamParser **rgb_packet_stream_parser, PacketStreamParser **depth_packet_stream_parser, RgbPacketProcessor **rgb_packet_processor, DepthPacketProcessor **depth_packet_processor);
+  RgbPacketProcessor *rgb_processor_;
+  BaseRgbPacketProcessor *async_rgb_processor_;
+  DepthPacketProcessor *depth_processor_;
+  BaseDepthPacketProcessor *async_depth_processor_;
+public:
+  DefaultPacketPipeline();
+  virtual ~DefaultPacketPipeline();
+
+  virtual PacketParser *getRgbPacketParser() const;
+  virtual PacketParser *getIrPacketParser() const;
+
+  virtual RgbPacketProcessor *getRgbPacketProcessor() const;
+  virtual DepthPacketProcessor *getDepthPacketProcessor() const;
 };
 
 } /* namespace libfreenect2 */
-#endif /* PACKET_PROCESSOR_FACTORY_H_ */
+#endif /* PACKET_PIPELINE_H_ */

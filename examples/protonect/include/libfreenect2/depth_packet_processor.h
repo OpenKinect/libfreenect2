@@ -102,12 +102,9 @@ public:
   virtual void setConfiguration(const libfreenect2::DepthPacketProcessor::Config &config);
 
   virtual void loadP0TablesFromCommandResponse(unsigned char* buffer, size_t buffer_length) = 0;
-
-  BaseDepthPacketProcessor *makeAsync();
 protected:
   libfreenect2::DepthPacketProcessor::Config config_;
   libfreenect2::FrameListener *listener_;
-  BaseDepthPacketProcessor *async_processor_;
 };
 
 class OpenGLDepthPacketProcessorImpl;

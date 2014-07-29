@@ -33,7 +33,7 @@
 
 #include <libfreenect2/usb/event_loop.h>
 #include <libfreenect2/usb/transfer_pool.h>
-#include <libfreenect2/packet_processor_factory.h>
+#include <libfreenect2/packet_pipeline.h>
 #include <libfreenect2/protocol/usb_control.h>
 #include <libfreenect2/protocol/command.h>
 #include <libfreenect2/protocol/response.h>
@@ -70,17 +70,13 @@ private:
   CommandTransaction command_tx_;
   int command_seq_;
 
-  RgbPacketProcessor *rgb_packet_processor_;
-  DepthPacketProcessor *depth_packet_processor_;
-
-  PacketProcessorFactory::PacketStreamParser *rgb_packet_parser_;
-  PacketProcessorFactory::PacketStreamParser *depth_packet_parser_;
+  const PacketPipeline *pipeline_;
 
   std::string serial_, firmware_;
   Freenect2Device::IrCameraParams ir_camera_params_;
   Freenect2Device::ColorCameraParams rgb_camera_params_;
 public:
-  Freenect2DeviceImpl(Freenect2Impl *context, PacketProcessorFactory *factory, libusb_device *usb_device, libusb_device_handle *usb_device_handle);
+  Freenect2DeviceImpl(Freenect2Impl *context, const PacketPipeline *pipeline, libusb_device *usb_device, libusb_device_handle *usb_device_handle);
   virtual ~Freenect2DeviceImpl();
 
   bool isSameUsbDevice(libusb_device* other);
@@ -259,7 +255,7 @@ Freenect2Device::~Freenect2Device()
 {
 }
 
-Freenect2DeviceImpl::Freenect2DeviceImpl(Freenect2Impl *context, PacketProcessorFactory *factory, libusb_device *usb_device, libusb_device_handle *usb_device_handle) :
+Freenect2DeviceImpl::Freenect2DeviceImpl(Freenect2Impl *context, const PacketPipeline *pipeline, libusb_device *usb_device, libusb_device_handle *usb_device_handle) :
   state_(Created),
   has_usb_interfaces_(false),
   context_(context),
@@ -270,23 +266,12 @@ Freenect2DeviceImpl::Freenect2DeviceImpl(Freenect2Impl *context, PacketProcessor
   usb_control_(usb_device_handle_),
   command_tx_(usb_device_handle_, 0x81, 0x02),
   command_seq_(0),
+  pipeline_(pipeline),
   serial_("<unknown>"),
   firmware_("<unknown>")
 {
-  factory->create(&rgb_packet_parser_, &depth_packet_parser_, &rgb_packet_processor_, &depth_packet_processor_);
-
-  rgb_transfer_pool_.setCallback(rgb_packet_parser_);
-  ir_transfer_pool_.setCallback(depth_packet_parser_);
-}
-
-template<typename T>
-void deleteIfNotNull(T* &ptr)
-{
-  if(ptr != 0)
-  {
-    delete ptr;
-    ptr = 0;
-  }
+  rgb_transfer_pool_.setCallback(pipeline_->getRgbPacketParser());
+  ir_transfer_pool_.setCallback(pipeline_->getIrPacketParser());
 }
 
 Freenect2DeviceImpl::~Freenect2DeviceImpl()
@@ -294,10 +279,7 @@ Freenect2DeviceImpl::~Freenect2DeviceImpl()
   close();
   context_->removeDevice(this);
 
-  deleteIfNotNull(rgb_packet_parser_);
-  deleteIfNotNull(depth_packet_parser_);
-  deleteIfNotNull(rgb_packet_processor_);
-  deleteIfNotNull(depth_packet_processor_);
+  delete pipeline_;
 }
 
 int Freenect2DeviceImpl::nextCommandSeq()
@@ -346,15 +328,15 @@ Freenect2Device::IrCameraParams Freenect2DeviceImpl::getIrCameraParams()
 void Freenect2DeviceImpl::setColorFrameListener(libfreenect2::FrameListener* rgb_frame_listener)
 {
   // TODO: should only be possible, if not started
-  if(rgb_packet_processor_ != 0)
-    rgb_packet_processor_->setFrameListener(rgb_frame_listener);
+  if(pipeline_->getRgbPacketProcessor() != 0)
+    pipeline_->getRgbPacketProcessor()->setFrameListener(rgb_frame_listener);
 }
 
 void Freenect2DeviceImpl::setIrAndDepthFrameListener(libfreenect2::FrameListener* ir_frame_listener)
 {
   // TODO: should only be possible, if not started
-  if(depth_packet_processor_ != 0)
-    depth_packet_processor_->setFrameListener(ir_frame_listener);
+  if(pipeline_->getDepthPacketProcessor() != 0)
+    pipeline_->getDepthPacketProcessor()->setFrameListener(ir_frame_listener);
 }
 
 bool Freenect2DeviceImpl::open()
@@ -425,7 +407,8 @@ void Freenect2DeviceImpl::start()
   ir_camera_params_.p2 = ir_p->p2;
 
   command_tx_.execute(ReadP0TablesCommand(nextCommandSeq()), result);
-  depth_packet_processor_->loadP0TablesFromCommandResponse(result.data, result.length);
+  if(pipeline_->getDepthPacketProcessor() != 0)
+    pipeline_->getDepthPacketProcessor()->loadP0TablesFromCommandResponse(result.data, result.length);
 
   command_tx_.execute(ReadRgbCameraParametersCommand(nextCommandSeq()), result);
   RgbCameraParamsResponse *rgb_p = reinterpret_cast<RgbCameraParamsResponse *>(result.data);
@@ -527,11 +510,11 @@ void Freenect2DeviceImpl::close()
     stop();
   }
 
-  if(rgb_packet_processor_ != 0)
-    rgb_packet_processor_->setFrameListener(0);
+  if(pipeline_->getRgbPacketProcessor() != 0)
+    pipeline_->getRgbPacketProcessor()->setFrameListener(0);
 
-  if(depth_packet_processor_ != 0)
-    depth_packet_processor_->setFrameListener(0);
+  if(pipeline_->getDepthPacketProcessor() != 0)
+    pipeline_->getDepthPacketProcessor()->setFrameListener(0);
 
   if(has_usb_interfaces_)
   {
@@ -583,10 +566,10 @@ std::string Freenect2::getDefaultDeviceSerialNumber()
 
 Freenect2Device *Freenect2::openDevice(int idx)
 {
-  return openDevice(0, new DefaultPacketProcessorFactory());
+  return openDevice(0, new DefaultPacketPipeline());
 }
 
-Freenect2Device *Freenect2::openDevice(int idx, PacketProcessorFactory *factory)
+Freenect2Device *Freenect2::openDevice(int idx, const PacketPipeline *pipeline)
 {
   int num_devices = impl_->getNumDevices();
 
@@ -606,9 +589,7 @@ Freenect2Device *Freenect2::openDevice(int idx, PacketProcessorFactory *factory)
       int r = libusb_open(dev, &dev_handle);
       // TODO: error handling
 
-      factory = (factory != 0) ? factory : DefaultPacketProcessorFactory::instance();
-
-      device = new Freenect2DeviceImpl(impl_, factory, dev, dev_handle);
+      device = new Freenect2DeviceImpl(impl_, pipeline, dev, dev_handle);
       impl_->addDevice(device);
 
       if(device->open())
@@ -635,10 +616,10 @@ Freenect2Device *Freenect2::openDevice(int idx, PacketProcessorFactory *factory)
 
 Freenect2Device *Freenect2::openDevice(const std::string &serial)
 {
-  return openDevice(serial, new DefaultPacketProcessorFactory());
+  return openDevice(serial, new DefaultPacketPipeline());
 }
 
-Freenect2Device *Freenect2::openDevice(const std::string &serial, PacketProcessorFactory *factory)
+Freenect2Device *Freenect2::openDevice(const std::string &serial, const PacketPipeline *pipeline)
 {
   throw std::exception();
 }
@@ -648,9 +629,9 @@ Freenect2Device *Freenect2::openDefaultDevice()
   return openDevice(0);
 }
 
-Freenect2Device *Freenect2::openDefaultDevice(PacketProcessorFactory *factory)
+Freenect2Device *Freenect2::openDefaultDevice(const PacketPipeline *pipeline)
 {
-  return openDevice(0, factory);
+  return openDevice(0, pipeline);
 }
 
 } /* namespace libfreenect2 */

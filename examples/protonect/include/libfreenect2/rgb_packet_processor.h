@@ -53,10 +53,8 @@ public:
   virtual ~RgbPacketProcessor();
 
   virtual void setFrameListener(libfreenect2::FrameListener *listener);
-  BaseRgbPacketProcessor *makeAsync();
 protected:
   libfreenect2::FrameListener *listener_;
-  BaseRgbPacketProcessor *async_processor_;
 };
 
 class DumpRgbPacketProcessor : public RgbPacketProcessor
