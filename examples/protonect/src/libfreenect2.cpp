@@ -76,7 +76,7 @@ private:
   Freenect2Device::IrCameraParams ir_camera_params_;
   Freenect2Device::ColorCameraParams rgb_camera_params_;
 public:
-  Freenect2DeviceImpl(Freenect2Impl *context, const PacketPipeline *pipeline, libusb_device *usb_device, libusb_device_handle *usb_device_handle);
+  Freenect2DeviceImpl(Freenect2Impl *context, const PacketPipeline *pipeline, libusb_device *usb_device, libusb_device_handle *usb_device_handle, const std::string &serial);
   virtual ~Freenect2DeviceImpl();
 
   bool isSameUsbDevice(libusb_device* other);
@@ -98,6 +98,19 @@ public:
   virtual void close();
 };
 
+struct PrintBusAndDevice
+{
+  libusb_device *dev_;
+
+  PrintBusAndDevice(libusb_device *dev) : dev_(dev) {}
+};
+
+std::ostream &operator<<(std::ostream &out, const PrintBusAndDevice& dev)
+{
+  out << "@" << int(libusb_get_bus_number(dev.dev_)) << ":" << int(libusb_get_port_number(dev.dev_));
+  return out;
+}
+
 class Freenect2Impl
 {
 private:
@@ -105,7 +118,12 @@ private:
   libusb_context *usb_context_;
   EventLoop usb_event_loop_;
 public:
-  typedef std::vector<libusb_device *> UsbDeviceVector;
+  struct UsbDeviceWithSerial
+  {
+    libusb_device *dev;
+    std::string serial;
+  };
+  typedef std::vector<UsbDeviceWithSerial> UsbDeviceVector;
   typedef std::vector<Freenect2DeviceImpl *> DeviceVector;
 
   bool has_device_enumeration_;
@@ -197,7 +215,7 @@ public:
     // free enumerated device pointers, this should not affect opened devices
     for(UsbDeviceVector::iterator it = enumerated_devices_.begin(); it != enumerated_devices_.end(); ++it)
     {
-      libusb_unref_device(*it);
+      libusb_unref_device(it->dev);
     }
 
     enumerated_devices_.clear();
@@ -219,18 +237,57 @@ public:
         libusb_device *dev = device_list[idx];
         libusb_device_descriptor dev_desc;
 
-        int r = libusb_get_device_descriptor(dev, &dev_desc);
-        // TODO: error handling
+        int r = libusb_get_device_descriptor(dev, &dev_desc); // this is always successful
 
         if(dev_desc.idVendor == Freenect2Device::VendorId && (dev_desc.idProduct == Freenect2Device::ProductId || dev_desc.idProduct == Freenect2Device::ProductIdPreview))
         {
-          // valid Kinect v2
-          enumerated_devices_.push_back(dev);
+          Freenect2DeviceImpl *freenect2_dev;
+
+          // prevent error if device is already open
+          if(tryGetDevice(dev, &freenect2_dev))
+          {
+            UsbDeviceWithSerial dev_with_serial;
+            dev_with_serial.dev = dev;
+            dev_with_serial.serial = freenect2_dev->getSerialNumber();
+
+            enumerated_devices_.push_back(dev_with_serial);
+            continue;
+          }
+          else
+          {
+            libusb_device_handle *dev_handle;
+            r = libusb_open(dev, &dev_handle);
+
+            if(r == LIBUSB_SUCCESS)
+            {
+              unsigned char buffer[1024];
+              r = libusb_get_string_descriptor_ascii(dev_handle, dev_desc.iSerialNumber, buffer, sizeof(buffer));
+
+              if(r > LIBUSB_SUCCESS)
+              {
+                UsbDeviceWithSerial dev_with_serial;
+                dev_with_serial.dev = dev;
+                dev_with_serial.serial = std::string(reinterpret_cast<char *>(buffer), size_t(r));
+
+                std::cout << "[Freenect2Impl] found valid Kinect v2 " << PrintBusAndDevice(dev) << " with serial " << dev_with_serial.serial << std::endl;
+                // valid Kinect v2
+                enumerated_devices_.push_back(dev_with_serial);
+                continue;
+              }
+              else
+              {
+                std::cout << "[Freenect2Impl] failed to get serial number of Kinect v2 " << PrintBusAndDevice(dev) << "!" << std::endl;
+              }
+
+              libusb_close(dev_handle);
+            }
+            else
+            {
+              std::cout << "[Freenect2Impl] failed to open Kinect v2 " << PrintBusAndDevice(dev) << "!" << std::endl;
+            }
+          }
         }
-        else
-        {
-          libusb_unref_device(dev);
-        }
+        libusb_unref_device(dev);
       }
     }
 
@@ -255,7 +312,7 @@ Freenect2Device::~Freenect2Device()
 {
 }
 
-Freenect2DeviceImpl::Freenect2DeviceImpl(Freenect2Impl *context, const PacketPipeline *pipeline, libusb_device *usb_device, libusb_device_handle *usb_device_handle) :
+Freenect2DeviceImpl::Freenect2DeviceImpl(Freenect2Impl *context, const PacketPipeline *pipeline, libusb_device *usb_device, libusb_device_handle *usb_device_handle, const std::string &serial) :
   state_(Created),
   has_usb_interfaces_(false),
   context_(context),
@@ -267,7 +324,7 @@ Freenect2DeviceImpl::Freenect2DeviceImpl(Freenect2Impl *context, const PacketPip
   command_tx_(usb_device_handle_, 0x81, 0x02),
   command_seq_(0),
   pipeline_(pipeline),
-  serial_("<unknown>"),
+  serial_(serial),
   firmware_("<unknown>")
 {
   rgb_transfer_pool_.setCallback(pipeline_->getRgbPacketParser());
@@ -391,7 +448,12 @@ void Freenect2DeviceImpl::start()
   std::cout << GenericResponse(result.data, result.length).toString() << std::endl;
 
   command_tx_.execute(ReadSerialNumberCommand(nextCommandSeq()), serial_result);
-  serial_ = SerialNumberResponse(serial_result.data, serial_result.length).toString();
+  std::string new_serial = SerialNumberResponse(serial_result.data, serial_result.length).toString();
+
+  if(serial_ != new_serial)
+  {
+    std::cout << "[Freenect2DeviceImpl] serial number reported by libusb " << serial_ << " differs from serial number " << new_serial << " in device protocol! " << std::endl;
+  }
 
   command_tx_.execute(ReadDepthCameraParametersCommand(nextCommandSeq()), result);
   DepthCameraParamsResponse *ir_p = reinterpret_cast<DepthCameraParamsResponse *>(result.data);
@@ -556,7 +618,7 @@ int Freenect2::enumerateDevices()
 
 std::string Freenect2::getDeviceSerialNumber(int idx)
 {
-  throw std::exception();
+  return impl_->enumerated_devices_[idx].serial;
 }
 
 std::string Freenect2::getDefaultDeviceSerialNumber()
@@ -572,46 +634,51 @@ Freenect2Device *Freenect2::openDevice(int idx)
 Freenect2Device *Freenect2::openDevice(int idx, const PacketPipeline *pipeline)
 {
   int num_devices = impl_->getNumDevices();
+  Freenect2DeviceImpl *device = 0;
 
   if(idx < num_devices)
   {
-    libusb_device *dev = impl_->enumerated_devices_[idx];
+    Freenect2Impl::UsbDeviceWithSerial &dev = impl_->enumerated_devices_[idx];
     libusb_device_handle *dev_handle;
 
-    Freenect2DeviceImpl *device;
-
-    if(impl_->tryGetDevice(dev, &device))
+    if(!impl_->tryGetDevice(dev.dev, &device))
     {
-      return device;
-    }
-    else
-    {
-      int r = libusb_open(dev, &dev_handle);
-      // TODO: error handling
+      int r = libusb_open(dev.dev, &dev_handle);
 
-      device = new Freenect2DeviceImpl(impl_, pipeline, dev, dev_handle);
-      impl_->addDevice(device);
-
-      if(device->open())
+      if(r == LIBUSB_SUCCESS)
       {
-        return device;
+        r = libusb_reset_device(dev_handle);
+
+        if(r == LIBUSB_SUCCESS)
+        {
+          device = new Freenect2DeviceImpl(impl_, pipeline, dev.dev, dev_handle, dev.serial);
+          impl_->addDevice(device);
+
+          if(!device->open())
+          {
+            delete device;
+            device = 0;
+
+            std::cout << "[Freenect2DeviceImpl] failed to open Kinect v2 " << PrintBusAndDevice(dev.dev) << "!" << std::endl;
+          }
+        }
+        else
+        {
+          std::cout << "[Freenect2Impl] failed to reset Kinect v2 " << PrintBusAndDevice(dev.dev) << "!" << std::endl;
+        }
       }
       else
       {
-        std::cout << "[Freenect2DeviceImpl] Unable to open device: " << idx << std::endl;
-        delete device;
-
-        // TODO: error handling
-        return 0;
+        std::cout << "[Freenect2Impl] failed to open Kinect v2 " << PrintBusAndDevice(dev.dev) << "!" << std::endl;
       }
     }
   }
   else
   {
-    std::cout << "[Freenect2DeviceImpl] Requested device " << idx << " is not connected!" << std::endl;
-    // TODO: error handling
-    return 0;
+    std::cout << "[Freenect2Impl] requested device " << idx << " is not connected!" << std::endl;
   }
+
+  return device;
 }
 
 Freenect2Device *Freenect2::openDevice(const std::string &serial)
@@ -621,7 +688,19 @@ Freenect2Device *Freenect2::openDevice(const std::string &serial)
 
 Freenect2Device *Freenect2::openDevice(const std::string &serial, const PacketPipeline *pipeline)
 {
-  throw std::exception();
+  Freenect2Device *device = 0;
+  int num_devices = impl_->getNumDevices();
+
+  for(int idx = 0; idx < num_devices; ++idx)
+  {
+    if(impl_->enumerated_devices_[idx].serial == serial)
+    {
+      device = openDevice(idx, pipeline);
+      break;
+    }
+  }
+
+  return device;
 }
 
 Freenect2Device *Freenect2::openDefaultDevice()
