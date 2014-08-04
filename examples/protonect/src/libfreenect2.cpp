@@ -633,6 +633,11 @@ std::string Freenect2::getDefaultDeviceSerialNumber()
 
 Freenect2Device *Freenect2::openDevice(int idx)
 {
+  return openDevice(idx, true);
+}
+
+Freenect2Device *Freenect2::openDevice(int idx, bool attempting_reset)
+{
   int num_devices = impl_->getNumDevices();
   Freenect2DeviceImpl *device = 0;
 
@@ -658,10 +663,31 @@ Freenect2Device *Freenect2::openDevice(int idx)
     return device;
   }
 
-  r = libusb_reset_device(dev_handle);
-  if(r != LIBUSB_SUCCESS) {
-    std::cout << "[Freenect2Impl] failed to reset Kinect v2 " << PrintBusAndDevice(dev.dev) << "!" << std::endl;
-    return device;
+  if(attempting_reset) {
+    r = libusb_reset_device(dev_handle);
+
+    if(r == LIBUSB_ERROR_NOT_FOUND) {
+      // From libusb documentation:
+      // "If the reset fails, the descriptors change, or the previous state
+      // cannot be restored, the device will appear to be disconnected and
+      // reconnected. This means that the device handle is no longer valid (you
+      // should close it) and rediscover the device. A return code of
+      // LIBUSB_ERROR_NOT_FOUND indicates when this is the case."
+
+      // be a good citizen
+      libusb_close(dev_handle);
+
+      // reenumerate devices
+      std::cout << "[Freenect2Impl] re-enumerating devices after reset" << std::endl;
+      impl_->clearDeviceEnumeration();
+      impl_->enumerateDevices();
+
+      // re-open without reset
+      return openDevice(idx, false);
+    } else if(r != LIBUSB_SUCCESS) {
+      std::cout << "[Freenect2Impl] failed to reset Kinect v2 " << PrintBusAndDevice(dev.dev) << "!" << std::endl;
+      return device;
+    }
   }
 
   device = new Freenect2DeviceImpl(impl_, dev.dev, dev_handle, dev.serial);
