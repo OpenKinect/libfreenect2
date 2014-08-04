@@ -636,46 +636,43 @@ Freenect2Device *Freenect2::openDevice(int idx)
   int num_devices = impl_->getNumDevices();
   Freenect2DeviceImpl *device = 0;
 
-  if(idx < num_devices)
-  {
-    Freenect2Impl::UsbDeviceWithSerial &dev = impl_->enumerated_devices_[idx];
-    libusb_device_handle *dev_handle;
-
-    if(!impl_->tryGetDevice(dev.dev, &device))
-    {
-      int r = libusb_open(dev.dev, &dev_handle);
-
-      if(r == LIBUSB_SUCCESS)
-      {
-        r = libusb_reset_device(dev_handle);
-
-        if(r == LIBUSB_SUCCESS)
-        {
-          device = new Freenect2DeviceImpl(impl_, dev.dev, dev_handle, dev.serial);
-          impl_->addDevice(device);
-
-          if(!device->open())
-          {
-            delete device;
-            device = 0;
-
-            std::cout << "[Freenect2DeviceImpl] failed to open Kinect v2 " << PrintBusAndDevice(dev.dev) << "!" << std::endl;
-          }
-        }
-        else
-        {
-          std::cout << "[Freenect2Impl] failed to reset Kinect v2 " << PrintBusAndDevice(dev.dev) << "!" << std::endl;
-        }
-      }
-      else
-      {
-        std::cout << "[Freenect2Impl] failed to open Kinect v2 " << PrintBusAndDevice(dev.dev) << "!" << std::endl;
-      }
-    }
-  }
-  else
+  if(idx >= num_devices)
   {
     std::cout << "[Freenect2Impl] requested device " << idx << " is not connected!" << std::endl;
+    return device;
+  }
+
+  Freenect2Impl::UsbDeviceWithSerial &dev = impl_->enumerated_devices_[idx];
+  libusb_device_handle *dev_handle;
+
+  if(impl_->tryGetDevice(dev.dev, &device))
+  {
+    std::cout << "[Freenect2Impl] failed to get device " << PrintBusAndDevice(dev.dev) << std::endl;
+    return device;
+  }
+
+  int r = libusb_open(dev.dev, &dev_handle);
+
+  if(r != LIBUSB_SUCCESS) {
+    std::cout << "[Freenect2Impl] failed to open Kinect v2 " << PrintBusAndDevice(dev.dev) << "!" << std::endl;
+    return device;
+  }
+
+  r = libusb_reset_device(dev_handle);
+  if(r != LIBUSB_SUCCESS) {
+    std::cout << "[Freenect2Impl] failed to reset Kinect v2 " << PrintBusAndDevice(dev.dev) << "!" << std::endl;
+    return device;
+  }
+
+  device = new Freenect2DeviceImpl(impl_, dev.dev, dev_handle, dev.serial);
+  impl_->addDevice(device);
+
+  if(!device->open())
+  {
+    delete device;
+    device = 0;
+
+    std::cout << "[Freenect2DeviceImpl] failed to open Kinect v2 " << PrintBusAndDevice(dev.dev) << "!" << std::endl;
   }
 
   return device;
