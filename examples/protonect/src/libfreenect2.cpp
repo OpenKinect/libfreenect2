@@ -677,6 +677,9 @@ Freenect2Device *Freenect2::openDevice(int idx, bool attempting_reset)
       // be a good citizen
       libusb_close(dev_handle);
 
+      // HACK: wait for the planets to align...
+      sleep(1);
+
       // reenumerate devices
       std::cout << "[Freenect2Impl] re-enumerating devices after reset" << std::endl;
       impl_->clearDeviceEnumeration();
