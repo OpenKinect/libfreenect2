@@ -677,8 +677,12 @@ Freenect2Device *Freenect2::openDevice(int idx, bool attempting_reset)
       // be a good citizen
       libusb_close(dev_handle);
 
-      // HACK: wait for the planets to align...
-      sleep(1);
+      // HACK: wait for the planets to align... (When the reset fails it may
+      // take a short while for the device to show up on the bus again. In the
+      // absence of hotplug support, we just wait a little. If this code path
+      // is followed there will already be a delay opening the device fully so
+      // adding a little more is tolerable.)
+      libfreenect2::this_thread::sleep_for(libfreenect2::chrono::milliseconds(1000));
 
       // reenumerate devices
       std::cout << "[Freenect2Impl] re-enumerating devices after reset" << std::endl;
