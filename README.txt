@@ -2,16 +2,22 @@
 
 Maintainers:
 * Joshua Blake <joshblake@gmail.com>
+* Florian Echtler
+* Christian Kerl
 
 === Description
-Initial prototype driver for Kinect for Windows v2 (K4W2).
+Driver for Kinect for Windows v2 (K4W2) devices (release and developer preview).
 
-Note: At this time, libfreenect2 does not do anything for either Kinect for Windows v1 or Kinect for Xbox 360 sensors. Use libfreenect1 for those sensors.
+Note: libfreenect2 does not do anything for either Kinect for Windows v1 or Kinect for Xbox 360 sensors. Use libfreenect1 for those sensors.
 
-This project doesn't do much yet. There is a sample "protonect" that:
-* Performs initial startup sequence commands
-* Retrieves so far unknown data blobs from the sensor (probably color-to-IR registration data and such)
-* Attempts to do a few isochronous transfers
+This driver supports:
+* RGB image transfer
+* IR and depth image transfer
+
+Missing features:
+* registration of RGB and depth images
+* audio transfer
+* firmware updates
 
 Watch the OpenKinect wiki at www.openkinect.org and the mailing list at https://groups.google.com/forum/#!forum/openkinect for the latest developments and more information about the K4W2 USB protocol.
 
