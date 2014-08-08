@@ -633,49 +633,85 @@ Freenect2Device *Freenect2::openDevice(int idx)
 
 Freenect2Device *Freenect2::openDevice(int idx, const PacketPipeline *pipeline)
 {
+  return openDevice(idx, pipeline, true);
+}
+
+Freenect2Device *Freenect2::openDevice(int idx, const PacketPipeline *pipeline, bool attempting_reset)
+{
   int num_devices = impl_->getNumDevices();
   Freenect2DeviceImpl *device = 0;
 
-  if(idx < num_devices)
-  {
-    Freenect2Impl::UsbDeviceWithSerial &dev = impl_->enumerated_devices_[idx];
-    libusb_device_handle *dev_handle;
-
-    if(!impl_->tryGetDevice(dev.dev, &device))
-    {
-      int r = libusb_open(dev.dev, &dev_handle);
-
-      if(r == LIBUSB_SUCCESS)
-      {
-        r = libusb_reset_device(dev_handle);
-
-        if(r == LIBUSB_SUCCESS)
-        {
-          device = new Freenect2DeviceImpl(impl_, pipeline, dev.dev, dev_handle, dev.serial);
-          impl_->addDevice(device);
-
-          if(!device->open())
-          {
-            delete device;
-            device = 0;
-
-            std::cout << "[Freenect2DeviceImpl] failed to open Kinect v2 " << PrintBusAndDevice(dev.dev) << "!" << std::endl;
-          }
-        }
-        else
-        {
-          std::cout << "[Freenect2Impl] failed to reset Kinect v2 " << PrintBusAndDevice(dev.dev) << "!" << std::endl;
-        }
-      }
-      else
-      {
-        std::cout << "[Freenect2Impl] failed to open Kinect v2 " << PrintBusAndDevice(dev.dev) << "!" << std::endl;
-      }
-    }
-  }
-  else
+  if(idx >= num_devices)
   {
     std::cout << "[Freenect2Impl] requested device " << idx << " is not connected!" << std::endl;
+    return device;
+  }
+
+  Freenect2Impl::UsbDeviceWithSerial &dev = impl_->enumerated_devices_[idx];
+  libusb_device_handle *dev_handle;
+
+  if(impl_->tryGetDevice(dev.dev, &device))
+  {
+    std::cout << "[Freenect2Impl] failed to get device " << PrintBusAndDevice(dev.dev)
+        << " (the device may already be open)" << std::endl;
+    return device;
+  }
+
+  int r = libusb_open(dev.dev, &dev_handle);
+
+  if(r != LIBUSB_SUCCESS)
+  {
+    std::cout << "[Freenect2Impl] failed to open Kinect v2 " << PrintBusAndDevice(dev.dev) << "!" << std::endl;
+    return device;
+  }
+
+  if(attempting_reset)
+  {
+    r = libusb_reset_device(dev_handle);
+
+    if(r == LIBUSB_ERROR_NOT_FOUND) 
+    {
+      // From libusb documentation:
+      // "If the reset fails, the descriptors change, or the previous state
+      // cannot be restored, the device will appear to be disconnected and
+      // reconnected. This means that the device handle is no longer valid (you
+      // should close it) and rediscover the device. A return code of
+      // LIBUSB_ERROR_NOT_FOUND indicates when this is the case."
+
+      // be a good citizen
+      libusb_close(dev_handle);
+
+      // HACK: wait for the planets to align... (When the reset fails it may
+      // take a short while for the device to show up on the bus again. In the
+      // absence of hotplug support, we just wait a little. If this code path
+      // is followed there will already be a delay opening the device fully so
+      // adding a little more is tolerable.)
+      libfreenect2::this_thread::sleep_for(libfreenect2::chrono::milliseconds(1000));
+
+      // reenumerate devices
+      std::cout << "[Freenect2Impl] re-enumerating devices after reset" << std::endl;
+      impl_->clearDeviceEnumeration();
+      impl_->enumerateDevices();
+
+      // re-open without reset
+      return openDevice(idx, pipeline, false);
+    }
+    else if(r != LIBUSB_SUCCESS)
+    {
+      std::cout << "[Freenect2Impl] failed to reset Kinect v2 " << PrintBusAndDevice(dev.dev) << "!" << std::endl;
+      return device;
+    }
+  }
+
+  device = new Freenect2DeviceImpl(impl_, pipeline, dev.dev, dev_handle, dev.serial);
+  impl_->addDevice(device);
+
+  if(!device->open())
+  {
+    delete device;
+    device = 0;
+
+    std::cout << "[Freenect2DeviceImpl] failed to open Kinect v2 " << PrintBusAndDevice(dev.dev) << "!" << std::endl;
   }
 
   return device;

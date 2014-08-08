@@ -88,6 +88,8 @@ public:
 
   Freenect2Device *openDefaultDevice();
   Freenect2Device *openDefaultDevice(const PacketPipeline *factory);
+protected:
+  Freenect2Device *openDevice(int idx, const PacketPipeline *factory, bool attempting_reset);
 private:
   Freenect2Impl *impl_;
 };
