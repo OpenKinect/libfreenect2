@@ -83,6 +83,8 @@ public:
   Freenect2Device *openDevice(const std::string &serial);
 
   Freenect2Device *openDefaultDevice();
+protected:
+  Freenect2Device *openDevice(int idx, bool attempting_reset);
 private:
   Freenect2Impl *impl_;
 };
