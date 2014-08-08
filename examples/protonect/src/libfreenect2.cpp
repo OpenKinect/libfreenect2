@@ -652,8 +652,9 @@ Freenect2Device *Freenect2::openDevice(int idx, bool attempting_reset)
 
   if(impl_->tryGetDevice(dev.dev, &device))
   {
-    std::cout << "[Freenect2Impl] warning: failed to get device " << PrintBusAndDevice(dev.dev)
+    std::cout << "[Freenect2Impl] failed to get device " << PrintBusAndDevice(dev.dev)
         << " (the device may already be open)" << std::endl;
+    return device;
   }
 
   int r = libusb_open(dev.dev, &dev_handle);
