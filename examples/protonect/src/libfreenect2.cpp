@@ -659,15 +659,18 @@ Freenect2Device *Freenect2::openDevice(int idx, bool attempting_reset)
 
   int r = libusb_open(dev.dev, &dev_handle);
 
-  if(r != LIBUSB_SUCCESS) {
+  if(r != LIBUSB_SUCCESS)
+  {
     std::cout << "[Freenect2Impl] failed to open Kinect v2 " << PrintBusAndDevice(dev.dev) << "!" << std::endl;
     return device;
   }
 
-  if(attempting_reset) {
+  if(attempting_reset)
+  {
     r = libusb_reset_device(dev_handle);
 
-    if(r == LIBUSB_ERROR_NOT_FOUND) {
+    if(r == LIBUSB_ERROR_NOT_FOUND) 
+    {
       // From libusb documentation:
       // "If the reset fails, the descriptors change, or the previous state
       // cannot be restored, the device will appear to be disconnected and
@@ -692,7 +695,9 @@ Freenect2Device *Freenect2::openDevice(int idx, bool attempting_reset)
 
       // re-open without reset
       return openDevice(idx, false);
-    } else if(r != LIBUSB_SUCCESS) {
+    }
+    else if(r != LIBUSB_SUCCESS)
+    {
       std::cout << "[Freenect2Impl] failed to reset Kinect v2 " << PrintBusAndDevice(dev.dev) << "!" << std::endl;
       return device;
     }
