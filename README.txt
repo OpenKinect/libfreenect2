@@ -58,7 +58,7 @@ You can go back and forth between the SDK driver and the libusbK driver very qui
 
 brew update
 brew tap homebrew/science
-brew install opencv git
+brew install opencv git nasm wget
 
 3. Download the libfreenect2 repository
 
