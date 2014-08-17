@@ -79,6 +79,8 @@ public:
     Error
   };
 
+  ResultCode getIrMaxIsoPacketSize(int &size);
+
   ResultCode setConfiguration();
   ResultCode claimInterfaces();
   ResultCode releaseInterfaces();

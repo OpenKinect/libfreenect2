@@ -422,7 +422,8 @@ bool Freenect2DeviceImpl::open()
   if(usb_control_.enablePowerStates() != UsbControl::Success) return false;
   if(usb_control_.setVideoTransferFunctionState(UsbControl::Disabled) != UsbControl::Success) return false;
 
-  size_t max_iso_packet_size = libusb_get_max_iso_packet_size(usb_device_, 0x84);
+  int max_iso_packet_size;
+  if(usb_control_.getIrMaxIsoPacketSize(max_iso_packet_size) != UsbControl::Success) return false;
 
   if(max_iso_packet_size < 0x8400)
   {
