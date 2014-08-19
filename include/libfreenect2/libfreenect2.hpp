@@ -27,7 +27,7 @@
 #ifndef LIBFREENECT2_HPP_
 #define LIBFREENECT2_HPP_
 
-#include <frame_listener.hpp>
+#include <libfreenect2/frame_listener.hpp>
 
 namespace libfreenect2
 {

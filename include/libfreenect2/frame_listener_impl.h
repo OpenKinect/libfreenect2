@@ -29,7 +29,7 @@
 
 #include <map>
 #include <libfreenect2/threading.h>
-#include <frame_listener.hpp>
+#include <libfreenect2/frame_listener.hpp>
 
 namespace libfreenect2
 {

@@ -29,7 +29,7 @@
 #include <algorithm>
 #include <libusb.h>
 
-#include <libfreenect2.hpp>
+#include <libfreenect2/libfreenect2.hpp>
 
 #include <libfreenect2/usb/event_loop.h>
 #include <libfreenect2/usb/transfer_pool.h>
