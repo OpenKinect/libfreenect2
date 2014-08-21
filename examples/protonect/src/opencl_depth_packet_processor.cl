@@ -104,7 +104,6 @@ void kernel processPixelStage1(global const short *lut11to16, global const float
 /*******************************************************************************
  * Filter pixel stage 1
  ******************************************************************************/
-
 void kernel filterPixelStage1(global const float3 *a, global const float3 *b, global const float3 *n,
                               global float3 *a_out, global float3 *b_out, global uchar *max_edge_test)
 {
@@ -178,12 +177,10 @@ void kernel filterPixelStage1(global const float3 *a, global const float3 *b, gl
 /*******************************************************************************
  * Process pixel stage 2
  ******************************************************************************/
-
 void kernel processPixelStage2(global const float3 *a_in, global const float3 *b_in, global const float *x_table, global const float *z_table,
                                global float *depth, global float *ir_sums)
 {
   const uint i = get_global_id(0);
-
   float3 a = a_in[i];
   float3 b = b_in[i];
 
@@ -289,7 +286,6 @@ void kernel processPixelStage2(global const float3 *a_in, global const float3 *b
 /*******************************************************************************
  * Filter pixel stage 2
  ******************************************************************************/
-
 void kernel filterPixelStage2(global const float *depth, global const float *ir_sums, global const uchar *max_edge_test, global float *filtered)
 {
   const uint i = get_global_id(0);
