@@ -1,9 +1,7 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
 
 PROJECT(libfreenect2)
-SET(CMAKE_BUILD_TYPE Release)
-set(CMAKE_REQUIRED_FLAGS "-std=c++0x")
-set(CMAKE_CXX_FLAGS "-std=c++0x ${CMAKE_CXX_FLAGS}")
+SET(CMAKE_BUILD_TYPE RelWithDebInfo)
 
 SET(MY_DIR ${libfreenect2_SOURCE_DIR})
 
@@ -24,12 +22,7 @@ SET(LIBRARY_OUTPUT_PATH ${MY_DIR}/lib)
 
 # dependencies
 FIND_PACKAGE(OpenCV REQUIRED)
-find_package(OpenMP)
 find_library(OPENCL_LIBRARIES OpenCL)
-
-if(OPENMP_FOUND)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
-endif()
 
 # OpenCV
 INCLUDE_DIRECTORIES(${OpenCV_INCLUDE_DIR})
@@ -56,7 +49,7 @@ SET(GLFW_BUILD_DOCS OFF CACHE BOOL "Build the GLFW documentation")
 ADD_SUBDIRECTORY(${MY_DIR}/../../depends/glfw_src/ ${MY_DIR}/../../depends/glfw)
 INCLUDE_DIRECTORIES(${MY_DIR}/../../depends/glfw_src/include/)
 
-if (APPLE)
+if(APPLE)
   # libjpeg-turbo
   INCLUDE_DIRECTORIES("${MY_DIR}/../../depends/libjpeg_turbo/include/")
   LINK_DIRECTORIES("${MY_DIR}/../../depends/libjpeg_turbo/lib/")
@@ -78,20 +71,6 @@ GENERATE_RESOURCES(${RESOURCES_INC_FILE} ${MY_DIR}
 add_definitions(-DREG_OPENCL_FILE="src/opencl_depth_packet_processor.cl")
 
 INCLUDE_DIRECTORIES("${MY_DIR}/include")
-
-# Add files to CMake project
-#execute_process(COMMAND find ${PROJECT_SOURCE_DIR}/include -type f -name "*" OUTPUT_VARIABLE FILES_INC_STRING)
-#string(REPLACE "\n" ";" FILES_INC_LIST ${FILES_INC_STRING})
-#execute_process(COMMAND find ${PROJECT_SOURCE_DIR}/src -type f -name "*.*" OUTPUT_VARIABLE FILES_SRC_STRING)
-#string(REPLACE "\n" ";" FILES_SRC_LIST ${FILES_SRC_STRING})
-execute_process(COMMAND find ${PROJECT_SOURCE_DIR} -type f -name "*.*" OUTPUT_VARIABLE FILES_ALL_STRING)
-string(REPLACE "\n" ";" FILES_ALL_LIST ${FILES_ALL_STRING})
-add_custom_target(additional_files
-  SOURCES
-  #${FILES_INC_LIST}
-  #${FILES_SRC_LIST}
-  ${FILES_ALL_LIST}
-)
 
 ADD_DEFINITIONS(-DRESOURCES_INC)
 ADD_LIBRARY(freenect2 SHARED
