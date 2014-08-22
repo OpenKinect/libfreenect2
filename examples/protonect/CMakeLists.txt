@@ -1,9 +1,7 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
 
 PROJECT(libfreenect2)
-SET(CMAKE_BUILD_TYPE Release)
-set(CMAKE_REQUIRED_FLAGS "-std=c++0x")
-set(CMAKE_CXX_FLAGS "-std=c++0x ${CMAKE_CXX_FLAGS}")
+SET(CMAKE_BUILD_TYPE RelWithDebInfo)
 
 SET(MY_DIR ${libfreenect2_SOURCE_DIR})
 
@@ -24,15 +22,17 @@ SET(LIBRARY_OUTPUT_PATH ${MY_DIR}/lib)
 
 # dependencies
 FIND_PACKAGE(OpenCV REQUIRED)
-find_package(OpenMP)
 find_library(OPENCL_LIBRARIES OpenCL)
 
+<<<<<<< HEAD
 if(OPENMP_FOUND)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 endif()
 
 FIND_PACKAGE(OpenCL)
 
+=======
+>>>>>>> cleaned up CMakeLists.txt. Removed c++11 dependency.
 # OpenCV
 INCLUDE_DIRECTORIES(${OpenCV_INCLUDE_DIR})
 
@@ -66,7 +66,15 @@ endif()
 
 SET(RESOURCES_INC_FILE "${MY_DIR}/src/resources.inc")
 
+<<<<<<< HEAD
 SET(SOURCES
+=======
+INCLUDE_DIRECTORIES("${MY_DIR}/include")
+
+ADD_DEFINITIONS(-DRESOURCES_INC)
+ADD_LIBRARY(freenect2 SHARED
+  src/opengl.cpp
+>>>>>>> cleaned up CMakeLists.txt. Removed c++11 dependency.
   src/transfer_pool.cpp
   src/event_loop.cpp
   
@@ -179,4 +187,3 @@ IF("${LIBFREENECT2_THREADING}" MATCHES "tinythread")
 ENDIF("${LIBFREENECT2_THREADING}" MATCHES "tinythread")
 INSTALL(FILES 
   "${PROJECT_BINARY_DIR}/freenect2Config.cmake" DESTINATION lib/cmake/freenect2/)
-
