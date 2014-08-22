@@ -4,6 +4,7 @@ PROJECT(libfreenect2)
 SET(CMAKE_BUILD_TYPE RelWithDebInfo)
 
 SET(MY_DIR ${libfreenect2_SOURCE_DIR})
+SET(DEPENDS_DIR "${libfreenect2_SOURCE_DIR}/../../depends")
 
 # additional cmake modules
 LIST(APPEND CMAKE_MODULE_PATH ${MY_DIR}/cmake_modules)
@@ -28,15 +29,15 @@ find_library(OPENCL_LIBRARIES OpenCL)
 INCLUDE_DIRECTORIES(${OpenCV_INCLUDE_DIR})
 
 # LibUSB
-INCLUDE_DIRECTORIES("${MY_DIR}/../../depends/libusb/include/libusb-1.0/")
-LINK_DIRECTORIES("${MY_DIR}/../../depends/libusb/lib/")
+INCLUDE_DIRECTORIES("${DEPENDS_DIR}/libusb/include/libusb-1.0/")
+LINK_DIRECTORIES("${DEPENDS_DIR}/libusb/lib/")
 
 # GLEW
-INCLUDE_DIRECTORIES("${MY_DIR}/../../depends/glew/include/")
+INCLUDE_DIRECTORIES("${DEPENDS_DIR}/glew/include/")
 if (APPLE)
-  LINK_DIRECTORIES("${MY_DIR}/../../depends/glew/lib/")
+  LINK_DIRECTORIES("${DEPENDS_DIR}/glew/lib/")
 else()
-  LINK_DIRECTORIES("${MY_DIR}/../../depends/glew/lib64/")
+  LINK_DIRECTORIES("${DEPENDS_DIR}/glew/lib64/")
 endif()
 ADD_DEFINITIONS(-DGLEW_MX -DGLEW_STATIC)
 
@@ -46,13 +47,13 @@ SET(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "Build the GLFW example programs")
 SET(GLFW_BUILD_TESTS OFF CACHE BOOL "Build the GLFW test programs")
 SET(GLFW_BUILD_DOCS OFF CACHE BOOL "Build the GLFW documentation")
 
-ADD_SUBDIRECTORY(${MY_DIR}/../../depends/glfw_src/ ${MY_DIR}/../../depends/glfw)
-INCLUDE_DIRECTORIES(${MY_DIR}/../../depends/glfw_src/include/)
+ADD_SUBDIRECTORY(${DEPENDS_DIR}/glfw_src/ ${DEPENDS_DIR}/glfw)
+INCLUDE_DIRECTORIES(${DEPENDS_DIR}/glfw_src/include/)
 
 if(APPLE)
   # libjpeg-turbo
-  INCLUDE_DIRECTORIES("${MY_DIR}/../../depends/libjpeg_turbo/include/")
-  LINK_DIRECTORIES("${MY_DIR}/../../depends/libjpeg_turbo/lib/")
+  INCLUDE_DIRECTORIES("${DEPENDS_DIR}/libjpeg_turbo/include/")
+  LINK_DIRECTORIES("${DEPENDS_DIR}/libjpeg_turbo/lib/")
 endif()
 
 SET(RESOURCES_INC_FILE "${MY_DIR}/src/resources.inc")
@@ -133,10 +134,8 @@ install(TARGETS Protonect freenect2
         ARCHIVE DESTINATION lib)
 
 install_files(/include/${PROJECT_NAME} FILES include/${PROJECT_NAME}/libfreenect2.hpp include/${PROJECT_NAME}/frame_listener.hpp)
-install_files(/lib FILES "${MY_DIR}/../../depends/libusb/lib/")
+install_files(/ FILES "${DEPENDS_DIR}/libusb/")
+install_files(/ FILES "${DEPENDS_DIR}/glew/")
 if(APPLE)
-  install_files(/lib FILES "${MY_DIR}/../../depends/glew/lib/")
-  install_files(/lib FILES "${MY_DIR}/../../depends/libjpeg_turbo/lib/")
-else()
-  install_files(/lib FILES "${MY_DIR}/../../depends/glew/lib64/")
+  install_files(/ FILES "${DEPENDS_DIR}/libjpeg_turbo/")
 endif()
