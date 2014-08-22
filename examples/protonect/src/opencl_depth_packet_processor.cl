@@ -28,22 +28,10 @@
  * Process pixel stage 1
  ******************************************************************************/
 
-#define BFI_BITMASK 0x180
-
-#define PHASE_IN_RAD0 0.0f
-#define PHASE_IN_RAD1 2.094395f
-#define PHASE_IN_RAD2 4.18879f
-
-#define AB_MULTIPLIER          0.6666667f
-#define AB_MULTIPLIER_PER_FRQ0 1.322581f
-#define AB_MULTIPLIER_PER_FRQ1 1.0f
-#define AB_MULTIPLIER_PER_FRQ2 1.612903f
-#define AB_OUTPUT_MULTIPLIER   16.0f
-
 float decodePixelMeasurement(global const ushort *data, global const short *lut11to16, const uint sub, const uint x, const uint y)
 {
   uint row_idx = (424 * sub + (y < 212 ? y + 212 : 423 - y)) * 352;
-  uint idx = (((x >> 2) + ((x << 7) & BFI_BITMASK)) * 11) & (int)0xffffffff;
+  uint idx = (((x >> 2) + ((x << 7) & BFI_BITMASK)) * 11) & (uint)0xffffffff;
 
   uint col_idx = idx >> 4;
   uint upper_bytes = idx & 15;
@@ -117,11 +105,6 @@ void kernel processPixelStage1(global const short *lut11to16, global const float
  * Filter pixel stage 1
  ******************************************************************************/
 
-#define JOINT_BILATERAL_AB_THRESHOLD 3.0f
-#define JOINT_BILATERAL_MAX_EDGE     2.5f
-#define JOINT_BILATERAL_EXP          5.0f
-#define JOINT_BILATERAL_THRESHOLD    (JOINT_BILATERAL_AB_THRESHOLD * JOINT_BILATERAL_AB_THRESHOLD) / (AB_MULTIPLIER * AB_MULTIPLIER)
-
 void kernel filterPixelStage1(global const float3 *a, global const float3 *b, global const float3 *n,
                               global float3 *a_out, global float3 *b_out, global uchar *max_edge_test)
 {
@@ -133,7 +116,7 @@ void kernel filterPixelStage1(global const float3 *a, global const float3 *b, gl
   const float3 self_a = a[i];
   const float3 self_b = b[i];
 
-  const float gaussian[9] = {0.1069973f, 0.1131098f, 0.1069973f, 0.1131098f, 0.1195715f, 0.1131098f, 0.1069973f, 0.1131098f, 0.1069973f};
+  const float gaussian[9] = {GAUSSIAN_KERNEL_0, GAUSSIAN_KERNEL_1, GAUSSIAN_KERNEL_2, GAUSSIAN_KERNEL_3, GAUSSIAN_KERNEL_4, GAUSSIAN_KERNEL_5, GAUSSIAN_KERNEL_6, GAUSSIAN_KERNEL_7, GAUSSIAN_KERNEL_8};
 
   if(x < 1 || y < 1 || x > 510 || y > 422)
   {
@@ -196,22 +179,10 @@ void kernel filterPixelStage1(global const float3 *a, global const float3 *b, gl
  * Process pixel stage 2
  ******************************************************************************/
 
-#define INDIVIDUAL_AB_THRESHOLD 3.0f
-#define AB_THRESHOLD            10.0f
-#define AB_CONFIDENCE_SLOPE     -0.5330578f
-#define AB_CONFIDENCE_OFFSET    0.7694894f
-#define MIN_DEALIAS_CONFIDENCE  0.3490659f
-#define MAX_DEALIAS_CONFIDENCE  0.6108653f
-#define UNAMBIGIOUS_DIST        2083.333f
-#define PHASE_OFFSET            0.0f
-
 void kernel processPixelStage2(global const float3 *a_in, global const float3 *b_in, global const float *x_table, global const float *z_table,
                                global float *depth, global float *ir_sums)
 {
   const uint i = get_global_id(0);
-
-  const uint x = i % 512;
-  const uint y = i / 512;
 
   float3 a = a_in[i];
   float3 b = b_in[i];
@@ -319,16 +290,6 @@ void kernel processPixelStage2(global const float3 *a_in, global const float3 *b
  * Filter pixel stage 2
  ******************************************************************************/
 
-#define MIN_DEPTH                  100.0f
-#define MAX_DEPTH                  12000.0f
-#define EDGE_AB_AVG_MIN_VALUE      50.0f
-#define EDGE_AB_STD_DEV_THRESHOLD  0.05f
-#define EDGE_CLOSE_DELTA_THRESHOLD 50.0f
-#define EDGE_FAR_DELTA_THRESHOLD   30.0f
-#define EDGE_MAX_DELTA_THRESHOLD   100.0f
-#define EDGE_AVG_DELTA_THRESHOLD   0.0f
-#define MAX_EDGE_COUNT             5.0f
-
 void kernel filterPixelStage2(global const float *depth, global const float *ir_sums, global const uchar *max_edge_test, global float *filtered)
 {
   const uint i = get_global_id(0);
@@ -339,10 +300,6 @@ void kernel filterPixelStage2(global const float *depth, global const float *ir_
   const float raw_depth = depth[i];
   const float ir_sum = ir_sums[i];
   const uchar edge_test = max_edge_test[i];
-
-  const float ir_sum_0 = raw_depth;
-  const float ir_sum_1 = edge_test == 1 ? raw_depth : 0;
-  const float ir_sum_2 = ir_sum;
 
   if(raw_depth >= MIN_DEPTH && raw_depth <= MAX_DEPTH)
   {

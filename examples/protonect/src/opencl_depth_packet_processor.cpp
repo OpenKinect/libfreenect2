@@ -31,6 +31,7 @@
 #include <opencv2/opencv.hpp>
 #include <iostream>
 #include <fstream>
+#include <sstream>
 
 #define __CL_ENABLE_EXCEPTIONS
 #include <CL/cl.hpp>
@@ -85,6 +86,7 @@ public:
   cl_float z_table[512 * 424];
   cl_float3 p0_table[512 * 424];
   libfreenect2::DepthPacketProcessor::Config config;
+  DepthPacketProcessor::Parameters params;
 
   double timing_acc;
   double timing_acc_n;
@@ -161,6 +163,59 @@ public:
     enable_edge_filter = true;
   }
 
+  void generateOptions(std::string &options) const
+  {
+    std::ostringstream oss;
+    oss.precision(16);
+    oss << std::scientific;
+    oss << " -D BFI_BITMASK=" << "0x180";
+
+    oss << " -D AB_MULTIPLIER=" << params.ab_multiplier << "f";
+    oss << " -D AB_MULTIPLIER_PER_FRQ0=" << params.ab_multiplier_per_frq[0] << "f";
+    oss << " -D AB_MULTIPLIER_PER_FRQ1=" << params.ab_multiplier_per_frq[1] << "f";
+    oss << " -D AB_MULTIPLIER_PER_FRQ2=" << params.ab_multiplier_per_frq[2] << "f";
+    oss << " -D AB_OUTPUT_MULTIPLIER=" << params.ab_output_multiplier << "f";
+
+    oss << " -D PHASE_IN_RAD0=" << params.phase_in_rad[0] << "f";
+    oss << " -D PHASE_IN_RAD1=" << params.phase_in_rad[1] << "f";
+    oss << " -D PHASE_IN_RAD2=" << params.phase_in_rad[2] << "f";
+
+    oss << " -D JOINT_BILATERAL_AB_THRESHOLD=" << params.joint_bilateral_ab_threshold << "f";
+    oss << " -D JOINT_BILATERAL_MAX_EDGE=" << params.joint_bilateral_max_edge << "f";
+    oss << " -D JOINT_BILATERAL_EXP=" << params.joint_bilateral_exp << "f";
+    oss << " -D JOINT_BILATERAL_THRESHOLD=" << (params.joint_bilateral_ab_threshold * params.joint_bilateral_ab_threshold) / (params.ab_multiplier * params.ab_multiplier) << "f";
+    oss << " -D GAUSSIAN_KERNEL_0=" << params.gaussian_kernel[0] << "f";
+    oss << " -D GAUSSIAN_KERNEL_1=" << params.gaussian_kernel[1] << "f";
+    oss << " -D GAUSSIAN_KERNEL_2=" << params.gaussian_kernel[2] << "f";
+    oss << " -D GAUSSIAN_KERNEL_3=" << params.gaussian_kernel[3] << "f";
+    oss << " -D GAUSSIAN_KERNEL_4=" << params.gaussian_kernel[4] << "f";
+    oss << " -D GAUSSIAN_KERNEL_5=" << params.gaussian_kernel[5] << "f";
+    oss << " -D GAUSSIAN_KERNEL_6=" << params.gaussian_kernel[6] << "f";
+    oss << " -D GAUSSIAN_KERNEL_7=" << params.gaussian_kernel[7] << "f";
+    oss << " -D GAUSSIAN_KERNEL_8=" << params.gaussian_kernel[8] << "f";
+
+    oss << " -D PHASE_OFFSET=" << params.phase_offset << "f";
+    oss << " -D UNAMBIGIOUS_DIST=" << params.unambigious_dist << "f";
+    oss << " -D INDIVIDUAL_AB_THRESHOLD=" << params.individual_ab_threshold << "f";
+    oss << " -D AB_THRESHOLD=" << params.ab_threshold << "f";
+    oss << " -D AB_CONFIDENCE_SLOPE=" << params.ab_confidence_slope << "f";
+    oss << " -D AB_CONFIDENCE_OFFSET=" << params.ab_confidence_offset << "f";
+    oss << " -D MIN_DEALIAS_CONFIDENCE=" << params.min_dealias_confidence << "f";
+    oss << " -D MAX_DEALIAS_CONFIDENCE=" << params.max_dealias_confidence << "f";
+
+    oss << " -D EDGE_AB_AVG_MIN_VALUE=" << params.edge_ab_avg_min_value << "f";
+    oss << " -D EDGE_AB_STD_DEV_THRESHOLD=" << params.edge_ab_std_dev_threshold << "f";
+    oss << " -D EDGE_CLOSE_DELTA_THRESHOLD=" << params.edge_close_delta_threshold << "f";
+    oss << " -D EDGE_FAR_DELTA_THRESHOLD=" << params.edge_far_delta_threshold << "f";
+    oss << " -D EDGE_MAX_DELTA_THRESHOLD=" << params.edge_max_delta_threshold << "f";
+    oss << " -D EDGE_AVG_DELTA_THRESHOLD=" << params.edge_avg_delta_threshold << "f";
+    oss << " -D MAX_EDGE_COUNT=" << params.max_edge_count << "f";
+
+    oss << " -D MIN_DEPTH=" << params.min_depth << "f";
+    oss << " -D MAX_DEPTH=" << params.max_depth << "f";
+    options = oss.str();
+  }
+
   bool init()
   {
     if(isInitialized)
@@ -189,9 +244,12 @@ public:
 
       devices = context.getInfo<CL_CONTEXT_DEVICES>();
 
+      std::string options;
+      generateOptions(options);
+
       cl::Program::Sources source(1, std::make_pair(sourceCode.c_str(), sourceCode.length()));
       program = cl::Program(context, source);
-      program.build(devices);
+      program.build(devices, options.c_str());
 
       queue = cl::CommandQueue(context, devices[0], 0, &err);
 
@@ -250,8 +308,8 @@ public:
       kernel_filterPixelStage1.setArg(5, buf_edge_test);
 
       kernel_processPixelStage2 = cl::Kernel(program, "processPixelStage2", &err);
-      kernel_processPixelStage2.setArg(0, enable_bilateral_filter ? buf_a_filtered : buf_a);
-      kernel_processPixelStage2.setArg(1, enable_bilateral_filter ? buf_b_filtered : buf_b);
+      kernel_processPixelStage2.setArg(0, config.EnableBilateralFilter ? buf_a_filtered : buf_a);
+      kernel_processPixelStage2.setArg(1, config.EnableBilateralFilter ? buf_b_filtered : buf_b);
       kernel_processPixelStage2.setArg(2, buf_x_table);
       kernel_processPixelStage2.setArg(3, buf_z_table);
       kernel_processPixelStage2.setArg(4, buf_depth);
@@ -304,7 +362,7 @@ public:
       queue.enqueueNDRangeKernel(kernel_processPixelStage1, cl::NullRange, cl::NDRange(image_size), cl::NullRange, &eventWrite, &eventPPS1[0]);
       queue.enqueueReadBuffer(buf_ir, CL_FALSE, 0, buf_ir_size, ir_frame->data, &eventPPS1, &event0);
 
-      if(enable_bilateral_filter)
+      if(config.EnableBilateralFilter)
       {
         queue.enqueueNDRangeKernel(kernel_filterPixelStage1, cl::NullRange, cl::NDRange(image_size), cl::NullRange, &eventPPS1, &eventFPS1[0]);
       }
@@ -315,7 +373,7 @@ public:
 
       queue.enqueueNDRangeKernel(kernel_processPixelStage2, cl::NullRange, cl::NDRange(image_size), cl::NullRange, &eventFPS1, &eventPPS2[0]);
 
-      if(enable_edge_filter)
+      if(config.EnableEdgeAwareFilter)
       {
         queue.enqueueNDRangeKernel(kernel_filterPixelStage2, cl::NullRange, cl::NDRange(image_size), cl::NullRange, &eventPPS2, &eventFPS2[0]);
       }
