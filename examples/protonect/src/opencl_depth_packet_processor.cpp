@@ -31,7 +31,6 @@
 #include <opencv2/opencv.hpp>
 #include <iostream>
 #include <fstream>
-#include <chrono>
 
 #define __CL_ENABLE_EXCEPTIONS
 #include <CL/cl.hpp>
