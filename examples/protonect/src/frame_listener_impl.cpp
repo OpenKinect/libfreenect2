@@ -31,11 +31,6 @@ namespace libfreenect2
 
 FrameListener::~FrameListener() {}
 
-FrameListener* FrameListener::create(unsigned int frame_types)
-{
-  return new SyncMultiFrameListener(frame_types);
-}
-
 SyncMultiFrameListener::SyncMultiFrameListener(unsigned int frame_types) :
     subscribed_frame_types_(frame_types),
     ready_frame_types_(0)
