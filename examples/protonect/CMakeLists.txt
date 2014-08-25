@@ -4,7 +4,6 @@ PROJECT(libfreenect2)
 SET(CMAKE_BUILD_TYPE RelWithDebInfo)
 
 SET(MY_DIR ${libfreenect2_SOURCE_DIR})
-SET(DEPENDS_DIR "${libfreenect2_SOURCE_DIR}/../../depends")
 
 # additional cmake modules
 LIST(APPEND CMAKE_MODULE_PATH ${MY_DIR}/cmake_modules)
@@ -23,21 +22,20 @@ SET(LIBRARY_OUTPUT_PATH ${MY_DIR}/lib)
 
 # dependencies
 FIND_PACKAGE(OpenCV REQUIRED)
-find_library(OPENCL_LIBRARIES OpenCL)
 
 # OpenCV
 INCLUDE_DIRECTORIES(${OpenCV_INCLUDE_DIR})
 
 # LibUSB
-INCLUDE_DIRECTORIES("${DEPENDS_DIR}/libusb/include/libusb-1.0/")
-LINK_DIRECTORIES("${DEPENDS_DIR}/libusb/lib/")
+INCLUDE_DIRECTORIES("${MY_DIR}/../../depends/libusb/include/libusb-1.0/")
+LINK_DIRECTORIES("${MY_DIR}/../../depends/libusb/lib/")
 
 # GLEW
-INCLUDE_DIRECTORIES("${DEPENDS_DIR}/glew/include/")
+INCLUDE_DIRECTORIES("${MY_DIR}/../../depends/glew/include/")
 if (APPLE)
-  LINK_DIRECTORIES("${DEPENDS_DIR}/glew/lib/")
+  LINK_DIRECTORIES("${MY_DIR}/../../depends/glew/lib/")
 else()
-  LINK_DIRECTORIES("${DEPENDS_DIR}/glew/lib64/")
+  LINK_DIRECTORIES("${MY_DIR}/../../depends/glew/lib64/")
 endif()
 ADD_DEFINITIONS(-DGLEW_MX -DGLEW_STATIC)
 
@@ -47,13 +45,13 @@ SET(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "Build the GLFW example programs")
 SET(GLFW_BUILD_TESTS OFF CACHE BOOL "Build the GLFW test programs")
 SET(GLFW_BUILD_DOCS OFF CACHE BOOL "Build the GLFW documentation")
 
-ADD_SUBDIRECTORY(${DEPENDS_DIR}/glfw_src/ ${DEPENDS_DIR}/glfw)
-INCLUDE_DIRECTORIES(${DEPENDS_DIR}/glfw_src/include/)
+ADD_SUBDIRECTORY(${MY_DIR}/../../depends/glfw_src/ ${MY_DIR}/../../depends/glfw)
+INCLUDE_DIRECTORIES(${MY_DIR}/../../depends/glfw_src/include/)
 
-if(APPLE)
+if (APPLE)
   # libjpeg-turbo
-  INCLUDE_DIRECTORIES("${DEPENDS_DIR}/libjpeg_turbo/include/")
-  LINK_DIRECTORIES("${DEPENDS_DIR}/libjpeg_turbo/lib/")
+  INCLUDE_DIRECTORIES("${MY_DIR}/../../depends/libjpeg_turbo/include/")
+  LINK_DIRECTORIES("${MY_DIR}/../../depends/libjpeg_turbo/lib/")
 endif()
 
 SET(RESOURCES_INC_FILE "${MY_DIR}/src/resources.inc")
@@ -67,9 +65,7 @@ GENERATE_RESOURCES(${RESOURCES_INC_FILE} ${MY_DIR}
   src/shader/filter2.fs
   src/shader/stage1.fs
   src/shader/stage2.fs
-  src/opencl_depth_packet_processor.cl
 )
-add_definitions(-DREG_OPENCL_FILE="src/opencl_depth_packet_processor.cl")
 
 INCLUDE_DIRECTORIES("${MY_DIR}/include")
 
@@ -90,7 +86,6 @@ ADD_LIBRARY(freenect2 SHARED
   src/depth_packet_processor.cpp
   src/cpu_depth_packet_processor.cpp
   src/opengl_depth_packet_processor.cpp
-  src/opencl_depth_packet_processor.cpp
   src/resource.cpp
   
   src/usb_control.cpp
@@ -108,7 +103,6 @@ TARGET_LINK_LIBRARIES(freenect2
   GLEWmx
   glfw
   ${GLFW_LIBRARIES}
-  OpenCL
 )
 
 ADD_EXECUTABLE(test_opengl
@@ -126,16 +120,3 @@ ADD_EXECUTABLE(Protonect
 TARGET_LINK_LIBRARIES(Protonect
   freenect2
 )
-
-set_target_properties(Protonect PROPERTIES INSTALL_RPATH_USE_LINK_PATH TRUE)
-install(TARGETS Protonect freenect2
-        RUNTIME DESTINATION bin
-        LIBRARY DESTINATION lib
-        ARCHIVE DESTINATION lib)
-
-install_files(/include/${PROJECT_NAME} FILES include/${PROJECT_NAME}/libfreenect2.hpp include/${PROJECT_NAME}/frame_listener.hpp)
-install_files(/ FILES "${DEPENDS_DIR}/libusb/")
-install_files(/ FILES "${DEPENDS_DIR}/glew/")
-if(APPLE)
-  install_files(/ FILES "${DEPENDS_DIR}/libjpeg_turbo/")
-endif()
