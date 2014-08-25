@@ -108,7 +108,7 @@ TARGET_LINK_LIBRARIES(freenect2
   GLEWmx
   glfw
   ${GLFW_LIBRARIES}
-  OpenCL
+  ${OPENCL_LIBRARIES}
 )
 
 ADD_EXECUTABLE(test_opengl
