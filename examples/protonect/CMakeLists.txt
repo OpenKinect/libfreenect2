@@ -22,6 +22,7 @@ SET(LIBRARY_OUTPUT_PATH ${MY_DIR}/lib)
 
 # dependencies
 FIND_PACKAGE(OpenCV REQUIRED)
+find_library(OPENCL_LIBRARIES OpenCL)
 
 # OpenCV
 INCLUDE_DIRECTORIES(${OpenCV_INCLUDE_DIR})
@@ -65,7 +66,9 @@ GENERATE_RESOURCES(${RESOURCES_INC_FILE} ${MY_DIR}
   src/shader/filter2.fs
   src/shader/stage1.fs
   src/shader/stage2.fs
+  src/opencl_depth_packet_processor.cl
 )
+add_definitions(-DREG_OPENCL_FILE="src/opencl_depth_packet_processor.cl")
 
 INCLUDE_DIRECTORIES("${MY_DIR}/include")
 
@@ -86,6 +89,7 @@ ADD_LIBRARY(freenect2 SHARED
   src/depth_packet_processor.cpp
   src/cpu_depth_packet_processor.cpp
   src/opengl_depth_packet_processor.cpp
+  src/opencl_depth_packet_processor.cpp
   src/resource.cpp
   
   src/usb_control.cpp
@@ -103,6 +107,7 @@ TARGET_LINK_LIBRARIES(freenect2
   GLEWmx
   glfw
   ${GLFW_LIBRARIES}
+  ${OPENCL_LIBRARIES}
 )
 
 ADD_EXECUTABLE(test_opengl
