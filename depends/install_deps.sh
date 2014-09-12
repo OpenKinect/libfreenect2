@@ -3,7 +3,7 @@ cd `dirname $0`
 DEPENDS_DIR=`pwd`
 
 
-# libjpeg-turbo with -fPIC patch
+# libjpeg-turbo
 rm -rf $TURBOJPEG_SOURCE_DIR $TURBOJPEG_INSTALL_DIR $TURBOJPEG_BUILD_DIR
 
 TURBOJPEG_SOURCE_DIR=$DEPENDS_DIR/libjpeg-turbo-1.3.1
