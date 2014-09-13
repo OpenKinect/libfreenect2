@@ -120,3 +120,13 @@ ADD_EXECUTABLE(Protonect
 TARGET_LINK_LIBRARIES(Protonect
   freenect2
 )
+
+CONFIGURE_FILE(freenect2.cmake.in
+  "${PROJECT_BINARY_DIR}/freenect2Config.cmake" @ONLY)
+
+INSTALL(TARGETS 
+  freenect2 DESTINATION lib)
+INSTALL(DIRECTORY 
+  "${MY_DIR}/include/" DESTINATION include)
+INSTALL(FILES 
+  freenect2Config.cmake DESTINATION lib/cmake/freenect2/)
