@@ -2,6 +2,7 @@ CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
 
 PROJECT(libfreenect2)
 SET(CMAKE_BUILD_TYPE RelWithDebInfo)
+set(CMAKE_CXX_FLAGS "-std=c++0x ${CMAKE_CXX_FLAGS}")
 
 SET(MY_DIR ${libfreenect2_SOURCE_DIR})
 SET(DEPENDS_DIR "${libfreenect2_SOURCE_DIR}/../../depends")
@@ -55,6 +56,11 @@ if(APPLE)
   INCLUDE_DIRECTORIES("${DEPENDS_DIR}/libjpeg_turbo/include/")
   LINK_DIRECTORIES("${DEPENDS_DIR}/libjpeg_turbo/lib/")
 endif()
+
+# Display additional files in qtcreator
+execute_process(COMMAND find ${PROJECT_SOURCE_DIR} -type f -name "*.*" OUTPUT_VARIABLE FILES_ALL_STRING)
+string(REPLACE "\n" ";" FILES_ALL_LIST ${FILES_ALL_STRING})
+add_custom_target(additional_files SOURCES ${FILES_ALL_LIST})
 
 SET(RESOURCES_INC_FILE "${MY_DIR}/src/resources.inc")
 GENERATE_RESOURCES(${RESOURCES_INC_FILE} ${MY_DIR} 
