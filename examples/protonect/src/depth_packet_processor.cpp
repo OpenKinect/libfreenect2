@@ -81,8 +81,8 @@ DepthPacketProcessor::Parameters::Parameters()
   edge_avg_delta_threshold = 0.0f;
   max_edge_count  = 5.0f;
 
-  min_depth = 500.0f;
-  max_depth = 4500.0f;
+  min_depth = 100.0f;
+  max_depth = 10000.0f;
 }
 
 DepthPacketProcessor::DepthPacketProcessor() :
