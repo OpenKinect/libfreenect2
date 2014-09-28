@@ -25,34 +25,86 @@
  */
 
 #include <libfreenect2/frame_listener_impl.h>
+#include <libfreenect2/threading.h>
 
 namespace libfreenect2
 {
 
 FrameListener::~FrameListener() {}
 
-SyncMultiFrameListener::SyncMultiFrameListener(unsigned int frame_types) :
+class SyncMultiFrameListenerImpl
+{
+public:
+  libfreenect2::mutex mutex_;
+  libfreenect2::condition_variable condition_;
+  FrameMap next_frame_;
+
+  const unsigned int subscribed_frame_types_;
+  unsigned int ready_frame_types_;
+
+  SyncMultiFrameListenerImpl(unsigned int frame_types) :
     subscribed_frame_types_(frame_types),
     ready_frame_types_(0)
+  {
+  }
+
+  bool hasNewFrame() const
+  {
+    return ready_frame_types_ == subscribed_frame_types_;
+  }
+};
+
+SyncMultiFrameListener::SyncMultiFrameListener(unsigned int frame_types) :
+    impl_(new SyncMultiFrameListenerImpl(frame_types))
 {
 }
 
 SyncMultiFrameListener::~SyncMultiFrameListener()
 {
+  delete impl_;
 }
+
+bool SyncMultiFrameListener::hasNewFrame() const
+{
+  libfreenect2::unique_lock l(impl_->mutex_);
+
+  return impl_->hasNewFrame();
+}
+
+#ifdef LIBFREENECT2_THREADING_STDLIB
+bool SyncMultiFrameListener::waitForNewFrame(FrameMap &frame, int milliseconds)
+{
+  libfreenect2::unique_lock l(impl_->mutex_);
+
+  auto predicate = std::bind(&SyncMultiFrameListenerImpl::hasNewFrame, impl_);
+
+  if(impl_->condition_.wait_for(l, std::chrono::milliseconds(milliseconds), predicate))
+  {
+    frame = impl_->next_frame_;
+    impl_->next_frame_.clear();
+    impl_->ready_frame_types_ = 0;
+
+    return true;
+  }
+  else
+  {
+    return false;
+  }
+}
+#endif // LIBFREENECT2_THREADING_STDLIB
 
 void SyncMultiFrameListener::waitForNewFrame(FrameMap &frame)
 {
-  libfreenect2::unique_lock l(mutex_);
+  libfreenect2::unique_lock l(impl_->mutex_);
 
-  while(ready_frame_types_ != subscribed_frame_types_)
+  while(!impl_->hasNewFrame())
   {
-    WAIT_CONDITION(condition_, mutex_, l)
+    WAIT_CONDITION(impl_->condition_, impl_->mutex_, l)
   }
 
-  frame = next_frame_;
-  next_frame_.clear();
-  ready_frame_types_ = 0;
+  frame = impl_->next_frame_;
+  impl_->next_frame_.clear();
+  impl_->ready_frame_types_ = 0;
 }
 
 void SyncMultiFrameListener::release(FrameMap &frame)
@@ -68,14 +120,14 @@ void SyncMultiFrameListener::release(FrameMap &frame)
 
 bool SyncMultiFrameListener::onNewFrame(Frame::Type type, Frame *frame)
 {
-  if((subscribed_frame_types_ & type) == 0) return false;
+  if((impl_->subscribed_frame_types_ & type) == 0) return false;
 
   {
-    libfreenect2::lock_guard l(mutex_);
+    libfreenect2::lock_guard l(impl_->mutex_);
 
-    FrameMap::iterator it = next_frame_.find(type);
+    FrameMap::iterator it = impl_->next_frame_.find(type);
 
-    if(it != next_frame_.end())
+    if(it != impl_->next_frame_.end())
     {
       // replace frame
       delete it->second;
@@ -83,13 +135,13 @@ bool SyncMultiFrameListener::onNewFrame(Frame::Type type, Frame *frame)
     }
     else
     {
-      next_frame_[type] = frame;
+      impl_->next_frame_[type] = frame;
     }
 
-    ready_frame_types_ |= type;
+    impl_->ready_frame_types_ |= type;
   }
 
-  condition_.notify_one();
+  impl_->condition_.notify_one();
 
   return true;
 }
