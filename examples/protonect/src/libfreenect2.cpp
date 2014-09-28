@@ -70,7 +70,15 @@ private:
   CommandTransaction command_tx_;
   int command_seq_;
 
+<<<<<<< HEAD
   const PacketPipeline *pipeline_;
+=======
+  TurboJpegRgbPacketProcessor rgb_packet_processor_;
+  OpenGLDepthPacketProcessor depth_packet_processor_;
+
+  RgbPacketStreamParser rgb_packet_parser_;
+  DepthPacketStreamParser depth_packet_parser_;
+>>>>>>> fixing compilation if opencl is not available
 
   std::string serial_, firmware_;
   Freenect2Device::IrCameraParams ir_camera_params_;
