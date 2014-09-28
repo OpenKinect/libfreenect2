@@ -71,7 +71,6 @@ private:
   int command_seq_;
 
   const PacketPipeline *pipeline_;
-
   std::string serial_, firmware_;
   Freenect2Device::IrCameraParams ir_camera_params_;
   Freenect2Device::ColorCameraParams rgb_camera_params_;

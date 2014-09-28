@@ -22,7 +22,8 @@ SET(LIBRARY_OUTPUT_PATH ${MY_DIR}/lib)
 
 # dependencies
 FIND_PACKAGE(OpenCV REQUIRED)
-find_library(OPENCL_LIBRARIES OpenCL)
+
+FIND_PACKAGE(OpenCL)
 
 <<<<<<< HEAD
 if(OPENMP_FOUND)
@@ -65,6 +66,7 @@ if(APPLE)
 endif()
 
 SET(RESOURCES_INC_FILE "${MY_DIR}/src/resources.inc")
+<<<<<<< HEAD
 
 <<<<<<< HEAD
 SET(SOURCES
@@ -75,6 +77,10 @@ ADD_DEFINITIONS(-DRESOURCES_INC)
 ADD_LIBRARY(freenect2 SHARED
   src/opengl.cpp
 >>>>>>> cleaned up CMakeLists.txt. Removed c++11 dependency.
+=======
+
+SET(SOURCES
+>>>>>>> fixing compilation if opencl is not available
   src/transfer_pool.cpp
   src/event_loop.cpp
   
@@ -121,7 +127,6 @@ LIST(APPEND LIBRARIES
   GLEWmx
   glfw
   ${GLFW_LIBRARIES}
-  ${OPENCL_LIBRARIES}
 )
 
 LIST(APPEND RESOURCES
@@ -187,3 +192,4 @@ IF("${LIBFREENECT2_THREADING}" MATCHES "tinythread")
 ENDIF("${LIBFREENECT2_THREADING}" MATCHES "tinythread")
 INSTALL(FILES 
   "${PROJECT_BINARY_DIR}/freenect2Config.cmake" DESTINATION lib/cmake/freenect2/)
+  
