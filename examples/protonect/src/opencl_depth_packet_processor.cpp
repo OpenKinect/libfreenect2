@@ -400,7 +400,7 @@ public:
 
   bool readProgram(std::string &source) const
   {
-    source = loadCLSource(REG_OPENCL_FILE);
+    source = loadCLSource("src/opencl_depth_packet_processor.cl");
     return !source.empty();
   }
 
