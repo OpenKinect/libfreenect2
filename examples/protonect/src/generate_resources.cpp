@@ -77,6 +77,7 @@ int main(int argc, char **argv)
   }
 
   cout << "};" << endl;
-
+  cout << "int resource_descriptors_length = " << (argc - 2) << ";" << endl;
+  
   return 0;
 }
