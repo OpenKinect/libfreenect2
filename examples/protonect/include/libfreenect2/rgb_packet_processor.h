@@ -31,6 +31,7 @@
 #include <stdint.h>
 
 #include <libfreenect2/frame_listener.hpp>
+#include <libfreenect2/packet_processor.h>
 
 namespace libfreenect2
 {
@@ -43,15 +44,15 @@ struct RgbPacket
   size_t jpeg_buffer_length;
 };
 
-class RgbPacketProcessor
+typedef PacketProcessor<RgbPacket> BaseRgbPacketProcessor;
+
+class RgbPacketProcessor : public BaseRgbPacketProcessor
 {
 public:
   RgbPacketProcessor();
   virtual ~RgbPacketProcessor();
 
   virtual void setFrameListener(libfreenect2::FrameListener *listener);
-  virtual void process(const libfreenect2::RgbPacket &packet) = 0;
-
 protected:
   libfreenect2::FrameListener *listener_;
 };

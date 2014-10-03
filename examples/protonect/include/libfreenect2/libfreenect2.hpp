@@ -32,6 +32,8 @@
 namespace libfreenect2
 {
 
+class PacketPipeline;
+
 class Freenect2Device
 {
 public:
@@ -80,11 +82,14 @@ public:
   std::string getDefaultDeviceSerialNumber();
 
   Freenect2Device *openDevice(int idx);
+  Freenect2Device *openDevice(int idx, const PacketPipeline *factory);
   Freenect2Device *openDevice(const std::string &serial);
+  Freenect2Device *openDevice(const std::string &serial, const PacketPipeline *factory);
 
   Freenect2Device *openDefaultDevice();
+  Freenect2Device *openDefaultDevice(const PacketPipeline *factory);
 protected:
-  Freenect2Device *openDevice(int idx, bool attempting_reset);
+  Freenect2Device *openDevice(int idx, const PacketPipeline *factory, bool attempting_reset);
 private:
   Freenect2Impl *impl_;
 };

@@ -77,6 +77,7 @@ ADD_LIBRARY(freenect2 SHARED
   
   src/double_buffer.cpp
   src/frame_listener_impl.cpp
+  src/packet_pipeline.cpp
   
   src/rgb_packet_stream_parser.cpp
   src/rgb_packet_processor.cpp

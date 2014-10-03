@@ -25,6 +25,7 @@
  */
 
 #include <libfreenect2/depth_packet_processor.h>
+#include <libfreenect2/async_packet_processor.h>
 
 namespace libfreenect2
 {
@@ -103,6 +104,5 @@ void DepthPacketProcessor::setFrameListener(libfreenect2::FrameListener *listene
 {
   listener_ = listener;
 }
-
 
 } /* namespace libfreenect2 */

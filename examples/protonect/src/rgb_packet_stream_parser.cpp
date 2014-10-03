@@ -40,15 +40,19 @@ struct RawRgbPacket
   unsigned char jpeg_buffer[0];
 };
 
-
-RgbPacketStreamParser::RgbPacketStreamParser(libfreenect2::RgbPacketProcessor* processor) :
-    processor_(processor)
+RgbPacketStreamParser::RgbPacketStreamParser() :
+    processor_(noopProcessor<RgbPacket>())
 {
   buffer_.allocate(1920*1080*3+sizeof(RgbPacket));
 }
 
 RgbPacketStreamParser::~RgbPacketStreamParser()
 {
+}
+
+void RgbPacketStreamParser::setPacketProcessor(BaseRgbPacketProcessor *processor)
+{
+  processor_ = (processor != 0) ? processor : noopProcessor<RgbPacket>();
 }
 
 void RgbPacketStreamParser::onDataReceived(unsigned char* buffer, size_t length)
@@ -73,7 +77,7 @@ void RgbPacketStreamParser::onDataReceived(unsigned char* buffer, size_t length)
     if(length < 0x4000 && fb.length > sizeof(RgbPacket))
     {
       // can the processor handle the next image?
-      if(processor_.ready())
+      if(processor_->ready())
       {
         buffer_.swap();
         Buffer &bb = buffer_.back();
@@ -85,7 +89,7 @@ void RgbPacketStreamParser::onDataReceived(unsigned char* buffer, size_t length)
         rgb_packet.jpeg_buffer_length = bb.length - sizeof(RawRgbPacket);
 
         // call the processor
-        processor_.process(rgb_packet);
+        processor_->process(rgb_packet);
       }
       else
       {

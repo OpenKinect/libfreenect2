@@ -25,6 +25,7 @@
  */
 
 #include <libfreenect2/rgb_packet_processor.h>
+#include <libfreenect2/async_packet_processor.h>
 
 #include <fstream>
 #include <string>

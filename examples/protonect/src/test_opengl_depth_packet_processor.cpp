@@ -88,7 +88,7 @@ int main(int argc, char **argv) {
   ref_processor.loadXTableFromFile("");
   ref_processor.loadZTableFromFile("");
 
-  libfreenect2::AsyncPacketProcessor<libfreenect2::DepthPacket, libfreenect2::DepthPacketProcessor> async(&processor);
+  libfreenect2::AsyncPacketProcessor<libfreenect2::DepthPacket> async(&processor);
 
   libfreenect2::DepthPacket p;
   p.buffer_length = 352*424*10*2;
