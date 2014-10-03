@@ -27,6 +27,8 @@
 #ifndef FRAME_LISTENER_HPP_
 #define FRAME_LISTENER_HPP_
 
+#include <cstddef>
+
 namespace libfreenect2
 {
 
