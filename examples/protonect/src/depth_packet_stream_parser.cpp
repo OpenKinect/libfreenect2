@@ -27,6 +27,7 @@
 #include <libfreenect2/depth_packet_stream_parser.h>
 #include <iostream>
 #include <memory.h>
+#include <algorithm>
 
 namespace libfreenect2
 {
@@ -69,7 +70,7 @@ void DepthPacketStreamParser::onDataReceived(unsigned char* buffer, size_t in_le
     DepthSubPacketFooter *footer = 0;
     bool footer_found = false;
 
-    size_t max_length = std::min(wb.capacity - wb.length, in_length - 8);
+    size_t max_length = std::min<size_t>(wb.capacity - wb.length, in_length - 8);
 
     for(; in_offset < max_length; ++in_offset)
     {
