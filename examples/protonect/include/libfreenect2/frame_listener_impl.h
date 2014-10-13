@@ -37,7 +37,7 @@ typedef std::map<Frame::Type, Frame*> FrameMap;
 
 class SyncMultiFrameListenerImpl;
 
-class SyncMultiFrameListener : public FrameListener
+class LIBFREENECT2_API SyncMultiFrameListener : public FrameListener
 {
 public:
   SyncMultiFrameListener(unsigned int frame_types);
