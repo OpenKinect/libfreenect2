@@ -32,6 +32,7 @@
 #include <iomanip>
 #include <stdint.h>
 #include <algorithm>
+#include <libfreenect2/common.h>
 
 namespace libfreenect2
 {
@@ -155,7 +156,7 @@ public:
 };
 
 // probably some combination of color camera intrinsics + depth coefficient tables
-struct __attribute__ ((__packed__)) RgbCameraParamsResponse
+PACK( struct RgbCameraParamsResponse
 {
   // unknown, always seen as 1 so far
   uint8_t table_id;
@@ -168,11 +169,11 @@ struct __attribute__ ((__packed__)) RgbCameraParamsResponse
   // matches the depth image aspect ratio of 512*424 very closely
   float table1[28 * 23 * 4];
   float table2[28 * 23];
-};
+});
 
 
 // depth camera intrinsic & distortion parameters
-struct __attribute__ ((__packed__)) DepthCameraParamsResponse
+PACK(struct DepthCameraParamsResponse
 {
   // intrinsics (this is pretty certain)
   float fx;
@@ -189,10 +190,10 @@ struct __attribute__ ((__packed__)) DepthCameraParamsResponse
   float k3;
 
   float unknown1[13]; // assumed to be always zero
-};
+});
 
 // "P0" coefficient tables, input to the deconvolution code
-struct __attribute__ ((__packed__)) P0TablesResponse
+PACK(struct P0TablesResponse
 {
   uint32_t headersize;
   uint32_t unknown1;
@@ -216,7 +217,7 @@ struct __attribute__ ((__packed__)) P0TablesResponse
   uint16_t unknownC;
 
   uint8_t  unknownD[];
-};
+});
 
 } /* namespace protocol */
 } /* namespace libfreenect2 */

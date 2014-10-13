@@ -35,10 +35,12 @@
 
 #include <libfreenect2/usb/transfer_pool.h>
 
+#include <libfreenect2/common.h>
+
 namespace libfreenect2
 {
 
-struct DepthSubPacketFooter
+PACK(struct DepthSubPacketFooter
 {
   uint32_t magic0;
   uint32_t magic1;
@@ -47,7 +49,7 @@ struct DepthSubPacketFooter
   uint32_t subsequence;
   uint32_t length;
   uint32_t fields[32];
-};
+});
 
 class DepthPacketStreamParser : public libfreenect2::usb::TransferPool::DataReceivedCallback
 {

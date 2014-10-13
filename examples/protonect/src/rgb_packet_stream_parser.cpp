@@ -25,6 +25,7 @@
  */
 
 #include <libfreenect2/rgb_packet_stream_parser.h>
+#include <libfreenect2/common.h>
 #include <memory.h>
 #include <iostream>
 
@@ -32,13 +33,13 @@ namespace libfreenect2
 {
 
 
-struct RawRgbPacket
+PACK(struct RawRgbPacket
 {
   uint32_t sequence;
   uint32_t unknown0;
 
   unsigned char jpeg_buffer[0];
-};
+});
 
 RgbPacketStreamParser::RgbPacketStreamParser() :
     processor_(noopProcessor<RgbPacket>())
