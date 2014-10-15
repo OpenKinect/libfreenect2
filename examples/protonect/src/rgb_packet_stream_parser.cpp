@@ -77,6 +77,10 @@ void RgbPacketStreamParser::onDataReceived(unsigned char* buffer, size_t length)
     // TODO: better method, is unknown0 a magic? detect JPEG magic?
     if(length < 0x4000 && fb.length > sizeof(RgbPacket))
     {
+    
+      // Extract timestamp
+      uint32_t timestamp = *((uint32_t*) &buffer[length - 36]);
+    
       // can the processor handle the next image?
       if(processor_->ready())
       {
@@ -86,6 +90,7 @@ void RgbPacketStreamParser::onDataReceived(unsigned char* buffer, size_t length)
         RawRgbPacket *raw_packet = reinterpret_cast<RawRgbPacket *>(bb.data);
         RgbPacket rgb_packet;
         rgb_packet.sequence = raw_packet->sequence;
+        rgb_packet.timestamp = timestamp;
         rgb_packet.jpeg_buffer = raw_packet->jpeg_buffer;
         rgb_packet.jpeg_buffer_length = bb.length - sizeof(RawRgbPacket);
 
