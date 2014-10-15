@@ -40,6 +40,16 @@ struct RawRgbPacket
   unsigned char jpeg_buffer[0];
 };
 
+struct RgbPacketFooter {
+    uint32_t sequence;
+    uint8_t unknown0[12];
+    uint32_t timestamp;
+    uint8_t unknown1[12];
+    uint32_t packet_size;
+    uint32_t unknown3;
+    uint8_t unknown4[12];
+};
+
 RgbPacketStreamParser::RgbPacketStreamParser() :
     processor_(noopProcessor<RgbPacket>())
 {
@@ -72,32 +82,36 @@ void RgbPacketStreamParser::onDataReceived(unsigned char* buffer, size_t length)
       std::cerr << "[RgbPacketStreamParser::handleNewData] buffer overflow!" << std::endl;
     }
 
-    // not full transfer buffer and we already have some data -> signals end of rgb image packet
-    // TODO: better method, is unknown0 a magic? detect JPEG magic?
-    if(length < 0x4000 && fb.length > sizeof(RgbPacket))
-    {
-      // can the processor handle the next image?
-      if(processor_->ready())
-      {
-        buffer_.swap();
-        Buffer &bb = buffer_.back();
+    // Check if full frame has arrived.
+    // NOTE: For extra security one could try to see if the footer contains
+    // a magic identifer, or search backwards for the JPEG EOI marker (FF D9).
+    if (fb.length > sizeof(RgbPacketFooter)) {
+      RgbPacketFooter *footer = reinterpret_cast<RgbPacketFooter *>(&fb.data[fb.length - sizeof(RgbPacketFooter)]);
+      RawRgbPacket *header = reinterpret_cast<RawRgbPacket *>(fb.data);
+      if ((fb.length == footer->packet_size) && (footer->sequence == header->sequence) ) {
+          // can the processor handle the next image?
+          if(processor_->ready())
+          {
+            buffer_.swap();
+            Buffer &bb = buffer_.back();
 
-        RawRgbPacket *raw_packet = reinterpret_cast<RawRgbPacket *>(bb.data);
-        RgbPacket rgb_packet;
-        rgb_packet.sequence = raw_packet->sequence;
-        rgb_packet.jpeg_buffer = raw_packet->jpeg_buffer;
-        rgb_packet.jpeg_buffer_length = bb.length - sizeof(RawRgbPacket);
+            RawRgbPacket *raw_packet = reinterpret_cast<RawRgbPacket *>(bb.data);
+            RgbPacket rgb_packet;
+            rgb_packet.sequence = raw_packet->sequence;
+            rgb_packet.jpeg_buffer = raw_packet->jpeg_buffer;
+            rgb_packet.jpeg_buffer_length = bb.length - sizeof(RawRgbPacket);
 
-        // call the processor
-        processor_->process(rgb_packet);
+            // call the processor
+            processor_->process(rgb_packet);
+          }
+          else
+          {
+            std::cerr << "[RgbPacketStreamParser::handleNewData] skipping rgb packet!" << std::endl;
+          }
+
+          // reset front buffer
+          buffer_.front().length = 0;
       }
-      else
-      {
-        std::cerr << "[RgbPacketStreamParser::handleNewData] skipping rgb packet!" << std::endl;
-      }
-
-      // reset front buffer
-      buffer_.front().length = 0;
     }
   }
 }
