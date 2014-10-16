@@ -40,7 +40,7 @@ namespace libfreenect2
 struct LIBFREENECT2_API RgbPacket
 {
   uint32_t sequence;
-
+  uint32_t timestamp;
   unsigned char *jpeg_buffer;
   size_t jpeg_buffer_length;
 };
