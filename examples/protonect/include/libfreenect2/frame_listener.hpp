@@ -28,6 +28,7 @@
 #define FRAME_LISTENER_HPP_
 
 #include <cstddef>
+#include <stdint.h>
 #include <libfreenect2/config.h>
 
 namespace libfreenect2
@@ -42,6 +43,7 @@ struct LIBFREENECT2_API Frame
     Depth = 4
   };
 
+  uint32_t timestamp;
   size_t width, height, bytes_per_pixel;
   unsigned char* data;
 

@@ -935,6 +935,12 @@ void OpenGLDepthPacketProcessor::process(const DepthPacket &packet)
   impl_->run(has_listener ? &ir : 0, has_listener ? &depth : 0);
 
   if(impl_->do_debug) glfwSwapBuffers(impl_->opengl_context_ptr);
+  if (ir != 0)
+    ir->timestamp = packet.timestamp;
+  if (depth != 0)
+    depth->timestamp = packet.timestamp;
+
+
 
   impl_->stopTiming();
 
