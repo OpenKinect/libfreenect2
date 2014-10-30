@@ -80,7 +80,7 @@ make && make install
 
 ==== Ubuntu 14.04 (perhaps earlier)
 
-1. Install libfreenect2
+1. Download libfreenect2
 
 git clone https://github.com/OpenKinect/libfreenect2.git
 
@@ -93,13 +93,15 @@ sh install_ubuntu.sh
 
 sudo ln -s /usr/lib/x86_64-linux-gnu/libturbojpeg.so.0.0.0 /usr/lib/x86_64-linux-gnu/libturbojpeg.so
 
-4. Build the actual protonect executable
+4. You probably need also an OpenCL library. For AMD and Nvidia it comes with their drivers. But the OpenCL library from Nvidia was not supporting the same version as the Headers, I you can instal ``ocl-icd-opencl-dev`` instead of ``nvidia-opencl-dev``. For AMD the libs that come with the driver are working fine. For Intel GPUs one should take a look at the [Beignet project](http://www.freedesktop.org/wiki/Software/Beignet/).
+
+5. Build the actual protonect executable
 
 cd ../examples/protonect/
 cmake CMakeLists.txt
 make && sudo make install
 
-5. Run the program
+6. Run the program
 
 ./bin/Protonect
 
