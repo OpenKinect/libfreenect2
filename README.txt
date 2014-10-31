@@ -78,6 +78,33 @@ make && make install
 6. Run the program
 ./bin/Protonect
 
+==== Ubuntu 14.04 (perhaps earlier)
+
+1. Download libfreenect2
+
+git clone https://github.com/OpenKinect/libfreenect2.git
+
+2. Install a bunch of dependencies
+
+cd libfreenect2/depends
+sh install_ubuntu.sh
+
+3. Fix libturbojpeg if needed:
+
+sudo ln -s /usr/lib/x86_64-linux-gnu/libturbojpeg.so.0.0.0 /usr/lib/x86_64-linux-gnu/libturbojpeg.so
+
+4. You probably need also an OpenCL library. For AMD and Nvidia it comes with their drivers. But the OpenCL library from Nvidia was not supporting the same version as the Headers, I you can instal ``ocl-icd-opencl-dev`` instead of ``nvidia-opencl-dev``. For AMD the libs that come with the driver are working fine. For Intel GPUs one should take a look at the [Beignet project](http://www.freedesktop.org/wiki/Software/Beignet/).
+
+5. Build the actual protonect executable
+
+cd ../examples/protonect/
+cmake CMakeLists.txt
+make && sudo make install
+
+6. Run the program
+
+./bin/Protonect
+
 ==== Other operating systems
 
 I'm not sure, but look for libusbx installation instructions for your OS. Figure out how to attach the driver to the Xbox NUI Sensor composite parent device, VID 045E PID 02C4, then contribute your procedure.
