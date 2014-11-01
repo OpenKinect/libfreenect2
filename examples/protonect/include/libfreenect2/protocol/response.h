@@ -31,6 +31,7 @@
 #include <sstream>
 #include <iomanip>
 #include <stdint.h>
+#include <algorithm>
 
 namespace libfreenect2
 {
@@ -101,10 +102,10 @@ public:
     FWSubsystemVersion max;
     for(int i = 0; i < versions_.size(); ++i)
     {
-      max.major = std::max(max.major, versions_[i].major);
-      max.minor = std::max(max.minor, versions_[i].minor);
-      max.build = std::max(max.build, versions_[i].build);
-      max.revision = std::max(max.revision, versions_[i].revision);
+      max.major = std::max<uint16_t>(max.major, versions_[i].major);
+      max.minor = std::max<uint16_t>(max.minor, versions_[i].minor);
+      max.build = std::max<uint16_t>(max.build, versions_[i].build);
+      max.revision = std::max<uint16_t>(max.revision, versions_[i].revision);
     }
     std::stringstream version_string;
     version_string << max.major << "." << max.minor << "." << max.build << "." << max.revision << "." << versions_.size();
