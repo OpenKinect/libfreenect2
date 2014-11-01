@@ -107,7 +107,7 @@ struct PrintBusAndDevice
 
 std::ostream &operator<<(std::ostream &out, const PrintBusAndDevice& dev)
 {
-  out << "@" << int(libusb_get_bus_number(dev.dev_)) << ":" << int(libusb_get_port_number(dev.dev_));
+  out << "@" << int(libusb_get_bus_number(dev.dev_)) << ":" << int(libusb_get_device_address(dev.dev_));
   return out;
 }
 
@@ -351,12 +351,12 @@ bool Freenect2DeviceImpl::isSameUsbDevice(libusb_device* other)
   if(state_ != Closed && usb_device_ != 0)
   {
     unsigned char bus = libusb_get_bus_number(usb_device_);
-    unsigned char port = libusb_get_port_number(usb_device_);
+    unsigned char address = libusb_get_device_address(usb_device_);
 
     unsigned char other_bus = libusb_get_bus_number(other);
-    unsigned char other_port = libusb_get_port_number(other);
+    unsigned char other_address = libusb_get_device_address(other);
 
-    result = (bus == other_bus) && (port == other_port);
+    result = (bus == other_bus) && (address == other_address);
   }
 
   return result;
