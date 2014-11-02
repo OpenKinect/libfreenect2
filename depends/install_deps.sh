@@ -2,6 +2,29 @@
 cd `dirname $0`
 DEPENDS_DIR=`pwd`
 
+
+# libjpeg-turbo
+rm -rf $TURBOJPEG_SOURCE_DIR $TURBOJPEG_INSTALL_DIR $TURBOJPEG_BUILD_DIR
+
+TURBOJPEG_SOURCE_DIR=$DEPENDS_DIR/libjpeg-turbo-1.3.1
+TURBOJPEG_INSTALL_DIR=$DEPENDS_DIR/libturbojpeg
+TURBOJPEG_BUILD_DIR=$DEPENDS_DIR/libturbojpeg_build
+
+wget -O libjpeg-turbo-1.3.1.tar.gz http://downloads.sourceforge.net/project/libjpeg-turbo/1.3.1/libjpeg-turbo-1.3.1.tar.gz
+
+tar xvf libjpeg-turbo-1.3.1.tar.gz
+
+cd $TURBOJPEG_SOURCE_DIR
+mkdir $TURBOJPEG_BUILD_DIR
+mkdir $TURBOJPEG_INSTALL_DIR
+autoreconf -fiv
+cd $TURBOJPEG_BUILD_DIR
+sh ../libjpeg-turbo-1.3.1/configure --prefix=$TURBOJPEG_BUILD_DIR
+make && make install prefix=$TURBOJPEG_INSTALL_DIR libdir=$TURBOJPEG_INSTALL_DIR
+cd $DEPENDS_DIR
+rm -r $TURBOJPEG_BUILD_DIR
+
+
 # libusbx with superspeed patch
 LIBUSB_SOURCE_DIR=$DEPENDS_DIR/libusb_src
 LIBUSB_INSTALL_DIR=$DEPENDS_DIR/libusb

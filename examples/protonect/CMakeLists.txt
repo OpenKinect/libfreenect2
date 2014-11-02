@@ -26,8 +26,12 @@ FIND_PACKAGE(OpenCV REQUIRED)
 # OpenCV
 INCLUDE_DIRECTORIES(${OpenCV_INCLUDE_DIR})
 
-# LibUSB
+# LibTuboJpeg
 INCLUDE_DIRECTORIES("${MY_DIR}/../../depends/libusb/include/libusb-1.0/")
+LINK_DIRECTORIES("${MY_DIR}/../../depends/libturbojpeg/")
+
+# LibUSB
+INCLUDE_DIRECTORIES("${MY_DIR}/../../depends/libusb/libturbojpeg/include/")
 LINK_DIRECTORIES("${MY_DIR}/../../depends/libusb/lib/")
 
 # GLEW
