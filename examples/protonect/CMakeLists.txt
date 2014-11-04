@@ -13,6 +13,7 @@ INCLUDE(SetupLibfreenect2Threading)
 INCLUDE_DIRECTORIES(${LIBFREENECT2_THREADING_INCLUDE_DIR})
 
 INCLUDE(GenerateResources)
+INCLUDE(FindPkgConfig)
 
 #set the default path for built executables to the "bin" directory
 SET(EXECUTABLE_OUTPUT_PATH ${MY_DIR}/bin)
@@ -40,13 +41,11 @@ endif()
 ADD_DEFINITIONS(-DGLEW_MX -DGLEW_STATIC)
 
 # GLFW
-SET(BUILD_SHARED_LIBS ON CACHE BOOL "Build shared libraries")
-SET(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "Build the GLFW example programs")
-SET(GLFW_BUILD_TESTS OFF CACHE BOOL "Build the GLFW test programs")
-SET(GLFW_BUILD_DOCS OFF CACHE BOOL "Build the GLFW documentation")
+SET(ENV{PKG_CONFIG_PATH} "${MY_DIR}/../../depends/glfw/lib/pkgconfig/")
+pkg_check_modules(GLFW REQUIRED glfw3)
 
-ADD_SUBDIRECTORY(${MY_DIR}/../../depends/glfw_src/ ${MY_DIR}/../../depends/glfw)
-INCLUDE_DIRECTORIES(${MY_DIR}/../../depends/glfw_src/include/)
+INCLUDE_DIRECTORIES("${GLFW_INCLUDE_DIRS}")
+LINK_DIRECTORIES("${GLFW_LIBRARY_DIRS}")
 
 if (APPLE)
   # libjpeg-turbo
