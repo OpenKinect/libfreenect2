@@ -133,4 +133,4 @@ IF("${LIBFREENECT2_THREADING}" MATCHES "tinythread")
     "${MY_DIR}/src/tinythread/tinythread.h" DESTINATION include/${PROJECT_NAME}/tinythread/)
 ENDIF("${LIBFREENECT2_THREADING}" MATCHES "tinythread")
 INSTALL(FILES 
-  freenect2Config.cmake DESTINATION lib/cmake/freenect2/)
+  "${PROJECT_BINARY_DIR}/freenect2Config.cmake" DESTINATION lib/cmake/freenect2/)
