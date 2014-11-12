@@ -27,7 +27,7 @@
 #ifndef USB_CONTROL_H_
 #define USB_CONTROL_H_
 
-#include <libusb.h>
+#include <libusb-1.0/libusb.h>
 
 namespace libfreenect2
 {

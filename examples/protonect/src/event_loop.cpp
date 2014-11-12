@@ -26,7 +26,7 @@
 
 #include <libfreenect2/usb/event_loop.h>
 
-#include <libusb.h>
+#include <libusb-1.0/libusb.h>
 #ifdef _WIN32
 #include <winsock.h>
 #else

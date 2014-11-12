@@ -27,7 +27,7 @@
 #include <iostream>
 #include <vector>
 #include <algorithm>
-#include <libusb.h>
+#include <libusb-1.0/libusb.h>
 
 #include <libfreenect2/libfreenect2.hpp>
 

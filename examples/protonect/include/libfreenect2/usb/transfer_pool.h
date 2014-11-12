@@ -27,7 +27,7 @@
 #ifndef TRANSFER_POOL_H_
 #define TRANSFER_POOL_H_
 
-#include <libusb.h>
+#include <libusb-1.0/libusb.h>
 
 #include <deque>
 
