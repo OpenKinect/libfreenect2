@@ -3,6 +3,8 @@ CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
 PROJECT(libfreenect2)
 SET(CMAKE_BUILD_TYPE RelWithDebInfo)
 
+SET(USE_DEPS_EXTERNAL "false" CACHE BOOL "Define wether we should use the deps external or use pkg_config to find them")
+
 SET(MY_DIR ${libfreenect2_SOURCE_DIR})
 
 # additional cmake modules
@@ -26,17 +28,35 @@ FIND_PACKAGE(OpenCV REQUIRED)
 # OpenCV
 INCLUDE_DIRECTORIES(${OpenCV_INCLUDE_DIR})
 
-# LibUSB
-INCLUDE_DIRECTORIES("${MY_DIR}/../../depends/libusb/include/libusb-1.0/")
-LINK_DIRECTORIES("${MY_DIR}/../../depends/libusb/lib/")
 
-# GLEW
-INCLUDE_DIRECTORIES("${MY_DIR}/../../depends/glew/include/")
-if (APPLE)
-  LINK_DIRECTORIES("${MY_DIR}/../../depends/glew/lib/")
+if(USE_DEPS_EXTERNAL)
+include(FindPkgConfig)
+    pkg_check_modules(libusb REQUIRED "libusb")
+    pkg_check_modules(GLFW REQUIRED "glfw3")
+    pkg_check_modules(GLEW REQUIRED "glew")
+    INCLUDE_DIRECTORIES(${libusb_INCLUDE_DIRS})
+    LINK_DIRECTORIES(${libusb_LIBDIR})
+
+    INCLUDE_DIRECTORIES(${GLFW_INCLUDE_DIRS})
+    LINK_DIRECTORIES(${GLFW_LIBRARY_DIRS})
+
+    INCLUDE_DIRECTORIES(${GLFEW_INCLUDE_DIRS})
+    LINK_DIRECTORIES(${GLEW_LIBRARY_DIRS})
 else()
-  LINK_DIRECTORIES("${MY_DIR}/../../depends/glew/lib64/")
-endif()
+    INCLUDE_DIRECTORIES("${MY_DIR}/../../depends/libusb/include/")
+    LINK_DIRECTORIES("${MY_DIR}/../../depends/libusb/lib/")
+
+    # GLEW
+    INCLUDE_DIRECTORIES("${MY_DIR}/../../depends/glew/include/")
+    if (APPLE)
+      LINK_DIRECTORIES("${MY_DIR}/../../depends/glew/lib/")
+    else()
+      LINK_DIRECTORIES("${MY_DIR}/../../depends/glew/lib64/")
+    endif()
+    ADD_SUBDIRECTORY(${MY_DIR}/../../depends/glfw_src/ ${MY_DIR}/../../depends/glfw)
+    INCLUDE_DIRECTORIES(${MY_DIR}/../../depends/glfw_src/include/)
+endif() # USE_DEPS_EXTERNAL
+
 ADD_DEFINITIONS(-DGLEW_MX -DGLEW_STATIC)
 
 # GLFW
@@ -45,8 +65,6 @@ SET(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "Build the GLFW example programs")
 SET(GLFW_BUILD_TESTS OFF CACHE BOOL "Build the GLFW test programs")
 SET(GLFW_BUILD_DOCS OFF CACHE BOOL "Build the GLFW documentation")
 
-ADD_SUBDIRECTORY(${MY_DIR}/../../depends/glfw_src/ ${MY_DIR}/../../depends/glfw)
-INCLUDE_DIRECTORIES(${MY_DIR}/../../depends/glfw_src/include/)
 
 if (APPLE)
   # libjpeg-turbo
@@ -121,3 +139,8 @@ ADD_EXECUTABLE(Protonect
 TARGET_LINK_LIBRARIES(Protonect
   freenect2
 )
+
+
+INSTALL(TARGETS Protonect RUNTIME DESTINATION bin)
+INSTALL(TARGETS freenect2 LIBRARY DESTINATION lib)
+INSTALL(DIRECTORY include/libfreenect2 DESTINATION include)
