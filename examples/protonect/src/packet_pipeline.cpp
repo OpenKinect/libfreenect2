@@ -34,17 +34,13 @@ PacketPipeline::~PacketPipeline()
 {
 }
 
-DefaultPacketPipeline::DefaultPacketPipeline()
+void BasePacketPipeline::initialize()
 {
   rgb_parser_ = new RgbPacketStreamParser();
   depth_parser_ = new DepthPacketStreamParser();
 
   rgb_processor_ = new TurboJpegRgbPacketProcessor();
-  OpenGLDepthPacketProcessor *depth_processor = new OpenGLDepthPacketProcessor(0);
-  depth_processor->load11To16LutFromFile("");
-  depth_processor->loadXTableFromFile("");
-  depth_processor->loadZTableFromFile("");
-  depth_processor_ = depth_processor;
+  depth_processor_ = createDepthPacketProcessor();
 
   async_rgb_processor_ = new AsyncPacketProcessor<RgbPacket>(rgb_processor_);
   async_depth_processor_ = new AsyncPacketProcessor<DepthPacket>(depth_processor_);
@@ -53,7 +49,7 @@ DefaultPacketPipeline::DefaultPacketPipeline()
   depth_parser_->setPacketProcessor(async_depth_processor_);
 }
 
-DefaultPacketPipeline::~DefaultPacketPipeline()
+BasePacketPipeline::~BasePacketPipeline()
 {
   delete async_rgb_processor_;
   delete async_depth_processor_;
@@ -63,24 +59,75 @@ DefaultPacketPipeline::~DefaultPacketPipeline()
   delete depth_parser_;
 }
 
-DefaultPacketPipeline::PacketParser *DefaultPacketPipeline::getRgbPacketParser() const
+BasePacketPipeline::PacketParser *BasePacketPipeline::getRgbPacketParser() const
 {
   return rgb_parser_;
 }
 
-DefaultPacketPipeline::PacketParser *DefaultPacketPipeline::getIrPacketParser() const
+BasePacketPipeline::PacketParser *BasePacketPipeline::getIrPacketParser() const
 {
   return depth_parser_;
 }
 
-RgbPacketProcessor *DefaultPacketPipeline::getRgbPacketProcessor() const
+RgbPacketProcessor *BasePacketPipeline::getRgbPacketProcessor() const
 {
   return rgb_processor_;
 }
 
-DepthPacketProcessor *DefaultPacketPipeline::getDepthPacketProcessor() const
+DepthPacketProcessor *BasePacketPipeline::getDepthPacketProcessor() const
 {
   return depth_processor_;
+}
+
+CpuPacketPipeline::CpuPacketPipeline()
+{ 
+  initialize();
+}
+
+CpuPacketPipeline::~CpuPacketPipeline() { }
+
+DepthPacketProcessor *CpuPacketPipeline::createDepthPacketProcessor()
+{
+  CpuDepthPacketProcessor *depth_processor = new CpuDepthPacketProcessor();
+  depth_processor->load11To16LutFromFile("11to16.bin");
+  depth_processor->loadXTableFromFile("xTable.bin");
+  depth_processor->loadZTableFromFile("zTable.bin");
+  
+  return depth_processor;
+}
+
+OpenGLPacketPipeline::OpenGLPacketPipeline()
+{ 
+  initialize();
+}
+
+OpenGLPacketPipeline::~OpenGLPacketPipeline() { }
+
+DepthPacketProcessor *OpenGLPacketPipeline::createDepthPacketProcessor()
+{
+  OpenGLDepthPacketProcessor *depth_processor = new OpenGLDepthPacketProcessor(0);
+  depth_processor->load11To16LutFromFile("11to16.bin");
+  depth_processor->loadXTableFromFile("xTable.bin");
+  depth_processor->loadZTableFromFile("zTable.bin");
+  
+  return depth_processor;
+}
+
+OpenCLPacketPipeline::OpenCLPacketPipeline() 
+{ 
+  initialize();
+}
+
+OpenCLPacketPipeline::~OpenCLPacketPipeline() { }
+
+DepthPacketProcessor *OpenCLPacketPipeline::createDepthPacketProcessor()
+{
+  OpenCLDepthPacketProcessor *depth_processor = new OpenCLDepthPacketProcessor();
+  depth_processor->load11To16LutFromFile("11to16.bin");
+  depth_processor->loadXTableFromFile("xTable.bin");
+  depth_processor->loadZTableFromFile("zTable.bin");
+  
+  return depth_processor;
 }
 
 } /* namespace libfreenect2 */

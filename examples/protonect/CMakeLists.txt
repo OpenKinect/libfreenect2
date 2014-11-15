@@ -20,6 +20,8 @@ SET(EXECUTABLE_OUTPUT_PATH ${MY_DIR}/bin)
 #set the default path for built libraries to the "lib" directory
 SET(LIBRARY_OUTPUT_PATH ${MY_DIR}/lib)
 
+FIND_PACKAGE(OpenCL)
+
 # dependencies
 FIND_PACKAGE(OpenCV REQUIRED)
 
@@ -48,30 +50,15 @@ SET(GLFW_BUILD_DOCS OFF CACHE BOOL "Build the GLFW documentation")
 ADD_SUBDIRECTORY(${MY_DIR}/../../depends/glfw_src/ ${MY_DIR}/../../depends/glfw)
 INCLUDE_DIRECTORIES(${MY_DIR}/../../depends/glfw_src/include/)
 
-if (APPLE)
+if(APPLE)
   # libjpeg-turbo
   INCLUDE_DIRECTORIES("${MY_DIR}/../../depends/libjpeg_turbo/include/")
   LINK_DIRECTORIES("${MY_DIR}/../../depends/libjpeg_turbo/lib/")
 endif()
 
 SET(RESOURCES_INC_FILE "${MY_DIR}/src/resources.inc")
-GENERATE_RESOURCES(${RESOURCES_INC_FILE} ${MY_DIR} 
-  11to16.bin 
-  xTable.bin 
-  zTable.bin 
-  src/shader/debug.fs
-  src/shader/default.vs
-  src/shader/filter1.fs
-  src/shader/filter2.fs
-  src/shader/stage1.fs
-  src/shader/stage2.fs
-)
 
-INCLUDE_DIRECTORIES("${MY_DIR}/include")
-
-ADD_DEFINITIONS(-DRESOURCES_INC)
-ADD_LIBRARY(freenect2 SHARED
-  src/opengl.cpp
+SET(SOURCES
   src/transfer_pool.cpp
   src/event_loop.cpp
   
@@ -86,7 +73,6 @@ ADD_LIBRARY(freenect2 SHARED
   src/depth_packet_stream_parser.cpp
   src/depth_packet_processor.cpp
   src/cpu_depth_packet_processor.cpp
-  src/opengl_depth_packet_processor.cpp
   src/resource.cpp
   
   src/usb_control.cpp
@@ -96,15 +82,64 @@ ADD_LIBRARY(freenect2 SHARED
   ${RESOURCES_INC_FILE}
 )
 
-TARGET_LINK_LIBRARIES(freenect2
+SET(LIBRARIES
   usb-1.0
   ${OpenCV_LIBS}
   turbojpeg
   ${LIBFREENECT2_THREADING_LIBRARIES}
+)
+
+SET(RESOURCES
+  11to16.bin 
+  xTable.bin 
+  zTable.bin
+)
+
+# TODO: only append if building with opengl support
+LIST(APPEND SOURCES
+  src/opengl.cpp
+  src/opengl_depth_packet_processor.cpp
+)
+
+LIST(APPEND LIBRARIES
   GLEWmx
   glfw
   ${GLFW_LIBRARIES}
 )
+
+LIST(APPEND RESOURCES
+  src/shader/debug.fs
+  src/shader/default.vs
+  src/shader/filter1.fs
+  src/shader/filter2.fs
+  src/shader/stage1.fs
+  src/shader/stage2.fs
+)
+
+IF(OPENCL_FOUND)
+  ADD_DEFINITIONS(-DWITH_OPENCL_SUPPORT)
+  INCLUDE_DIRECTORIES(${OPENCL_INCLUDE_DIRS})
+  
+  LIST(APPEND SOURCES
+    src/opencl_depth_packet_processor.cpp
+  )
+
+  LIST(APPEND LIBRARIES
+    ${OPENCL_LIBRARIES}
+  )
+  
+  LIST(APPEND RESOURCES
+    src/opencl_depth_packet_processor.cl
+  )
+ENDIF(OPENCL_FOUND)
+
+GENERATE_RESOURCES(${RESOURCES_INC_FILE} ${MY_DIR} ${RESOURCES})
+
+INCLUDE_DIRECTORIES("${MY_DIR}/include")
+
+ADD_DEFINITIONS(-DRESOURCES_INC)
+ADD_LIBRARY(freenect2 SHARED ${SOURCES})
+TARGET_LINK_LIBRARIES(freenect2 ${LIBRARIES})
 
 ADD_EXECUTABLE(test_opengl
   src/test_opengl_depth_packet_processor.cpp
@@ -135,3 +170,4 @@ IF("${LIBFREENECT2_THREADING}" MATCHES "tinythread")
 ENDIF("${LIBFREENECT2_THREADING}" MATCHES "tinythread")
 INSTALL(FILES 
   "${PROJECT_BINARY_DIR}/freenect2Config.cmake" DESTINATION lib/cmake/freenect2/)
+  
