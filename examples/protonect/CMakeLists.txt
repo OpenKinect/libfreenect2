@@ -20,20 +20,11 @@ SET(EXECUTABLE_OUTPUT_PATH ${MY_DIR}/bin)
 #set the default path for built libraries to the "lib" directory
 SET(LIBRARY_OUTPUT_PATH ${MY_DIR}/lib)
 
+FIND_PACKAGE(OpenCL)
+
 # dependencies
 FIND_PACKAGE(OpenCV REQUIRED)
 
-FIND_PACKAGE(OpenCL)
-
-<<<<<<< HEAD
-if(OPENMP_FOUND)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
-endif()
-
-FIND_PACKAGE(OpenCL)
-
-=======
->>>>>>> cleaned up CMakeLists.txt. Removed c++11 dependency.
 # OpenCV
 INCLUDE_DIRECTORIES(${OpenCV_INCLUDE_DIR})
 
@@ -66,21 +57,8 @@ if(APPLE)
 endif()
 
 SET(RESOURCES_INC_FILE "${MY_DIR}/src/resources.inc")
-<<<<<<< HEAD
-
-<<<<<<< HEAD
-SET(SOURCES
-=======
-INCLUDE_DIRECTORIES("${MY_DIR}/include")
-
-ADD_DEFINITIONS(-DRESOURCES_INC)
-ADD_LIBRARY(freenect2 SHARED
-  src/opengl.cpp
->>>>>>> cleaned up CMakeLists.txt. Removed c++11 dependency.
-=======
 
 SET(SOURCES
->>>>>>> fixing compilation if opencl is not available
   src/transfer_pool.cpp
   src/event_loop.cpp
   
