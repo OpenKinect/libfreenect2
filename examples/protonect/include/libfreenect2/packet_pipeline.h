@@ -84,9 +84,10 @@ public:
 class OpenGLPacketPipeline : public BasePacketPipeline
 {
 protected:
+  bool debug_;
   virtual DepthPacketProcessor *createDepthPacketProcessor();
 public:
-  OpenGLPacketPipeline();
+  OpenGLPacketPipeline(bool debug = false);
   virtual ~OpenGLPacketPipeline();
 };
 
