@@ -113,6 +113,9 @@ DepthPacketProcessor *OpenGLPacketPipeline::createDepthPacketProcessor()
   return depth_processor;
 }
 
+
+#ifdef WITH_OPENCL_SUPPORT
+
 OpenCLPacketPipeline::OpenCLPacketPipeline() 
 { 
   initialize();
@@ -129,5 +132,6 @@ DepthPacketProcessor *OpenCLPacketPipeline::createDepthPacketProcessor()
   
   return depth_processor;
 }
+#endif // WITH_OPENCL_SUPPORT
 
 } /* namespace libfreenect2 */

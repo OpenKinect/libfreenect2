@@ -90,6 +90,7 @@ public:
   virtual ~OpenGLPacketPipeline();
 };
 
+#ifdef WITH_OPENCL_SUPPORT
 class OpenCLPacketPipeline : public BasePacketPipeline
 {
 protected:
@@ -98,6 +99,7 @@ public:
   OpenCLPacketPipeline();
   virtual ~OpenCLPacketPipeline();
 };
+#endif // WITH_OPENCL_SUPPORT
 
 typedef OpenGLPacketPipeline DefaultPacketPipeline;
 
