@@ -122,7 +122,7 @@ void TransferPool::cancel()
   //idle_transfers_.insert(idle_transfers_.end(), pending_transfers_.begin(), pending_transfers_.end());
 }
 
-void TransferPool::setCallback(TransferPool::DataReceivedCallback *callback)
+void TransferPool::setCallback(DataCallback *callback)
 {
   callback_ = callback;
 }

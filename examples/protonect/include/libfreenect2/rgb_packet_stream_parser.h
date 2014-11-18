@@ -32,12 +32,12 @@
 #include <libfreenect2/double_buffer.h>
 #include <libfreenect2/rgb_packet_processor.h>
 
-#include <libfreenect2/usb/transfer_pool.h>
+#include <libfreenect2/data_callback.h>
 
 namespace libfreenect2
 {
 
-class RgbPacketStreamParser : public libfreenect2::usb::TransferPool::DataReceivedCallback
+class RgbPacketStreamParser : public DataCallback
 {
 public:
   RgbPacketStreamParser();

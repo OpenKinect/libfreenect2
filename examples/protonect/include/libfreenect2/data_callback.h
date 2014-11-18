@@ -23,52 +23,22 @@
  * Binary distributions must follow the binary distribution requirements of
  * either License.
  */
-
-#ifndef DEPTH_PACKET_STREAM_PARSER_H_
-#define DEPTH_PACKET_STREAM_PARSER_H_
+ 
+ 
+#ifndef DATA_CALLBACK_H_
+#define DATA_CALLBACK_H_
 
 #include <stddef.h>
-#include <stdint.h>
-
-#include <libfreenect2/double_buffer.h>
-#include <libfreenect2/depth_packet_processor.h>
-
-#include <libfreenect2/data_callback.h>
-
-#include <libfreenect2/common.h>
 
 namespace libfreenect2
 {
 
-PACK(struct DepthSubPacketFooter
-{
-  uint32_t magic0;
-  uint32_t magic1;
-  uint32_t timestamp;
-  uint32_t sequence;
-  uint32_t subsequence;
-  uint32_t length;
-  uint32_t fields[32];
-});
-
-class DepthPacketStreamParser : public DataCallback
+class DataCallback
 {
 public:
-  DepthPacketStreamParser();
-  virtual ~DepthPacketStreamParser();
-
-  void setPacketProcessor(libfreenect2::BaseDepthPacketProcessor *processor);
-
-  virtual void onDataReceived(unsigned char* buffer, size_t length);
-private:
-  libfreenect2::BaseDepthPacketProcessor *processor_;
-
-  libfreenect2::DoubleBuffer buffer_;
-  libfreenect2::Buffer work_buffer_;
-
-  uint32_t current_sequence_;
-  uint32_t current_subsequence_;
+  virtual void onDataReceived(unsigned char *buffer, size_t n) = 0;
 };
 
-} /* namespace libfreenect2 */
-#endif /* DEPTH_PACKET_STREAM_PARSER_H_ */
+} // namespace libfreenect2
+
+#endif // DATA_CALLBACK_H_
