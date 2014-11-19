@@ -1,3 +1,6 @@
+# generated resource file
+examples/protonect/src/resources.inc
+
 # Dependency folders
 depends/*/
 
