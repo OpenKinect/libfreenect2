@@ -24,8 +24,8 @@
  * either License.
  */
 
+#include <libfreenect2/config.h>
 #include <libfreenect2/rgb_packet_stream_parser.h>
-#include <libfreenect2/common.h>
 #include <memory.h>
 #include <iostream>
 
@@ -33,7 +33,7 @@ namespace libfreenect2
 {
 
 
-PACK(struct RawRgbPacket
+LIBFREENECT2_PACK(struct RawRgbPacket
 {
   uint32_t sequence;
   uint32_t unknown0;

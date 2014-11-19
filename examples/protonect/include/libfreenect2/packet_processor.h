@@ -27,11 +27,13 @@
 #ifndef PACKET_PROCESSOR_H_
 #define PACKET_PROCESSOR_H_
 
+#include <libfreenect2/config.h>
+
 namespace libfreenect2
 {
 
 template<typename PacketT>
-class PacketProcessor
+class LIBFREENECT2_API PacketProcessor
 {
 public:
   virtual ~PacketProcessor() {}
@@ -41,7 +43,7 @@ public:
 };
 
 template<typename PacketT>
-class NoopPacketProcessor : public PacketProcessor<PacketT>
+class LIBFREENECT2_API NoopPacketProcessor : public PacketProcessor<PacketT>
 {
 public:
   NoopPacketProcessor() {}

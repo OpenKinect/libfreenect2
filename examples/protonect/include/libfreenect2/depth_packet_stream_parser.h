@@ -30,17 +30,17 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include <libfreenect2/config.h>
+
 #include <libfreenect2/double_buffer.h>
 #include <libfreenect2/depth_packet_processor.h>
 
 #include <libfreenect2/data_callback.h>
 
-#include <libfreenect2/common.h>
-
 namespace libfreenect2
 {
 
-PACK(struct DepthSubPacketFooter
+LIBFREENECT2_PACK(struct LIBFREENECT2_API DepthSubPacketFooter
 {
   uint32_t magic0;
   uint32_t magic1;
@@ -51,7 +51,7 @@ PACK(struct DepthSubPacketFooter
   uint32_t fields[32];
 });
 
-class DepthPacketStreamParser : public DataCallback
+class LIBFREENECT2_API DepthPacketStreamParser : public DataCallback
 {
 public:
   DepthPacketStreamParser();

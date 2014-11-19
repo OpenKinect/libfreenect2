@@ -28,11 +28,12 @@
 #define DOUBLE_BUFFER_H_
 
 #include <stddef.h>
+#include <libfreenect2/config.h>
 
 namespace libfreenect2
 {
 
-struct Buffer
+struct LIBFREENECT2_API Buffer
 {
 public:
   size_t capacity;
@@ -40,7 +41,7 @@ public:
   unsigned char* data;
 };
 
-class DoubleBuffer
+class LIBFREENECT2_API DoubleBuffer
 {
 public:
   DoubleBuffer();

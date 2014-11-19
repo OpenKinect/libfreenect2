@@ -24,13 +24,25 @@
 * either License.
 */
 
-#ifndef COMMON_H
-#define COMMON_H
+#ifndef LIBFREENECT2_CONFIG_H
+#define LIBFREENECT2_CONFIG_H
 
 #ifdef _MSC_VER
-#define PACK( __Declaration__ ) __pragma( pack(push, 1) ) __Declaration__ __pragma( pack(pop) )
+#define LIBFREENECT2_PACK( __Declaration__ ) __pragma( pack(push, 1) ) __Declaration__ __pragma( pack(pop) )
 #else
-#define PACK( __Declaration__ ) __Declaration__ __attribute__((__packed__))
+#define LIBFREENECT2_PACK( __Declaration__ ) __Declaration__ __attribute__((__packed__))
 #endif
 
-#endif // COMMON_H
+#ifdef _WIN32
+#define LIBFREENECT2_API __declspec(dllexport)
+#else
+#define LIBFREENECT2_API
+#endif
+
+#cmakedefine LIBFREENECT2_WITH_OPENCL_SUPPORT
+
+#cmakedefine LIBFREENECT2_THREADING_STDLIB
+
+#cmakedefine LIBFREENECT2_THREADING_TINYTHREAD
+
+#endif // LIBFREENECT2_CONFIG_H

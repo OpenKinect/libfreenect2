@@ -30,13 +30,14 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include <libfreenect2/config.h>
 #include <libfreenect2/frame_listener.hpp>
 #include <libfreenect2/packet_processor.h>
 
 namespace libfreenect2
 {
 
-struct RgbPacket
+struct LIBFREENECT2_API RgbPacket
 {
   uint32_t sequence;
 
@@ -46,7 +47,7 @@ struct RgbPacket
 
 typedef PacketProcessor<RgbPacket> BaseRgbPacketProcessor;
 
-class RgbPacketProcessor : public BaseRgbPacketProcessor
+class LIBFREENECT2_API RgbPacketProcessor : public BaseRgbPacketProcessor
 {
 public:
   RgbPacketProcessor();
@@ -57,7 +58,7 @@ protected:
   libfreenect2::FrameListener *listener_;
 };
 
-class DumpRgbPacketProcessor : public RgbPacketProcessor
+class LIBFREENECT2_API DumpRgbPacketProcessor : public RgbPacketProcessor
 {
 public:
   DumpRgbPacketProcessor();
@@ -68,7 +69,7 @@ protected:
 
 class TurboJpegRgbPacketProcessorImpl;
 
-class TurboJpegRgbPacketProcessor : public RgbPacketProcessor
+class LIBFREENECT2_API TurboJpegRgbPacketProcessor : public RgbPacketProcessor
 {
 public:
   TurboJpegRgbPacketProcessor();

@@ -27,6 +27,8 @@
 #ifndef THREADING_H_
 #define THREADING_H_
 
+#include <libfreenect2/config.h>
+
 #ifdef LIBFREENECT2_THREADING_STDLIB
 
 #include <thread>
