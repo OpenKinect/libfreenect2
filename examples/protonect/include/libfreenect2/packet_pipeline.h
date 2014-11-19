@@ -27,7 +27,7 @@
 #ifndef PACKET_PIPELINE_H_
 #define PACKET_PIPELINE_H_
 
-#include <libfreenect2/usb/transfer_pool.h>
+#include <libfreenect2/data_callback.h>
 #include <libfreenect2/rgb_packet_stream_parser.h>
 #include <libfreenect2/depth_packet_stream_parser.h>
 #include <libfreenect2/depth_packet_processor.h>
@@ -39,7 +39,7 @@ namespace libfreenect2
 class PacketPipeline
 {
 public:
-  typedef libfreenect2::usb::TransferPool::DataReceivedCallback PacketParser;
+  typedef DataCallback PacketParser;
   virtual ~PacketPipeline();
 
   virtual PacketParser *getRgbPacketParser() const = 0;

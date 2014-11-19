@@ -27,9 +27,10 @@
 #ifndef TRANSFER_POOL_H_
 #define TRANSFER_POOL_H_
 
+#include <deque>
 #include <libusb.h>
 
-#include <deque>
+#include <libfreenect2/data_callback.h>
 
 namespace libfreenect2
 {
@@ -40,11 +41,6 @@ namespace usb
 class TransferPool
 {
 public:
-  struct DataReceivedCallback
-  {
-    virtual void onDataReceived(unsigned char *buffer, size_t n) = 0;
-  };
-
   TransferPool(libusb_device_handle *device_handle, unsigned char device_endpoint);
   virtual ~TransferPool();
 
@@ -58,7 +54,7 @@ public:
 
   void cancel();
 
-  void setCallback(DataReceivedCallback *callback);
+  void setCallback(DataCallback *callback);
 protected:
   void allocateTransfers(size_t num_transfers, size_t transfer_size);
 
@@ -67,7 +63,7 @@ protected:
 
   virtual void processTransfer(libusb_transfer *transfer) = 0;
 
-  DataReceivedCallback *callback_;
+  DataCallback *callback_;
 private:
   typedef std::deque<libusb_transfer *> TransferQueue;
 
