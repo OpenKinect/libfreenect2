@@ -319,7 +319,7 @@ struct OpenGLDepthPacketProcessorImpl
 
   double timing_current_start;
 
-  static const bool do_debug = true;
+  bool do_debug;
 
   struct Vertex
   {
@@ -327,7 +327,7 @@ struct OpenGLDepthPacketProcessorImpl
     float u, v;
   };
 
-  OpenGLDepthPacketProcessorImpl(OpenGLContext *new_opengl_context_ptr) :
+  OpenGLDepthPacketProcessorImpl(OpenGLContext *new_opengl_context_ptr, bool debug) :
     opengl_context_ptr(new_opengl_context_ptr),
     shader_folder("src/shader/"),
     square_vao(0),
@@ -339,7 +339,8 @@ struct OpenGLDepthPacketProcessorImpl
     params_need_update(true),
     timing_acc(0),
     timing_acc_n(0),
-    timing_current_start(0)
+    timing_current_start(0),
+    do_debug(debug)
   {
   }
 
@@ -662,7 +663,7 @@ struct OpenGLDepthPacketProcessorImpl
   }
 };
 
-OpenGLDepthPacketProcessor::OpenGLDepthPacketProcessor(void *parent_opengl_context_ptr)
+OpenGLDepthPacketProcessor::OpenGLDepthPacketProcessor(void *parent_opengl_context_ptr, bool debug)
 {
   GLFWwindow* parent_window = (GLFWwindow *)parent_opengl_context_ptr;
 
@@ -673,12 +674,12 @@ OpenGLDepthPacketProcessor::OpenGLDepthPacketProcessor(void *parent_opengl_conte
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
   #endif
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-  glfwWindowHint(GLFW_VISIBLE, impl_->do_debug ? GL_TRUE : GL_FALSE);
+  glfwWindowHint(GLFW_VISIBLE, debug ? GL_TRUE : GL_FALSE);
 
   GLFWwindow* window = glfwCreateWindow(1024, 848, "OpenGLDepthPacketProcessor", 0, parent_window);
   OpenGLContext *opengl_ctx = new OpenGLContext(window);
 
-  impl_ = new OpenGLDepthPacketProcessorImpl(opengl_ctx);
+  impl_ = new OpenGLDepthPacketProcessorImpl(opengl_ctx, debug);
   impl_->initialize();
 }
 

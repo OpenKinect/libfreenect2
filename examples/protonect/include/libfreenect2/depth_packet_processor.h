@@ -112,7 +112,7 @@ class OpenGLDepthPacketProcessorImpl;
 class OpenGLDepthPacketProcessor : public DepthPacketProcessor
 {
 public:
-  OpenGLDepthPacketProcessor(void *parent_opengl_context_ptr);
+  OpenGLDepthPacketProcessor(void *parent_opengl_context_ptr, bool debug);
   virtual ~OpenGLDepthPacketProcessor();
   virtual void setConfiguration(const libfreenect2::DepthPacketProcessor::Config &config);
 
