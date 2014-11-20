@@ -27,7 +27,6 @@
 #ifndef ASYNC_PACKET_PROCESSOR_H_
 #define ASYNC_PACKET_PROCESSOR_H_
 
-#include <libfreenect2/config.h>
 #include <libfreenect2/threading.h>
 #include <libfreenect2/packet_processor.h>
 
@@ -35,7 +34,7 @@ namespace libfreenect2
 {
 
 template<typename PacketT>
-class LIBFREENECT2_API AsyncPacketProcessor : public PacketProcessor<PacketT>
+class AsyncPacketProcessor : public PacketProcessor<PacketT>
 {
 public:
   typedef PacketProcessor<PacketT>* PacketProcessorPtr;
