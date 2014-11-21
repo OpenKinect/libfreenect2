@@ -27,13 +27,14 @@
 #ifndef OPENGL_H_
 #define OPENGL_H_
 
+#include <libfreenect2/libfreenect2_export.h>
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 
 namespace libfreenect2
 {
 
-struct OpenGLContext
+struct LIBFREENECT2_API OpenGLContext
 {
   GLFWwindow *glfw_ctx;
   GLEWContext *glew_ctx;

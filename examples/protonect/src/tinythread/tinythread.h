@@ -143,6 +143,7 @@ freely, subject to the following restrictions:
  #endif
 #endif
 
+#include <libfreenect2/libfreenect2_export.h>
 
 /// Main name space for TinyThread++.
 /// This namespace is more or less equivalent to the @c std namespace for the
@@ -389,7 +390,7 @@ class lock_guard {
 ///   cond.notify_all();
 /// }
 /// @endcode
-class condition_variable {
+class LIBFREENECT2_API condition_variable {
   public:
     /// Constructor.
 #if defined(_TTHREAD_WIN32_)
@@ -478,7 +479,7 @@ class condition_variable {
 
 
 /// Thread class.
-class thread {
+class LIBFREENECT2_API thread {
   public:
 #if defined(_TTHREAD_WIN32_)
     typedef HANDLE native_handle_type;

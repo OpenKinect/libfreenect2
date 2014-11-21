@@ -30,6 +30,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include <libfreenect2/libfreenect2_export.h>
 #include <libfreenect2/frame_listener.hpp>
 #include <libfreenect2/packet_processor.h>
 
@@ -45,10 +46,10 @@ struct DepthPacket
 
 typedef PacketProcessor<DepthPacket> BaseDepthPacketProcessor;
 
-class DepthPacketProcessor : public BaseDepthPacketProcessor
+class LIBFREENECT2_API DepthPacketProcessor : public BaseDepthPacketProcessor
 {
 public:
-  struct Config
+  struct LIBFREENECT2_API Config
   {
     float MinDepth;
     float MaxDepth;
@@ -109,7 +110,7 @@ protected:
 
 class OpenGLDepthPacketProcessorImpl;
 
-class OpenGLDepthPacketProcessor : public DepthPacketProcessor
+class LIBFREENECT2_API OpenGLDepthPacketProcessor : public DepthPacketProcessor
 {
 public:
   OpenGLDepthPacketProcessor(void *parent_opengl_context_ptr, bool debug);
@@ -139,7 +140,7 @@ private:
 // use pimpl to hide opencv dependency
 class CpuDepthPacketProcessorImpl;
 
-class CpuDepthPacketProcessor : public DepthPacketProcessor
+class LIBFREENECT2_API CpuDepthPacketProcessor : public DepthPacketProcessor
 {
 public:
   CpuDepthPacketProcessor();
