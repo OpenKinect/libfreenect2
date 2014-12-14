@@ -628,7 +628,7 @@ std::string Freenect2::getDefaultDeviceSerialNumber()
 
 Freenect2Device *Freenect2::openDevice(int idx)
 {
-  return openDevice(0, new DefaultPacketPipeline());
+  return openDevice(idx, new DefaultPacketPipeline());
 }
 
 Freenect2Device *Freenect2::openDevice(int idx, const PacketPipeline *pipeline)
