@@ -39,6 +39,7 @@
 
 int main(int argc, char *argv[])
 {
+  bool shutdown = false;
   std::string program_path(argv[0]);
   size_t executable_name_idx = program_path.rfind("Protonect");
 
@@ -71,7 +72,7 @@ int main(int argc, char *argv[])
   std::cout << "device serial: " << dev->getSerialNumber() << std::endl;
   std::cout << "device firmware: " << dev->getFirmwareVersion() << std::endl;
 
-  while(1)
+  while(!shutdown)
   {
     listener.waitForNewFrame(frames);
     libfreenect2::Frame *rgb = frames[libfreenect2::Frame::Color];
@@ -83,6 +84,7 @@ int main(int argc, char *argv[])
     cv::imshow("depth", cv::Mat(depth->height, depth->width, CV_32FC1, depth->data) / 4500.0f);
 
     int key = cv::waitKey(1);
+    shutdown = shutdown || (key > 0 && ((key & 0xFF) == 27)); // shutdown on escape
 
     listener.release(frames);
     //libfreenect2::this_thread::sleep_for(libfreenect2::chrono::milliseconds(100));
