@@ -36,10 +36,17 @@
 #include <libfreenect2/frame_listener_impl.h>
 #include <libfreenect2/threading.h>
 
+bool *sd;
+
+void sigint_handler(int s)
+{
+  *sd = true;
+}
 
 int main(int argc, char *argv[])
 {
   bool shutdown = false;
+  sd = &shutdown;
   std::string program_path(argv[0]);
   size_t executable_name_idx = program_path.rfind("Protonect");
 
@@ -61,6 +68,7 @@ int main(int argc, char *argv[])
     return -1;
   }
 
+  signal(SIGINT,sigint_handler);
 
   libfreenect2::SyncMultiFrameListener listener(libfreenect2::Frame::Color | libfreenect2::Frame::Ir | libfreenect2::Frame::Depth);
   libfreenect2::FrameMap frames;
