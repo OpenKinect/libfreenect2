@@ -138,8 +138,9 @@ install(TARGETS Protonect freenect2
         RUNTIME DESTINATION bin
         LIBRARY DESTINATION lib
         ARCHIVE DESTINATION lib)
+INSTALL(DIRECTORY 
+  "${MY_DIR}/include/" DESTINATION include)
 
-install_files(/include/${PROJECT_NAME} FILES include/${PROJECT_NAME}/libfreenect2.hpp include/${PROJECT_NAME}/frame_listener.hpp)
 install_files(/ FILES "${DEPENDS_DIR}/libusb/")
 install_files(/ FILES "${DEPENDS_DIR}/glew/")
 if(APPLE)
