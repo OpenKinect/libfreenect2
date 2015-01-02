@@ -102,7 +102,7 @@ public:
 };
 #endif // WITH_OPENCL_SUPPORT
 
-typedef OpenGLPacketPipeline DefaultPacketPipeline;
+typedef OpenCLPacketPipeline DefaultPacketPipeline;
 
 } /* namespace libfreenect2 */
 #endif /* PACKET_PIPELINE_H_ */
