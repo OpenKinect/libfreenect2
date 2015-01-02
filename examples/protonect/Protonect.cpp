@@ -36,11 +36,11 @@
 #include <libfreenect2/frame_listener_impl.h>
 #include <libfreenect2/threading.h>
 
-bool shutdown = false;
+bool will_shutdown = false;
 
 void sigint_handler(int s)
 {
-  shutdown = true;
+  will_shutdown = true;
 }
 
 int main(int argc, char *argv[])
@@ -67,7 +67,7 @@ int main(int argc, char *argv[])
   }
 
   signal(SIGINT,sigint_handler);
-  shutdown = false;
+  will_shutdown = false;
 
   libfreenect2::SyncMultiFrameListener listener(libfreenect2::Frame::Color | libfreenect2::Frame::Ir | libfreenect2::Frame::Depth);
   libfreenect2::FrameMap frames;
@@ -79,7 +79,7 @@ int main(int argc, char *argv[])
   std::cout << "device serial: " << dev->getSerialNumber() << std::endl;
   std::cout << "device firmware: " << dev->getFirmwareVersion() << std::endl;
 
-  while(!shutdown)
+  while(!will_shutdown)
   {
     listener.waitForNewFrame(frames);
     libfreenect2::Frame *rgb = frames[libfreenect2::Frame::Color];
@@ -91,7 +91,7 @@ int main(int argc, char *argv[])
     cv::imshow("depth", cv::Mat(depth->height, depth->width, CV_32FC1, depth->data) / 4500.0f);
 
     int key = cv::waitKey(1);
-    shutdown = shutdown || (key > 0 && ((key & 0xFF) == 27)); // shutdown on escape
+    will_shutdown = will_shutdown || (key > 0 && ((key & 0xFF) == 27)); // will_shutdown on escape
 
     listener.release(frames);
     //libfreenect2::this_thread::sleep_for(libfreenect2::chrono::milliseconds(100));
