@@ -153,8 +153,9 @@ public:
   cl::Buffer buf_filtered;
 
   bool isInitialized;
+  const int deviceId;
 
-  OpenCLDepthPacketProcessorImpl() : isInitialized(false)
+  OpenCLDepthPacketProcessorImpl(const int deviceId = -1) : isInitialized(false), deviceId(deviceId)
   {
     newIrFrame();
     newDepthFrame();
@@ -221,43 +222,81 @@ public:
     options = oss.str();
   }
 
-  bool selectDevice(const std::vector<cl::Platform> &platforms, const int type)
+  void getDevices(const std::vector<cl::Platform> &platforms, std::vector<cl::Device> &devices)
   {
-    bool selected = false;
-
+    devices.clear();
     for(size_t i = 0; i < platforms.size(); ++i)
     {
       const cl::Platform &platform = platforms[i];
-      std::string platformName, platformVendor;
-      platform.getInfo(CL_PLATFORM_NAME, &platformName);
-      platform.getInfo(CL_PLATFORM_VENDOR, &platformVendor);
 
-      std::cout << OUT_NAME("selectDevice") "found platform: " << platformName << " vendor: " << platformVendor << std::endl;
-
-      std::vector<cl::Device> devices;
-      if(platform.getDevices(type, &devices) != CL_SUCCESS)
+      std::vector<cl::Device> devs;
+      if(platform.getDevices(CL_DEVICE_TYPE_ALL, &devs) != CL_SUCCESS)
       {
-        std::cerr << OUT_NAME("selectDevice") "error while getting opencl devices." << std::endl;
-        return false;
+        continue;
       }
 
-      for(size_t j = 0; j < devices.size(); ++j)
+      devices.insert(devices.end(), devs.begin(), devs.end());
+    }
+  }
+
+  void listDevice(std::vector<cl::Device> &devices)
+  {
+    std::cout << OUT_NAME("listDevice") " devices:" << std::endl;
+    for(size_t i = 0; i < devices.size(); ++i)
+    {
+      cl::Device &dev = devices[i];
+      std::string devName, devVendor, devType;
+      size_t devTypeID;
+      dev.getInfo(CL_DEVICE_NAME, &devName);
+      dev.getInfo(CL_DEVICE_VENDOR, &devVendor);
+      dev.getInfo(CL_DEVICE_TYPE, &devTypeID);
+
+      switch(devTypeID)
       {
-        cl::Device &dev = devices[i];
-        std::string devName, devVendor;
-        dev.getInfo(CL_DEVICE_NAME, &devName);
-        dev.getInfo(CL_DEVICE_VENDOR, &devVendor);
-
-        std::cout << OUT_NAME("selectDevice") "found device: " << devName << " vendor: " << devVendor << std::endl;
-
-        if(!selected)
-        {
-          selected = true;
-          device = dev;
-        }
+      case CL_DEVICE_TYPE_CPU:
+        devType = "CPU";
+        break;
+      case CL_DEVICE_TYPE_GPU:
+        devType = "GPU";
+        break;
+      case CL_DEVICE_TYPE_ACCELERATOR:
+        devType = "ACCELERATOR";
+        break;
+      case CL_DEVICE_TYPE_CUSTOM:
+        devType = "CUSTOM";
+        break;
+      default:
+        devType = "UNKNOWN";
       }
+
+      std::cout << "  " << i << ": " << devName << " (" << devType << ")[" << devVendor << ']' << std::endl;
+    }
+  }
+
+  bool selectDevice(std::vector<cl::Device> &devices)
+  {
+    if(deviceId != -1 && devices.size() > (size_t)deviceId)
+    {
+      device = devices[deviceId];
+      return true;
     }
 
+    bool selected = false;
+    size_t selectedType = 0;
+
+    for(size_t i = 0; i < devices.size(); ++i)
+    {
+      cl::Device &dev = devices[i];
+      size_t devTypeID;
+      dev.getInfo(CL_DEVICE_TYPE, &devTypeID);
+
+      if(!selected || (selectedType != CL_DEVICE_TYPE_GPU && devTypeID == CL_DEVICE_TYPE_GPU))
+      {
+        selectedType = devTypeID;
+        selected = true;
+        device = dev;
+      }
+    }
     return selected;
   }
 
@@ -289,16 +328,42 @@ public:
         return false;
       }
 
-      if(!selectDevice(platforms, CL_DEVICE_TYPE_GPU))
+      std::vector<cl::Device> devices;
+      getDevices(platforms, devices);
+      listDevice(devices);
+      if(selectDevice(devices))
       {
-        std::cout << OUT_NAME("init") "could not find any GPU device. trying CPU devices" << std::endl;
+        std::string devName, devVendor, devType;
+        size_t devTypeID;
+        device.getInfo(CL_DEVICE_NAME, &devName);
+        device.getInfo(CL_DEVICE_VENDOR, &devVendor);
+        device.getInfo(CL_DEVICE_TYPE, &devTypeID);
 
-        if(!selectDevice(platforms, CL_DEVICE_TYPE_CPU))
+        switch(devTypeID)
         {
-          std::cerr << OUT_NAME("init") "could not find any suitable device" << std::endl;
-          return false;
+        case CL_DEVICE_TYPE_CPU:
+          devType = "CPU";
+          break;
+        case CL_DEVICE_TYPE_GPU:
+          devType = "GPU";
+          break;
+        case CL_DEVICE_TYPE_ACCELERATOR:
+          devType = "ACCELERATOR";
+          break;
+        case CL_DEVICE_TYPE_CUSTOM:
+          devType = "CUSTOM";
+          break;
+        default:
+          devType = "UNKNOWN";
         }
+        std::cout << OUT_NAME("init") " selected device: " << devName << " (" << devType << ")[" << devVendor << ']' << std::endl;
       }
+      else
+      {
+        std::cerr << OUT_NAME("init") "could not find any suitable device" << std::endl;
+        return false;
+      }
+
       context = cl::Context(device);
 
       std::string options;
@@ -505,8 +570,8 @@ public:
   }
 };
 
-OpenCLDepthPacketProcessor::OpenCLDepthPacketProcessor() :
-  impl_(new OpenCLDepthPacketProcessorImpl())
+OpenCLDepthPacketProcessor::OpenCLDepthPacketProcessor(const int deviceId) :
+  impl_(new OpenCLDepthPacketProcessorImpl(deviceId))
 {
 }
 

@@ -116,7 +116,7 @@ DepthPacketProcessor *OpenGLPacketPipeline::createDepthPacketProcessor()
 
 #ifdef WITH_OPENCL_SUPPORT
 
-OpenCLPacketPipeline::OpenCLPacketPipeline() 
+OpenCLPacketPipeline::OpenCLPacketPipeline(const int deviceId) : deviceId(deviceId)
 { 
   initialize();
 }
@@ -125,7 +125,7 @@ OpenCLPacketPipeline::~OpenCLPacketPipeline() { }
 
 DepthPacketProcessor *OpenCLPacketPipeline::createDepthPacketProcessor()
 {
-  OpenCLDepthPacketProcessor *depth_processor = new OpenCLDepthPacketProcessor();
+  OpenCLDepthPacketProcessor *depth_processor = new OpenCLDepthPacketProcessor(deviceId);
   depth_processor->load11To16LutFromFile("11to16.bin");
   depth_processor->loadXTableFromFile("xTable.bin");
   depth_processor->loadZTableFromFile("zTable.bin");

@@ -95,9 +95,10 @@ public:
 class OpenCLPacketPipeline : public BasePacketPipeline
 {
 protected:
+  const int deviceId;
   virtual DepthPacketProcessor *createDepthPacketProcessor();
 public:
-  OpenCLPacketPipeline();
+  OpenCLPacketPipeline(const int deviceId = -1);
   virtual ~OpenCLPacketPipeline();
 };
 #endif // WITH_OPENCL_SUPPORT

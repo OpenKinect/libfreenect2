@@ -171,7 +171,7 @@ class OpenCLDepthPacketProcessorImpl;
 class OpenCLDepthPacketProcessor : public DepthPacketProcessor
 {
 public:
-  OpenCLDepthPacketProcessor();
+  OpenCLDepthPacketProcessor(const int deviceId = -1);
   virtual ~OpenCLDepthPacketProcessor();
   virtual void setConfiguration(const libfreenect2::DepthPacketProcessor::Config &config);
 
