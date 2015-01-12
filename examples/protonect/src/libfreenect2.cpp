@@ -600,6 +600,19 @@ void Freenect2DeviceImpl::close()
   std::cout << "[Freenect2DeviceImpl] closed" << std::endl;
 }
 
+PacketPipeline *createDefaultPacketPipeline()
+{
+#ifdef LIBFREENECT2_WITH_OPENGL_SUPPORT
+  return new OpenGLPacketPipeline();
+#else
+  #ifdef LIBFREENECT2_WITH_OPENCL_SUPPORT
+    return new OpenCLPacketPipeline();
+  #else
+  return new CpuPacketPipeline();
+  #endif
+#endif
+}
+
 Freenect2::Freenect2(void *usb_context) :
     impl_(new Freenect2Impl(usb_context))
 {
@@ -628,7 +641,7 @@ std::string Freenect2::getDefaultDeviceSerialNumber()
 
 Freenect2Device *Freenect2::openDevice(int idx)
 {
-  return openDevice(idx, new DefaultPacketPipeline());
+  return openDevice(idx, createDefaultPacketPipeline());
 }
 
 Freenect2Device *Freenect2::openDevice(int idx, const PacketPipeline *pipeline)
@@ -719,7 +732,7 @@ Freenect2Device *Freenect2::openDevice(int idx, const PacketPipeline *pipeline, 
 
 Freenect2Device *Freenect2::openDevice(const std::string &serial)
 {
-  return openDevice(serial, new DefaultPacketPipeline());
+  return openDevice(serial, createDefaultPacketPipeline());
 }
 
 Freenect2Device *Freenect2::openDevice(const std::string &serial, const PacketPipeline *pipeline)

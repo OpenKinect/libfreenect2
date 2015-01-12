@@ -28,13 +28,15 @@
 #include <iostream>
 #include <signal.h>
 
-#include <GLFW/glfw3.h>
-
 #include <opencv2/opencv.hpp>
 
 #include <libfreenect2/libfreenect2.hpp>
 #include <libfreenect2/frame_listener_impl.h>
 #include <libfreenect2/threading.h>
+
+#ifdef LIBFREENECT2_WITH_OPENGL_SUPPORT
+#include <GLFW/glfw3.h>
+#endif
 
 bool protonect_shutdown = false;
 
@@ -55,7 +57,6 @@ int main(int argc, char *argv[])
     binpath = program_path.substr(0, executable_name_idx);
   }
 
-  glfwInit();
 
   libfreenect2::Freenect2 freenect2;
   libfreenect2::Freenect2Device *dev = freenect2.openDefaultDevice();
