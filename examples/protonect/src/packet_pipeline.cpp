@@ -114,7 +114,7 @@ DepthPacketProcessor *OpenGLPacketPipeline::createDepthPacketProcessor()
 }
 
 
-#ifdef WITH_OPENCL_SUPPORT
+#ifdef LIBFREENECT2_WITH_OPENCL_SUPPORT
 
 OpenCLPacketPipeline::OpenCLPacketPipeline(const int deviceId) : deviceId(deviceId)
 { 
@@ -132,6 +132,6 @@ DepthPacketProcessor *OpenCLPacketPipeline::createDepthPacketProcessor()
   
   return depth_processor;
 }
-#endif // WITH_OPENCL_SUPPORT
+#endif // LIBFREENECT2_WITH_OPENCL_SUPPORT
 
 } /* namespace libfreenect2 */
