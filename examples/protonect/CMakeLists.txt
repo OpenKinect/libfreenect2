@@ -48,15 +48,6 @@ INCLUDE_DIRECTORIES(${OpenCV_INCLUDE_DIR})
 INCLUDE_DIRECTORIES("${MY_DIR}/../../depends/libusb/include/libusb-1.0/")
 LINK_DIRECTORIES("${MY_DIR}/../../depends/libusb/lib/")
 
-# GLEW
-INCLUDE_DIRECTORIES("${MY_DIR}/../../depends/glew/include/")
-if (APPLE)
-  LINK_DIRECTORIES("${MY_DIR}/../../depends/glew/lib/")
-else()
-  LINK_DIRECTORIES("${MY_DIR}/../../depends/glew/lib64/")
-endif()
-ADD_DEFINITIONS(-DGLEW_MX -DGLEW_STATIC)
-
 # GLFW
 SET(BUILD_SHARED_LIBS ON CACHE BOOL "Build shared libraries")
 SET(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "Build the GLFW example programs")
@@ -113,12 +104,11 @@ SET(RESOURCES
 
 # TODO: only append if building with opengl support
 LIST(APPEND SOURCES
-  src/opengl.cpp
+  src/flextGL.c
   src/opengl_depth_packet_processor.cpp
 )
 
 LIST(APPEND LIBRARIES
-  GLEWmx
   glfw
   ${GLFW_LIBRARIES}
 )

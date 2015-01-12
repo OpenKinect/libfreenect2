@@ -27,7 +27,8 @@
 #include <libfreenect2/depth_packet_processor.h>
 #include <libfreenect2/resource.h>
 #include <libfreenect2/protocol/response.h>
-#include <libfreenect2/opengl.h>
+#include "flextGL.h"
+#include <GLFW/glfw3.h>
 
 #include <iostream>
 #include <fstream>
@@ -37,6 +38,40 @@
 
 namespace libfreenect2
 {
+
+struct ChangeCurrentOpenGLContext
+{
+  GLFWwindow *last_ctx;
+
+  ChangeCurrentOpenGLContext(GLFWwindow *new_context);
+  ~ChangeCurrentOpenGLContext();
+};
+
+ChangeCurrentOpenGLContext::ChangeCurrentOpenGLContext(GLFWwindow *new_context)
+{
+  last_ctx = glfwGetCurrentContext();
+  glfwMakeContextCurrent(new_context);
+}
+
+ChangeCurrentOpenGLContext::~ChangeCurrentOpenGLContext()
+{
+  //std::cerr << "[ChangeCurrentOpenGLContext] restoring context!" << std::endl;
+  if(last_ctx != 0)
+  {
+    glfwMakeContextCurrent(last_ctx);
+  }
+  else
+  {
+    glfwMakeContextCurrent(0);
+  }
+}
+
+static OpenGLBindings *gl()
+{
+  static OpenGLBindings bindings;
+  
+  return &bindings;
+}
 
 std::string loadShaderSource(const std::string& filename)
 {
@@ -82,55 +117,55 @@ struct ShaderProgram
   {
     const char* src_ = src.c_str();
     int length_ = src.length();
-    vertex_shader = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vertex_shader, 1, &src_, &length_);
+    vertex_shader = gl()->glCreateShader(GL_VERTEX_SHADER);
+    gl()->glShaderSource(vertex_shader, 1, &src_, &length_);
   }
 
   void setFragmentShader(const std::string& src)
   {
     const char* src_ = src.c_str();
     int length_ = src.length();
-    fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragment_shader, 1, &src_, &length_);
+    fragment_shader = gl()->glCreateShader(GL_FRAGMENT_SHADER);
+    gl()->glShaderSource(fragment_shader, 1, &src_, &length_);
   }
 
   void build()
   {
     GLint status;
 
-    glCompileShader(vertex_shader);
-    glGetShaderiv(vertex_shader, GL_COMPILE_STATUS, &status);
+    gl()->glCompileShader(vertex_shader);
+    gl()->glGetShaderiv(vertex_shader, GL_COMPILE_STATUS, &status);
 
     if(status != GL_TRUE)
     {
-      glGetShaderInfoLog(vertex_shader, sizeof(error_buffer), NULL, error_buffer);
+      gl()->glGetShaderInfoLog(vertex_shader, sizeof(error_buffer), NULL, error_buffer);
 
       std::cerr << "[ShaderProgram::build] failed to compile vertex shader!" << std::endl;
       std::cerr << error_buffer << std::endl;
     }
 
-    glCompileShader(fragment_shader);
+    gl()->glCompileShader(fragment_shader);
 
-    glGetShaderiv(fragment_shader, GL_COMPILE_STATUS, &status);
+    gl()->glGetShaderiv(fragment_shader, GL_COMPILE_STATUS, &status);
     if(status != GL_TRUE)
     {
-      glGetShaderInfoLog(fragment_shader, sizeof(error_buffer), NULL, error_buffer);
+      gl()->glGetShaderInfoLog(fragment_shader, sizeof(error_buffer), NULL, error_buffer);
 
       std::cerr << "[ShaderProgram::build] failed to compile fragment shader!" << std::endl;
       std::cerr << error_buffer << std::endl;
     }
 
-    program = glCreateProgram();
-    glAttachShader(program, vertex_shader);
-    glAttachShader(program, fragment_shader);
+    program = gl()->glCreateProgram();
+    gl()->glAttachShader(program, vertex_shader);
+    gl()->glAttachShader(program, fragment_shader);
 
-    glLinkProgram(program);
+    gl()->glLinkProgram(program);
 
-    glGetProgramiv(program, GL_LINK_STATUS, &status);
+    gl()->glGetProgramiv(program, GL_LINK_STATUS, &status);
 
     if(status != GL_TRUE)
     {
-      glGetProgramInfoLog(program, sizeof(error_buffer), NULL, error_buffer);
+      gl()->glGetProgramInfoLog(program, sizeof(error_buffer), NULL, error_buffer);
       std::cerr << "[ShaderProgram::build] failed to link shader program!" << std::endl;
       std::cerr << error_buffer << std::endl;
     }
@@ -138,44 +173,44 @@ struct ShaderProgram
 
   GLint getAttributeLocation(const std::string& name)
   {
-    return glGetAttribLocation(program, name.c_str());
+    return gl()->glGetAttribLocation(program, name.c_str());
   }
 
   void setUniform(const std::string& name, GLint value)
   {
-    GLint idx = glGetUniformLocation(program, name.c_str());
+    GLint idx = gl()->glGetUniformLocation(program, name.c_str());
     if(idx == -1) return;
 
-    glUniform1i(idx, value);
+    gl()->glUniform1i(idx, value);
   }
 
   void setUniform(const std::string& name, GLfloat value)
   {
-    GLint idx = glGetUniformLocation(program, name.c_str());
+    GLint idx = gl()->glGetUniformLocation(program, name.c_str());
     if(idx == -1) return;
 
-    glUniform1f(idx, value);
+    gl()->glUniform1f(idx, value);
   }
 
   void setUniformVector3(const std::string& name, GLfloat value[3])
   {
-    GLint idx = glGetUniformLocation(program, name.c_str());
+    GLint idx = gl()->glGetUniformLocation(program, name.c_str());
     if(idx == -1) return;
 
-    glUniform3fv(idx, 1, value);
+    gl()->glUniform3fv(idx, 1, value);
   }
 
   void setUniformMatrix3(const std::string& name, GLfloat value[9])
   {
-    GLint idx = glGetUniformLocation(program, name.c_str());
+    GLint idx = gl()->glGetUniformLocation(program, name.c_str());
     if(idx == -1) return;
 
-    glUniformMatrix3fv(idx, 1, false, value);
+    gl()->glUniformMatrix3fv(idx, 1, false, value);
   }
 
   void use()
   {
-    glUseProgram(program);
+    gl()->glUseProgram(program);
   }
 };
 
@@ -213,7 +248,7 @@ public:
 
   void bindToUnit(GLenum unit)
   {
-    glActiveTexture(unit);
+    gl()->glActiveTexture(unit);
     glBindTexture(GL_TEXTURE_RECTANGLE, texture);
   }
 
@@ -282,7 +317,7 @@ public:
 
 struct OpenGLDepthPacketProcessorImpl
 {
-  OpenGLContext *opengl_context_ptr;
+  GLFWwindow *opengl_context_ptr;
   std::string shader_folder;
   libfreenect2::DepthPacketProcessor::Config config;
 
@@ -327,7 +362,7 @@ struct OpenGLDepthPacketProcessorImpl
     float u, v;
   };
 
-  OpenGLDepthPacketProcessorImpl(OpenGLContext *new_opengl_context_ptr, bool debug) :
+  OpenGLDepthPacketProcessorImpl(GLFWwindow *new_opengl_context_ptr, bool debug) :
     opengl_context_ptr(new_opengl_context_ptr),
     shader_folder("src/shader/"),
     square_vao(0),
@@ -346,7 +381,8 @@ struct OpenGLDepthPacketProcessorImpl
 
   ~OpenGLDepthPacketProcessorImpl()
   {
-    delete opengl_context_ptr;
+    glfwDestroyWindow(opengl_context_ptr);
+    opengl_context_ptr = 0;
   }
 
   void startTiming()
@@ -370,7 +406,9 @@ struct OpenGLDepthPacketProcessorImpl
 
   void initialize()
   {
-    ChangeCurrentOpenGLContext ctx(*opengl_context_ptr);
+    ChangeCurrentOpenGLContext ctx(opengl_context_ptr);
+    
+    flextInit(opengl_context_ptr, gl());
 
     input_data.allocate(352, 424 * 10);
 
@@ -418,66 +456,66 @@ struct OpenGLDepthPacketProcessorImpl
 
     GLenum debug_attachment = do_debug ? GL_COLOR_ATTACHMENT0 : GL_NONE;
 
-    glGenFramebuffers(1, &stage1_framebuffer);
-    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, stage1_framebuffer);
+    gl()->glGenFramebuffers(1, &stage1_framebuffer);
+    gl()->glBindFramebuffer(GL_DRAW_FRAMEBUFFER, stage1_framebuffer);
 
     const GLenum stage1_buffers[] = { debug_attachment, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3, GL_COLOR_ATTACHMENT4 };
-    glDrawBuffers(5, stage1_buffers);
+    gl()->glDrawBuffers(5, stage1_buffers);
 
-    if(do_debug) glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_RECTANGLE, stage1_debug.texture, 0);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_RECTANGLE, stage1_data[0].texture, 0);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_RECTANGLE, stage1_data[1].texture, 0);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT3, GL_TEXTURE_RECTANGLE, stage1_data[2].texture, 0);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT4, GL_TEXTURE_RECTANGLE, stage1_infrared.texture, 0);
+    if(do_debug) gl()->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_RECTANGLE, stage1_debug.texture, 0);
+    gl()->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_RECTANGLE, stage1_data[0].texture, 0);
+    gl()->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_RECTANGLE, stage1_data[1].texture, 0);
+    gl()->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT3, GL_TEXTURE_RECTANGLE, stage1_data[2].texture, 0);
+    gl()->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT4, GL_TEXTURE_RECTANGLE, stage1_infrared.texture, 0);
 
-    glGenFramebuffers(1, &filter1_framebuffer);
-    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, filter1_framebuffer);
+    gl()->glGenFramebuffers(1, &filter1_framebuffer);
+    gl()->glBindFramebuffer(GL_DRAW_FRAMEBUFFER, filter1_framebuffer);
 
     const GLenum filter1_buffers[] = { debug_attachment, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3 };
-    glDrawBuffers(4, filter1_buffers);
+    gl()->glDrawBuffers(4, filter1_buffers);
 
-    if(do_debug) glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_RECTANGLE, filter1_debug.texture, 0);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_RECTANGLE, filter1_data[0].texture, 0);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_RECTANGLE, filter1_data[1].texture, 0);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT3, GL_TEXTURE_RECTANGLE, filter1_max_edge_test.texture, 0);
+    if(do_debug) gl()->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_RECTANGLE, filter1_debug.texture, 0);
+    gl()->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_RECTANGLE, filter1_data[0].texture, 0);
+    gl()->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_RECTANGLE, filter1_data[1].texture, 0);
+    gl()->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT3, GL_TEXTURE_RECTANGLE, filter1_max_edge_test.texture, 0);
 
-    glGenFramebuffers(1, &stage2_framebuffer);
-    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, stage2_framebuffer);
+    gl()->glGenFramebuffers(1, &stage2_framebuffer);
+    gl()->glBindFramebuffer(GL_DRAW_FRAMEBUFFER, stage2_framebuffer);
 
     const GLenum stage2_buffers[] = { debug_attachment, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2 };
-    glDrawBuffers(3, stage2_buffers);
+    gl()->glDrawBuffers(3, stage2_buffers);
 
-    if(do_debug) glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_RECTANGLE, stage2_debug.texture, 0);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_RECTANGLE, stage2_depth.texture, 0);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_RECTANGLE, stage2_depth_and_ir_sum.texture, 0);
+    if(do_debug) gl()->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_RECTANGLE, stage2_debug.texture, 0);
+    gl()->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_RECTANGLE, stage2_depth.texture, 0);
+    gl()->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_RECTANGLE, stage2_depth_and_ir_sum.texture, 0);
 
-    glGenFramebuffers(1, &filter2_framebuffer);
-    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, filter2_framebuffer);
+    gl()->glGenFramebuffers(1, &filter2_framebuffer);
+    gl()->glBindFramebuffer(GL_DRAW_FRAMEBUFFER, filter2_framebuffer);
 
     const GLenum filter2_buffers[] = { debug_attachment, GL_COLOR_ATTACHMENT1 };
-    glDrawBuffers(2, filter2_buffers);
+    gl()->glDrawBuffers(2, filter2_buffers);
 
-    if(do_debug) glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_RECTANGLE, filter2_debug.texture, 0);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_RECTANGLE, filter2_depth.texture, 0);
+    if(do_debug) gl()->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_RECTANGLE, filter2_debug.texture, 0);
+    gl()->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_RECTANGLE, filter2_depth.texture, 0);
 
     Vertex bl = {-1.0f, -1.0f, 0.0f, 0.0f }, br = { 1.0f, -1.0f, 512.0f, 0.0f }, tl = {-1.0f, 1.0f, 0.0f, 424.0f }, tr = { 1.0f, 1.0f, 512.0f, 424.0f };
     Vertex vertices[] = {
         bl, tl, tr, tr, br, bl
     };
-    glGenBuffers(1, &square_vbo);
-    glGenVertexArrays(1, &square_vao);
+    gl()->glGenBuffers(1, &square_vbo);
+    gl()->glGenVertexArrays(1, &square_vao);
 
-    glBindVertexArray(square_vao);
-    glBindBuffer(GL_ARRAY_BUFFER, square_vbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    gl()->glBindVertexArray(square_vao);
+    gl()->glBindBuffer(GL_ARRAY_BUFFER, square_vbo);
+    gl()->glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
     GLint position_attr = stage1.getAttributeLocation("Position");
-    glVertexAttribPointer(position_attr, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (GLvoid*)0);
-    glEnableVertexAttribArray(position_attr);
+    gl()->glVertexAttribPointer(position_attr, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (GLvoid*)0);
+    gl()->glEnableVertexAttribArray(position_attr);
 
     GLint texcoord_attr = stage1.getAttributeLocation("TexCoord");
-    glVertexAttribPointer(texcoord_attr, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (GLvoid*)(2 * sizeof(float)));
-    glEnableVertexAttribArray(texcoord_attr);
+    gl()->glVertexAttribPointer(texcoord_attr, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (GLvoid*)(2 * sizeof(float)));
+    gl()->glEnableVertexAttribArray(texcoord_attr);
   }
 
   void deinitialize()
@@ -540,15 +578,15 @@ struct OpenGLDepthPacketProcessorImpl
     z_table.bindToUnit(GL_TEXTURE5);
     stage1.setUniform("ZTable", 5);
 
-    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, stage1_framebuffer);
+    gl()->glBindFramebuffer(GL_DRAW_FRAMEBUFFER, stage1_framebuffer);
     glClear(GL_COLOR_BUFFER_BIT);
 
-    glBindVertexArray(square_vao);
+    gl()->glBindVertexArray(square_vao);
     glDrawArrays(GL_TRIANGLES, 0, 6);
 
     if(ir != 0)
     {
-      glBindFramebuffer(GL_READ_FRAMEBUFFER, stage1_framebuffer);
+      gl()->glBindFramebuffer(GL_READ_FRAMEBUFFER, stage1_framebuffer);
       glReadBuffer(GL_COLOR_ATTACHMENT4);
       *ir = stage1_infrared.downloadToNewFrame();
     }
@@ -556,7 +594,7 @@ struct OpenGLDepthPacketProcessorImpl
     if(config.EnableBilateralFilter)
     {
       // bilateral filter
-      glBindFramebuffer(GL_DRAW_FRAMEBUFFER, filter1_framebuffer);
+      gl()->glBindFramebuffer(GL_DRAW_FRAMEBUFFER, filter1_framebuffer);
       glClear(GL_COLOR_BUFFER_BIT);
 
       filter1.use();
@@ -569,11 +607,11 @@ struct OpenGLDepthPacketProcessorImpl
       stage1_data[2].bindToUnit(GL_TEXTURE2);
       filter1.setUniform("Norm", 2);
 
-      glBindVertexArray(square_vao);
+      gl()->glBindVertexArray(square_vao);
       glDrawArrays(GL_TRIANGLES, 0, 6);
     }
     // data processing 2
-    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, stage2_framebuffer);
+    gl()->glBindFramebuffer(GL_DRAW_FRAMEBUFFER, stage2_framebuffer);
     glClear(GL_COLOR_BUFFER_BIT);
 
     stage2.use();
@@ -596,13 +634,13 @@ struct OpenGLDepthPacketProcessorImpl
     z_table.bindToUnit(GL_TEXTURE3);
     stage2.setUniform("ZTable", 3);
 
-    glBindVertexArray(square_vao);
+    gl()->glBindVertexArray(square_vao);
     glDrawArrays(GL_TRIANGLES, 0, 6);
 
     if(config.EnableEdgeAwareFilter)
     {
       // edge aware filter
-      glBindFramebuffer(GL_DRAW_FRAMEBUFFER, filter2_framebuffer);
+      gl()->glBindFramebuffer(GL_DRAW_FRAMEBUFFER, filter2_framebuffer);
       glClear(GL_COLOR_BUFFER_BIT);
 
       filter2.use();
@@ -613,11 +651,11 @@ struct OpenGLDepthPacketProcessorImpl
       filter1_max_edge_test.bindToUnit(GL_TEXTURE1);
       filter2.setUniform("MaxEdgeTest", 1);
 
-      glBindVertexArray(square_vao);
+      gl()->glBindVertexArray(square_vao);
       glDrawArrays(GL_TRIANGLES, 0, 6);
       if(depth != 0)
       {
-        glBindFramebuffer(GL_READ_FRAMEBUFFER, filter2_framebuffer);
+        gl()->glBindFramebuffer(GL_READ_FRAMEBUFFER, filter2_framebuffer);
         glReadBuffer(GL_COLOR_ATTACHMENT1);
         *depth = filter2_depth.downloadToNewFrame();
       }
@@ -626,7 +664,7 @@ struct OpenGLDepthPacketProcessorImpl
     {
       if(depth != 0)
       {
-        glBindFramebuffer(GL_READ_FRAMEBUFFER, stage2_framebuffer);
+        gl()->glBindFramebuffer(GL_READ_FRAMEBUFFER, stage2_framebuffer);
         glReadBuffer(GL_COLOR_ATTACHMENT1);
         *depth = stage2_depth.downloadToNewFrame();
       }
@@ -635,10 +673,10 @@ struct OpenGLDepthPacketProcessorImpl
     if(do_debug)
     {
       // debug drawing
-      glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+      gl()->glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
       glClear(GL_COLOR_BUFFER_BIT);
 
-      glBindVertexArray(square_vao);
+      gl()->glBindVertexArray(square_vao);
 
       debug.use();
       stage2_debug.bindToUnit(GL_TEXTURE0);
@@ -677,9 +715,8 @@ OpenGLDepthPacketProcessor::OpenGLDepthPacketProcessor(void *parent_opengl_conte
   glfwWindowHint(GLFW_VISIBLE, debug ? GL_TRUE : GL_FALSE);
 
   GLFWwindow* window = glfwCreateWindow(1024, 848, "OpenGLDepthPacketProcessor", 0, parent_window);
-  OpenGLContext *opengl_ctx = new OpenGLContext(window);
 
-  impl_ = new OpenGLDepthPacketProcessorImpl(opengl_ctx, debug);
+  impl_ = new OpenGLDepthPacketProcessorImpl(window, debug);
   impl_->initialize();
 }
 
@@ -702,7 +739,7 @@ void OpenGLDepthPacketProcessor::setConfiguration(const libfreenect2::DepthPacke
 
 void OpenGLDepthPacketProcessor::loadP0TablesFromCommandResponse(unsigned char* buffer, size_t buffer_length)
 {
-  ChangeCurrentOpenGLContext ctx(*impl_->opengl_context_ptr);
+  ChangeCurrentOpenGLContext ctx(impl_->opengl_context_ptr);
 
   size_t n = 512 * 424;
   libfreenect2::protocol::P0TablesResponse* p0table = (libfreenect2::protocol::P0TablesResponse*)buffer;
@@ -726,7 +763,7 @@ void OpenGLDepthPacketProcessor::loadP0TablesFromCommandResponse(unsigned char* 
 
 void OpenGLDepthPacketProcessor::loadP0TablesFromFiles(const char* p0_filename, const char* p1_filename, const char* p2_filename)
 {
-  ChangeCurrentOpenGLContext ctx(*impl_->opengl_context_ptr);
+  ChangeCurrentOpenGLContext ctx(impl_->opengl_context_ptr);
 
   impl_->p0table[0].allocate(512, 424);
   if(loadBufferFromFile(p0_filename, impl_->p0table[0].data, impl_->p0table[0].size))
@@ -761,7 +798,7 @@ void OpenGLDepthPacketProcessor::loadP0TablesFromFiles(const char* p0_filename, 
 
 void OpenGLDepthPacketProcessor::loadXTableFromFile(const char* filename)
 {
-  ChangeCurrentOpenGLContext ctx(*impl_->opengl_context_ptr);
+  ChangeCurrentOpenGLContext ctx(impl_->opengl_context_ptr);
 
   impl_->x_table.allocate(512, 424);
   const unsigned char *data;
@@ -780,7 +817,7 @@ void OpenGLDepthPacketProcessor::loadXTableFromFile(const char* filename)
 
 void OpenGLDepthPacketProcessor::loadZTableFromFile(const char* filename)
 {
-  ChangeCurrentOpenGLContext ctx(*impl_->opengl_context_ptr);
+  ChangeCurrentOpenGLContext ctx(impl_->opengl_context_ptr);
 
   impl_->z_table.allocate(512, 424);
 
@@ -800,7 +837,7 @@ void OpenGLDepthPacketProcessor::loadZTableFromFile(const char* filename)
 
 void OpenGLDepthPacketProcessor::load11To16LutFromFile(const char* filename)
 {
-  ChangeCurrentOpenGLContext ctx(*impl_->opengl_context_ptr);
+  ChangeCurrentOpenGLContext ctx(impl_->opengl_context_ptr);
 
   impl_->lut11to16.allocate(2048, 1);
 
@@ -825,13 +862,13 @@ void OpenGLDepthPacketProcessor::process(const DepthPacket &packet)
 
   impl_->startTiming();
 
-  impl_->opengl_context_ptr->makeCurrent();
+  glfwMakeContextCurrent(impl_->opengl_context_ptr);
 
   std::copy(packet.buffer, packet.buffer + packet.buffer_length, impl_->input_data.data);
   impl_->input_data.upload();
   impl_->run(has_listener ? &ir : 0, has_listener ? &depth : 0);
 
-  if(impl_->do_debug) glfwSwapBuffers(impl_->opengl_context_ptr->glfw_ctx);
+  if(impl_->do_debug) glfwSwapBuffers(impl_->opengl_context_ptr);
 
   impl_->stopTiming();
 
