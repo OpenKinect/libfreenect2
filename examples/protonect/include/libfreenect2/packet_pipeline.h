@@ -27,6 +27,7 @@
 #ifndef PACKET_PIPELINE_H_
 #define PACKET_PIPELINE_H_
 
+#include <libfreenect2/config.h>
 #include <libfreenect2/data_callback.h>
 #include <libfreenect2/rgb_packet_stream_parser.h>
 #include <libfreenect2/depth_packet_stream_parser.h>
@@ -36,7 +37,7 @@
 namespace libfreenect2
 {
 
-class PacketPipeline
+class LIBFREENECT2_API PacketPipeline
 {
 public:
   typedef DataCallback PacketParser;
@@ -49,7 +50,7 @@ public:
   virtual DepthPacketProcessor *getDepthPacketProcessor() const = 0;
 };
 
-class BasePacketPipeline : public PacketPipeline
+class LIBFREENECT2_API BasePacketPipeline : public PacketPipeline
 {
 protected:
   RgbPacketStreamParser *rgb_parser_;
@@ -72,7 +73,7 @@ public:
   virtual DepthPacketProcessor *getDepthPacketProcessor() const;
 };
 
-class CpuPacketPipeline : public BasePacketPipeline
+class LIBFREENECT2_API CpuPacketPipeline : public BasePacketPipeline
 {
 protected:
   virtual DepthPacketProcessor *createDepthPacketProcessor();
@@ -81,7 +82,7 @@ public:
   virtual ~CpuPacketPipeline();
 };
 
-class OpenGLPacketPipeline : public BasePacketPipeline
+class LIBFREENECT2_API OpenGLPacketPipeline : public BasePacketPipeline
 {
 protected:
   bool debug_;
@@ -91,8 +92,8 @@ public:
   virtual ~OpenGLPacketPipeline();
 };
 
-#ifdef WITH_OPENCL_SUPPORT
-class OpenCLPacketPipeline : public BasePacketPipeline
+#ifdef LIBFREENECT2_WITH_OPENCL_SUPPORT
+class LIBFREENECT2_API OpenCLPacketPipeline : public BasePacketPipeline
 {
 protected:
   const int deviceId;
@@ -101,7 +102,7 @@ public:
   OpenCLPacketPipeline(const int deviceId = -1);
   virtual ~OpenCLPacketPipeline();
 };
-#endif // WITH_OPENCL_SUPPORT
+#endif // LIBFREENECT2_WITH_OPENCL_SUPPORT
 
 typedef OpenGLPacketPipeline DefaultPacketPipeline;
 

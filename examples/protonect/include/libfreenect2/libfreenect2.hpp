@@ -27,6 +27,7 @@
 #ifndef LIBFREENECT2_HPP_
 #define LIBFREENECT2_HPP_
 
+#include <libfreenect2/config.h>
 #include <libfreenect2/frame_listener.hpp>
 
 namespace libfreenect2
@@ -34,7 +35,7 @@ namespace libfreenect2
 
 class PacketPipeline;
 
-class Freenect2Device
+class LIBFREENECT2_API Freenect2Device
 {
 public:
   static const unsigned int VendorId = 0x045E;
@@ -70,7 +71,7 @@ public:
 
 class Freenect2Impl;
 
-class Freenect2
+class LIBFREENECT2_API Freenect2
 {
 public:
   Freenect2(void *usb_context = 0);

@@ -29,11 +29,12 @@
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
+#include <libfreenect2/config.h>
 
 namespace libfreenect2
 {
 
-struct OpenGLContext
+struct LIBFREENECT2_API OpenGLContext
 {
   GLFWwindow *glfw_ctx;
   GLEWContext *glew_ctx;
@@ -48,7 +49,7 @@ struct OpenGLContext
 };
 
 
-struct ChangeCurrentOpenGLContext
+struct LIBFREENECT2_API ChangeCurrentOpenGLContext
 {
   const OpenGLContext *last_ctx;
 
@@ -58,6 +59,6 @@ struct ChangeCurrentOpenGLContext
 
 } /* namespace libfreenect2 */
 
-GLEWContext *glewGetContext();
+LIBFREENECT2_API GLEWContext *glewGetContext();
 
 #endif /* OPENGL_H_ */

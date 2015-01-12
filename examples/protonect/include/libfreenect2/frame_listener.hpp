@@ -28,11 +28,12 @@
 #define FRAME_LISTENER_HPP_
 
 #include <cstddef>
+#include <libfreenect2/config.h>
 
 namespace libfreenect2
 {
 
-struct Frame
+struct LIBFREENECT2_API Frame
 {
   enum Type
   {
@@ -58,7 +59,7 @@ struct Frame
   }
 };
 
-class FrameListener
+class LIBFREENECT2_API FrameListener
 {
 public:
   virtual ~FrameListener();

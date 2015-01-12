@@ -24,6 +24,8 @@ freely, subject to the following restrictions:
 #ifndef _TINYTHREAD_H_
 #define _TINYTHREAD_H_
 
+#include <libfreenect2/config.h>
+
 /// @file
 /// @mainpage TinyThread++ API Reference
 ///
@@ -156,7 +158,7 @@ namespace tthread {
 /// program may deadlock if the thread that owns a mutex object calls lock()
 /// on that object).
 /// @see recursive_mutex
-class mutex {
+class LIBFREENECT2_API mutex {
   public:
     /// Constructor.
     mutex()
@@ -248,7 +250,7 @@ class mutex {
 /// may lock the mutex several times, as long as it unlocks the mutex the same
 /// number of times).
 /// @see mutex
-class recursive_mutex {
+class LIBFREENECT2_API recursive_mutex {
   public:
     /// Constructor.
     recursive_mutex()
@@ -340,7 +342,7 @@ class recursive_mutex {
 /// @endcode
 
 template <class T>
-class lock_guard {
+class LIBFREENECT2_API lock_guard {
   public:
     typedef T mutex_type;
 
@@ -389,7 +391,7 @@ class lock_guard {
 ///   cond.notify_all();
 /// }
 /// @endcode
-class condition_variable {
+class LIBFREENECT2_API condition_variable {
   public:
     /// Constructor.
 #if defined(_TTHREAD_WIN32_)
@@ -478,7 +480,7 @@ class condition_variable {
 
 
 /// Thread class.
-class thread {
+class LIBFREENECT2_API thread {
   public:
 #if defined(_TTHREAD_WIN32_)
     typedef HANDLE native_handle_type;
@@ -569,7 +571,7 @@ class thread {
 /// Thread ID.
 /// The thread ID is a unique identifier for each thread.
 /// @see thread::get_id()
-class thread::id {
+class LIBFREENECT2_API thread::id {
   public:
     /// Default constructor.
     /// The default constructed ID is that of thread without a thread of

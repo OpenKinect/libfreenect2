@@ -29,11 +29,12 @@
 #define DATA_CALLBACK_H_
 
 #include <stddef.h>
+#include <libfreenect2/config.h>
 
 namespace libfreenect2
 {
 
-class DataCallback
+class LIBFREENECT2_API DataCallback
 {
 public:
   virtual void onDataReceived(unsigned char *buffer, size_t n) = 0;
