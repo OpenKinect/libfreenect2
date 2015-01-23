@@ -66,12 +66,27 @@ ChangeCurrentOpenGLContext::~ChangeCurrentOpenGLContext()
   }
 }
 
-static OpenGLBindings *gl()
+class WithOpenGLBindings
 {
-  static OpenGLBindings bindings;
+private:
+  OpenGLBindings *bindings;
+protected:
+  WithOpenGLBindings() : bindings(0) {}
+  virtual ~WithOpenGLBindings() {}
   
-  return &bindings;
-}
+  virtual void onOpenGLBindingsChanged(OpenGLBindings *b) { }
+public:
+  void gl(OpenGLBindings *bindings)
+  {
+    this->bindings = bindings;
+    onOpenGLBindingsChanged(this->bindings);
+  }
+  
+  OpenGLBindings *gl()
+  {
+    return bindings;
+  }
+};
 
 std::string loadShaderSource(const std::string& filename)
 {
@@ -100,7 +115,7 @@ bool loadBufferFromFile(const std::string& filename, unsigned char *buffer, size
   return success;
 }
 
-struct ShaderProgram
+struct ShaderProgram : public WithOpenGLBindings
 {
   GLuint program, vertex_shader, fragment_shader;
 
@@ -232,7 +247,7 @@ typedef ImageFormat<12, GL_RGB32F, GL_RGB, GL_FLOAT> F32C3;
 typedef ImageFormat<16, GL_RGBA32F, GL_RGBA, GL_FLOAT> F32C4;
 
 template<typename FormatT>
-struct Texture
+struct Texture : public WithOpenGLBindings
 {
 protected:
   size_t bytes_per_pixel, height, width;
@@ -315,7 +330,7 @@ public:
   }
 };
 
-struct OpenGLDepthPacketProcessorImpl
+struct OpenGLDepthPacketProcessorImpl : public WithOpenGLBindings
 {
   GLFWwindow *opengl_context_ptr;
   std::string shader_folder;
@@ -379,10 +394,52 @@ struct OpenGLDepthPacketProcessorImpl
   {
   }
 
-  ~OpenGLDepthPacketProcessorImpl()
+  virtual ~OpenGLDepthPacketProcessorImpl()
   {
+    if(gl() != 0)
+    {
+      delete gl();
+      gl(0);
+    }
     glfwDestroyWindow(opengl_context_ptr);
     opengl_context_ptr = 0;
+  }
+  
+  virtual void onOpenGLBindingsChanged(OpenGLBindings *b) 
+  {
+    lut11to16.gl(b);
+    p0table[0].gl(b);
+    p0table[1].gl(b);
+    p0table[2].gl(b);
+    x_table.gl(b);
+    z_table.gl(b);
+
+    input_data.gl(b);
+
+    stage1_debug.gl(b);
+    stage1_data[0].gl(b);
+    stage1_data[1].gl(b);
+    stage1_data[2].gl(b);
+    stage1_infrared.gl(b);
+
+    filter1_data[0].gl(b);
+    filter1_data[1].gl(b);
+    filter1_max_edge_test.gl(b);
+    filter1_debug.gl(b);
+
+    stage2_debug.gl(b);
+
+    stage2_depth.gl(b);
+    stage2_depth_and_ir_sum.gl(b);
+
+    filter2_debug.gl(b);
+    filter2_depth.gl(b);
+ 
+    stage1.gl(b);
+    filter1.gl(b);
+    stage2.gl(b);
+    filter2.gl(b);
+    debug.gl(b);
   }
 
   void startTiming()
@@ -408,7 +465,9 @@ struct OpenGLDepthPacketProcessorImpl
   {
     ChangeCurrentOpenGLContext ctx(opengl_context_ptr);
     
-    flextInit(opengl_context_ptr, gl());
+    OpenGLBindings *b = new OpenGLBindings();
+    flextInit(opengl_context_ptr, b);
+    gl(b);
 
     input_data.allocate(352, 424 * 10);
 
@@ -705,6 +764,10 @@ OpenGLDepthPacketProcessor::OpenGLDepthPacketProcessor(void *parent_opengl_conte
 {
   GLFWwindow* parent_window = (GLFWwindow *)parent_opengl_context_ptr;
 
+  // init glfw - if already initialized nothing happens
+  glfwInit();
+  
+  // setup context
   glfwDefaultWindowHints();
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
