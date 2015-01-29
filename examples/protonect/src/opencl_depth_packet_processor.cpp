@@ -40,9 +40,9 @@
 
 #define __CL_ENABLE_EXCEPTIONS
 #ifdef __APPLE__
-  #include <OpenCL/cl.hpp>
+#include <OpenCL/cl.hpp>
 #else
-  #include <CL/cl.hpp>
+#include <CL/cl.hpp>
 #endif
 
 #ifndef REG_OPENCL_FILE
@@ -104,8 +104,6 @@ public:
 
   double timing_current_start;
 
-  bool enable_bilateral_filter, enable_edge_filter;
-
   Frame *ir_frame, *depth_frame;
 
   cl::Context context;
@@ -157,10 +155,11 @@ public:
   cl::Buffer buf_ir_sum;
   cl::Buffer buf_filtered;
 
-  bool isInitialized;
-  const int deviceId;
+  bool deviceInitialized;
+  bool programInitialized;
+  std::string sourceCode;
 
-  OpenCLDepthPacketProcessorImpl(const int deviceId = -1) : isInitialized(false), deviceId(deviceId)
+  OpenCLDepthPacketProcessorImpl(const int deviceId = -1) : deviceInitialized(false), programInitialized(false)
   {
     newIrFrame();
     newDepthFrame();
@@ -170,8 +169,7 @@ public:
     timing_current_start = 0.0;
     image_size = 512 * 424;
 
-    enable_bilateral_filter = true;
-    enable_edge_filter = true;
+    deviceInitialized = initDevice(deviceId);
   }
 
   void generateOptions(std::string &options) const
@@ -222,8 +220,8 @@ public:
     oss << " -D EDGE_AVG_DELTA_THRESHOLD=" << params.edge_avg_delta_threshold << "f";
     oss << " -D MAX_EDGE_COUNT=" << params.max_edge_count << "f";
 
-    oss << " -D MIN_DEPTH=" << params.min_depth << "f";
-    oss << " -D MAX_DEPTH=" << params.max_depth << "f";
+    oss << " -D MIN_DEPTH=" << config.MinDepth * 1000.0f << "f";
+    oss << " -D MAX_DEPTH=" << config.MaxDepth * 1000.0f << "f";
     options = oss.str();
   }
 
@@ -278,7 +276,7 @@ public:
     }
   }
 
-  bool selectDevice(std::vector<cl::Device> &devices)
+  bool selectDevice(std::vector<cl::Device> &devices, const int deviceId)
   {
     if(deviceId != -1 && devices.size() > (size_t)deviceId)
     {
@@ -305,14 +303,8 @@ public:
     return selected;
   }
 
-  bool init()
+  bool initDevice(const int deviceId)
   {
-    if(isInitialized)
-    {
-      return true;
-    }
-
-    std::string sourceCode;
     if(!readProgram(sourceCode))
     {
       return false;
@@ -336,7 +328,7 @@ public:
       std::vector<cl::Device> devices;
       getDevices(platforms, devices);
       listDevice(devices);
-      if(selectDevice(devices))
+      if(selectDevice(devices, deviceId))
       {
         std::string devName, devVendor, devType;
         size_t devTypeID;
@@ -370,7 +362,25 @@ public:
       }
 
       context = cl::Context(device);
+    }
+    catch(const cl::Error &err)
+    {
+      std::cerr << OUT_NAME("init") "ERROR: " << err.what() << "(" << err.err() << ")" << std::endl;
+      throw err;
+    }
+    return true;
+  }
 
+  bool initProgram()
+  {
+    if(!deviceInitialized)
+    {
+      return false;
+    }
+
+    cl_int err = CL_SUCCESS;
+    try
+    {
       std::string options;
       generateOptions(options);
 
@@ -471,9 +481,8 @@ public:
       }
 
       throw err;
-      return false;
     }
-    isInitialized = true;
+    programInitialized = true;
     return true;
   }
 
@@ -509,7 +518,7 @@ public:
         eventFPS2[0] = eventPPS2[0];
       }
 
-      queue.enqueueReadBuffer(enable_edge_filter ? buf_filtered : buf_depth, CL_FALSE, 0, buf_depth_size, depth_frame->data, &eventFPS2, &event1);
+      queue.enqueueReadBuffer(config.EnableEdgeAwareFilter ? buf_filtered : buf_depth, CL_FALSE, 0, buf_depth_size, depth_frame->data, &eventFPS2, &event1);
       event0.wait();
       event1.wait();
     }
@@ -589,9 +598,7 @@ void OpenCLDepthPacketProcessor::setConfiguration(const libfreenect2::DepthPacke
 {
   DepthPacketProcessor::setConfiguration(config);
   impl_->config = config;
-
-  impl_->enable_bilateral_filter = config.EnableBilateralFilter;
-  impl_->enable_edge_filter = config.EnableEdgeAwareFilter;
+  impl_->programInitialized = false;
 }
 
 void OpenCLDepthPacketProcessor::loadP0TablesFromCommandResponse(unsigned char *buffer, size_t buffer_length)
@@ -605,7 +612,6 @@ void OpenCLDepthPacketProcessor::loadP0TablesFromCommandResponse(unsigned char *
   }
 
   impl_->fill_trig_table(p0table);
-  impl_->init();
 }
 
 void OpenCLDepthPacketProcessor::loadXTableFromFile(const char *filename)
@@ -636,7 +642,7 @@ void OpenCLDepthPacketProcessor::process(const DepthPacket &packet)
 {
   bool has_listener = this->listener_ != 0;
 
-  if(!impl_->init())
+  if(!impl_->programInitialized && !impl_->initProgram())
   {
     std::cerr << OUT_NAME("process") "could not initialize OpenCLDepthPacketProcessor" << std::endl;
     return;
