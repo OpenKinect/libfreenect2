@@ -482,6 +482,7 @@ public:
 
       throw err;
     }
+    programInitialized = true;
     return true;
   }
 
