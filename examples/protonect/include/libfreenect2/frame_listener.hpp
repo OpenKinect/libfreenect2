@@ -28,6 +28,7 @@
 #define FRAME_LISTENER_HPP_
 
 #include <cstddef>
+#include <stdint.h>
 #include <libfreenect2/config.h>
 
 namespace libfreenect2
@@ -44,6 +45,9 @@ struct LIBFREENECT2_API Frame
 
   size_t width, height, bytes_per_pixel;
   unsigned char* data;
+  // this is unavailable in rgb Frame
+  //! @note In my environment, this increase about 267 in every frame.so this is not second or milisec.
+  uint32_t timestamp;
 
   Frame(size_t width, size_t height, size_t bytes_per_pixel) :
     width(width),

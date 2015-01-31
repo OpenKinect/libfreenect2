@@ -68,6 +68,7 @@ private:
 
   uint32_t current_sequence_;
   uint32_t current_subsequence_;
+  uint32_t current_timestamp_;
 };
 
 } /* namespace libfreenect2 */
