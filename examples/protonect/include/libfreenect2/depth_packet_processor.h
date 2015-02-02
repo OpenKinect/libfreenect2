@@ -110,6 +110,7 @@ protected:
   libfreenect2::FrameListener *listener_;
 };
 
+#ifdef LIBFREENECT2_WITH_OPENGL_SUPPORT
 class OpenGLDepthPacketProcessorImpl;
 
 class LIBFREENECT2_API OpenGLDepthPacketProcessor : public DepthPacketProcessor
@@ -137,6 +138,7 @@ public:
 private:
   OpenGLDepthPacketProcessorImpl *impl_;
 };
+#endif // LIBFREENECT2_WITH_OPENGL_SUPPORT
 
 // TODO: push this to some internal namespace
 // use pimpl to hide opencv dependency

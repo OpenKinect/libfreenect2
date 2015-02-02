@@ -82,6 +82,7 @@ public:
   virtual ~CpuPacketPipeline();
 };
 
+#ifdef LIBFREENECT2_WITH_OPENGL_SUPPORT
 class LIBFREENECT2_API OpenGLPacketPipeline : public BasePacketPipeline
 {
 protected:
@@ -92,6 +93,7 @@ public:
   OpenGLPacketPipeline(void *parent_opengl_context = 0, bool debug = false);
   virtual ~OpenGLPacketPipeline();
 };
+#endif // LIBFREENECT2_WITH_OPENGL_SUPPORT
 
 #ifdef LIBFREENECT2_WITH_OPENCL_SUPPORT
 class LIBFREENECT2_API OpenCLPacketPipeline : public BasePacketPipeline
@@ -105,7 +107,6 @@ public:
 };
 #endif // LIBFREENECT2_WITH_OPENCL_SUPPORT
 
-typedef OpenGLPacketPipeline DefaultPacketPipeline;
 
 } /* namespace libfreenect2 */
 #endif /* PACKET_PIPELINE_H_ */
