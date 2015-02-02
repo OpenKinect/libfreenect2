@@ -28,7 +28,7 @@
 #include <iostream>
 #include <signal.h>
 
-#include <libfreenect2/opengl.h>
+#include <GLFW/glfw3.h>
 
 #include <opencv2/opencv.hpp>
 

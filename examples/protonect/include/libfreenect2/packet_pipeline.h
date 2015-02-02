@@ -85,10 +85,11 @@ public:
 class LIBFREENECT2_API OpenGLPacketPipeline : public BasePacketPipeline
 {
 protected:
+  void *parent_opengl_context_;
   bool debug_;
   virtual DepthPacketProcessor *createDepthPacketProcessor();
 public:
-  OpenGLPacketPipeline(bool debug = false);
+  OpenGLPacketPipeline(void *parent_opengl_context = 0, bool debug = false);
   virtual ~OpenGLPacketPipeline();
 };
 
