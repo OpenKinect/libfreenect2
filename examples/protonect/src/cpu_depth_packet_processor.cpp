@@ -36,6 +36,9 @@
 #include <math.h>
 #endif
 
+#include <cmath>
+#include <limits>
+
 template<typename ScalarT, int Size>
 struct Vec
 {
@@ -57,13 +60,17 @@ private:
     x_step = sizeof(ScalarT);
     y_step = width * x_step;
 
-    owns_buffer = external_buffer != 0;
+    owns_buffer = external_buffer == 0;
 
     if(owns_buffer)
     {
       buffer_ = new unsigned char[y_step * height];
-      buffer_end_ = buffer_ + (y_step * height);
     }
+    else
+    {
+      buffer_ = external_buffer;
+    }
+    buffer_end_ = buffer_ + (y_step * height);
   }
 
   void deallocate()
@@ -161,6 +168,7 @@ void flipHorizontal(const Mat<ScalarT> &in, Mat<ScalarT>& out)
   int linestep = out.sizeInBytes() / out.height() / sizeof(type);
 
   type *first_line = reinterpret_cast<type *>(out.buffer()), *last_line = reinterpret_cast<type *>(out.buffer()) + (out.height() - 1) * linestep;
+
 
   for(int y = 0; y < out.height() / 2; ++y)
   {
@@ -879,7 +887,7 @@ void CpuDepthPacketProcessor::process(const DepthPacket &packet)
 {
   if(listener_ == 0) return;
 
-  impl_->startTiming();
+  //impl_->startTiming();
 
   Mat<Vec<float, 9> >
       m(424, 512),
@@ -963,7 +971,7 @@ void CpuDepthPacketProcessor::process(const DepthPacket &packet)
     impl_->newDepthFrame();
   }
 
-  impl_->stopTiming();
+  //impl_->stopTiming();
 }
 
 } /* namespace libfreenect2 */
