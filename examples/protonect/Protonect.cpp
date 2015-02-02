@@ -34,10 +34,6 @@
 #include <libfreenect2/frame_listener_impl.h>
 #include <libfreenect2/threading.h>
 
-#ifdef LIBFREENECT2_WITH_OPENGL_SUPPORT
-#include <GLFW/glfw3.h>
-#endif
-
 bool protonect_shutdown = false;
 
 void sigint_handler(int s)
