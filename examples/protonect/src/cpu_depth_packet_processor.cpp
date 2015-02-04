@@ -81,6 +81,7 @@ public:
   Frame *ir_frame, *depth_frame;
 
   bool flip_ptables;
+  bool save_ptables;
 
   CpuDepthPacketProcessorImpl()
   {
@@ -95,6 +96,7 @@ public:
     enable_edge_filter = true;
 
     flip_ptables = true;
+    save_ptables = true;
   }
 
   void startTiming()
@@ -630,6 +632,24 @@ void CpuDepthPacketProcessor::loadP0TablesFromCommandResponse(unsigned char* buf
   {
     std::cerr << "[CpuDepthPacketProcessor::loadP0TablesFromCommandResponse] P0Table response too short!" << std::endl;
     return;
+  }
+
+  if(impl_->save_ptables)
+  {
+    cv::Mat(424, 512, CV_16UC1, p0table->p0table0).copyTo(impl_->p0_table0);
+    cv::Mat(424, 512, CV_16UC1, p0table->p0table1).copyTo(impl_->p0_table1);
+    cv::Mat(424, 512, CV_16UC1, p0table->p0table2).copyTo(impl_->p0_table2);
+    std::ofstream p00out("p00.bin", std::ios::out | std::ios::binary);
+    p00out.write(reinterpret_cast<char*>(impl_->p0_table0.data), impl_->p0_table0.total() * impl_->p0_table0.elemSize());
+    p00out.close();
+
+    std::ofstream p01out("p01.bin", std::ios::out | std::ios::binary);
+    p01out.write(reinterpret_cast<char*>(impl_->p0_table1.data), impl_->p0_table1.total() * impl_->p0_table1.elemSize());
+    p01out.close();
+
+    std::ofstream p02out("p02.bin", std::ios::out | std::ios::binary);
+    p02out.write(reinterpret_cast<char*>(impl_->p0_table2.data), impl_->p0_table2.total() * impl_->p0_table2.elemSize());
+    p02out.close();
   }
 
   if(impl_->flip_ptables)

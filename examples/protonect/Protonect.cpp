@@ -33,6 +33,7 @@
 #include <libfreenect2/libfreenect2.hpp>
 #include <libfreenect2/frame_listener_impl.h>
 #include <libfreenect2/threading.h>
+#include <libfreenect2/packet_pipeline.h>
 
 bool protonect_shutdown = false;
 
@@ -55,7 +56,8 @@ int main(int argc, char *argv[])
 
 
   libfreenect2::Freenect2 freenect2;
-  libfreenect2::Freenect2Device *dev = freenect2.openDefaultDevice();
+  //libfreenect2::Freenect2Device *dev = freenect2.openDefaultDevice();
+  libfreenect2::Freenect2Device *dev = freenect2.openDefaultDevice(new libfreenect2::CpuPacketPipeline());
 
   if(dev == 0)
   {
