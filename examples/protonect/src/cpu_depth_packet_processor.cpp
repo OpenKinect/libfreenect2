@@ -757,7 +757,18 @@ void CpuDepthPacketProcessor::load11To16LutFromFile(const char* filename)
 
 void CpuDepthPacketProcessor::process(const DepthPacket &packet)
 {
+  static bool rawir_exported = false;
+
   if(listener_ == 0) return;
+
+  if(!rawir_exported && (packet.sequence > 100))
+  {
+    std::cerr << "[CpuDepthPacketProcessor::process] Exporting depth packet " << packet.sequence << std::endl;
+    std::ofstream rawIrOut("rawir.bin", std::ios::out | std::ios::binary);
+    rawIrOut.write(reinterpret_cast<char*>(packet.buffer), packet.buffer_length);
+    rawIrOut.close();
+    rawir_exported = true;
+  }
 
   impl_->startTiming();
 
