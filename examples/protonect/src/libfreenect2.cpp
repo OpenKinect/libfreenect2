@@ -475,10 +475,10 @@ void Freenect2DeviceImpl::start()
   command_tx_.execute(ReadRgbCameraParametersCommand(nextCommandSeq()), result);
   RgbCameraParamsResponse *rgb_p = reinterpret_cast<RgbCameraParamsResponse *>(result.data);
 
-  rgb_camera_params_.fx = rgb_p->intrinsics[0];
-  rgb_camera_params_.fy = rgb_p->intrinsics[0];
-  rgb_camera_params_.cx = rgb_p->intrinsics[1];
-  rgb_camera_params_.cy = rgb_p->intrinsics[2];
+  rgb_camera_params_.fx = rgb_p->color_f;
+  rgb_camera_params_.fy = rgb_p->color_f;
+  rgb_camera_params_.cx = rgb_p->color_cx;
+  rgb_camera_params_.cy = rgb_p->color_cy;
 
   command_tx_.execute(ReadStatus0x090000Command(nextCommandSeq()), result);
   std::cout << "[Freenect2DeviceImpl] ReadStatus0x090000 response" << std::endl;
