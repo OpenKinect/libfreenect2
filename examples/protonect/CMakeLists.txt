@@ -87,6 +87,7 @@ SET(SOURCES
   
   src/usb_control.cpp
   src/command_transaction.cpp
+  src/registration.cpp
   src/libfreenect2.cpp
   ${LIBFREENECT2_THREADING_SOURCE}
   ${RESOURCES_INC_FILE}
