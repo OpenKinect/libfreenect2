@@ -41,9 +41,13 @@ public:
 
 private:
   void undistort_depth(float dx, float dy, float& mx, float& my);
+  void depth_to_color(float mx, float my, float& rx, float& ry);
 
-  float depth_k1, depth_k2, depth_k3;
+  protocol::DepthCameraParamsResponse *depth;
+  protocol::RgbCameraParamsResponse *color;
+
   float undistort_map[512][424][2];
+  float depth_to_color_map[512][424][2];
 };
 
 } /* namespace libfreenect2 */

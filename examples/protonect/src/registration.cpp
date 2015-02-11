@@ -30,7 +30,7 @@
 namespace libfreenect2
 {
 
-/* 
+/*
  * most information, including the table layout in command_response.h, was
  * provided by @sh0 in https://github.com/OpenKinect/libfreenect2/issues/41
  */
@@ -42,48 +42,47 @@ static const float color_q = 0.002199;
 void Registration::undistort_depth(float dx, float dy, float& mx, float& my)
 {
   float ps = (dx * dx) + (dy * dy);
-  float qs = ((ps * depth_k3 + depth_k2) * ps + depth_k1) * ps + 1.0;
+  float qs = ((ps * depth->k3 + depth->k2) * ps + depth->k1) * ps + 1.0;
   for (int i = 0; i < 9; i++) {
     float qd = ps / (qs * qs);
-    qs = ((qd * depth_k3 + depth_k2) * qd + depth_k1) * qd + 1.0;
+    qs = ((qd * depth->k3 + depth->k2) * qd + depth->k1) * qd + 1.0;
   }
   mx = dx / qs;
   my = dy / qs;
 }
 
-/*void kinect2_depth_to_color(float mx, float my, float z, float& rx, float& ry)
+void Registration::depth_to_color(float mx, float my, float& rx, float& ry)
 {
-    mx *= depth_f * depth_q;
-    my *= depth_f * depth_q;
+  mx *= depth->fx * depth_q;
+  my *= depth->fy * depth_q;
 
-    float wx =
-        (mx * mx * mx * mx_x3y0) + (my * my * my * mx_x0y3) +
-        (mx * mx * my * mx_x2y1) + (my * my * mx * mx_x1y2) +
-        (mx * mx * mx_x2y0) + (my * my * mx_x0y2) + (mx * my * mx_x1y1) +
-        (mx * mx_x1y0) + (my * mx_x0y1) + (mx_x0y0);
-    float wy =
-        (mx * mx * mx * my_x3y0) + (my * my * my * my_x0y3) +
-        (mx * mx * my * my_x2y1) + (my * my * mx * my_x1y2) +
-        (mx * mx * my_x2y0) + (my * my * my_x0y2) + (mx * my * my_x1y1) +
-        (mx * my_x1y0) + (my * my_x0y1) + (my_x0y0);
+  float wx =
+    (mx * mx * mx * color->mx_x3y0) + (my * my * my * color->mx_x0y3) +
+    (mx * mx * my * color->mx_x2y1) + (my * my * mx * color->mx_x1y2) +
+    (mx * mx * color->mx_x2y0) + (my * my * color->mx_x0y2) + (mx * my * color->mx_x1y1) +
+    (mx * color->mx_x1y0) + (my * color->mx_x0y1) + (color->mx_x0y0);
 
-    rx = wx / (color_f * color_q);
-    ry = wy / (color_f * color_q);
+  float wy =
+    (mx * mx * mx * color->my_x3y0) + (my * my * my * color->my_x0y3) +
+    (mx * mx * my * color->my_x2y1) + (my * my * mx * color->my_x1y2) +
+    (mx * mx * color->my_x2y0) + (my * my * color->my_x0y2) + (mx * my * color->my_x1y1) +
+    (mx * color->my_x1y0) + (my * color->my_x0y1) + (color->my_x0y0);
 
-    rx += (shift_m / z) - (shift_m / shift_d);
+  rx = wx / (color->color_f * color_q);
+  ry = wy / (color->color_f * color_q);
+}
+/*
+    rx += (depth->shift_m / z) - (depth->shift_m / depth->shift_d);
 
-    rx = rx * color_f + color_cx;
-    ry = ry * color_f + color_cy;
+    rx = rx * color->fx + color_cx;
+    ry = ry * color->fy + color_cy;
 }*/
 
-Registration::Registration(protocol::DepthCameraParamsResponse *depth_p, protocol::RgbCameraParamsResponse *rgb_p)
+Registration::Registration(protocol::DepthCameraParamsResponse *depth_p, protocol::RgbCameraParamsResponse *rgb_p):
+  depth(depth_p), color(rgb_p)
 {
   float mx, my;
   int rx, ry;
-
-  depth_k1 = depth_p->k1;
-  depth_k2 = depth_p->k2;
-  depth_k3 = depth_p->k3;
 
   for (int x = 0; x < 512; x++)
     for (int y = 0; y < 424; y++) {
@@ -92,6 +91,15 @@ Registration::Registration(protocol::DepthCameraParamsResponse *depth_p, protoco
       ry = round(my);
       undistort_map[rx][ry][0] = x;
       undistort_map[rx][ry][1] = y;
+  }
+
+  for (int x = 0; x < 512; x++)
+    for (int y = 0; y < 424; y++) {
+      depth_to_color(x,y,mx,my);
+      rx = round(mx);
+      ry = round(my);
+      depth_to_color_map[rx][ry][0] = x;
+      depth_to_color_map[rx][ry][1] = y;
   }
 }
 
