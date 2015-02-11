@@ -54,10 +54,26 @@ int main(int argc, char *argv[])
     binpath = program_path.substr(0, executable_name_idx);
   }
 
+  bool dump_test_data = false;
+  for(int i = 1; i < argc; ++i)
+  {
+    std::string arg(argv[i]);
+    if(arg == "--dump")
+    {
+      dump_test_data = true;
+    }
+  }
 
   libfreenect2::Freenect2 freenect2;
-  //libfreenect2::Freenect2Device *dev = freenect2.openDefaultDevice();
-  libfreenect2::Freenect2Device *dev = freenect2.openDefaultDevice(new libfreenect2::CpuPacketPipeline());
+  libfreenect2::Freenect2Device *dev;
+  if(dump_test_data)
+  {
+    dev = freenect2.openDefaultDevice(new libfreenect2::CpuPacketPipeline(dump_test_data));
+  }
+  else
+  {
+    dev = freenect2.openDefaultDevice();
+  }
 
   if(dev == 0)
   {
