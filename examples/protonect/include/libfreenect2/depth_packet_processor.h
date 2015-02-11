@@ -147,7 +147,7 @@ class CpuDepthPacketProcessorImpl;
 class LIBFREENECT2_API CpuDepthPacketProcessor : public DepthPacketProcessor
 {
 public:
-  CpuDepthPacketProcessor();
+  CpuDepthPacketProcessor(bool dump_test_data = false);
   virtual ~CpuDepthPacketProcessor();
   virtual void setConfiguration(const libfreenect2::DepthPacketProcessor::Config &config);
 

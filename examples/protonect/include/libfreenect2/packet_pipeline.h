@@ -77,8 +77,9 @@ class LIBFREENECT2_API CpuPacketPipeline : public BasePacketPipeline
 {
 protected:
   virtual DepthPacketProcessor *createDepthPacketProcessor();
+  bool dump_test_data_;
 public:
-  CpuPacketPipeline();
+  CpuPacketPipeline(bool dump_test_data = false);
   virtual ~CpuPacketPipeline();
 };
 

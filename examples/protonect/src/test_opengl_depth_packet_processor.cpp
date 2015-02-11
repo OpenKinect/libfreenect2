@@ -58,6 +58,9 @@ int main(int argc, char **argv) {
   glfwInit();
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+#ifdef __APPLE__
+  glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+#endif
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
   glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
@@ -74,7 +77,7 @@ int main(int argc, char **argv) {
   libfreenect2::OpenGLDepthPacketProcessor processor(window, true);
   processor.setConfiguration(cfg);
   processor.setFrameListener(&fl);
-  processor.loadP0TablesFromFiles((binpath + "../p00.bin").c_str(), (binpath + "../p01.bin").c_str(), (binpath + "../p02.bin").c_str());
+  processor.loadP0TablesFromFiles((binpath + "p00.bin").c_str(), (binpath + "p01.bin").c_str(), (binpath + "p02.bin").c_str());
   processor.load11To16LutFromFile("");
   processor.loadXTableFromFile("");
   processor.loadZTableFromFile("");
@@ -82,7 +85,7 @@ int main(int argc, char **argv) {
   libfreenect2::CpuDepthPacketProcessor ref_processor;
   ref_processor.setConfiguration(cfg);
   ref_processor.setFrameListener(&fl);
-  ref_processor.loadP0TablesFromFiles((binpath + "../p00.bin").c_str(), (binpath + "../p01.bin").c_str(), (binpath + "../p02.bin").c_str());
+  ref_processor.loadP0TablesFromFiles((binpath + "p00.bin").c_str(), (binpath + "p01.bin").c_str(), (binpath + "p02.bin").c_str());
   ref_processor.load11To16LutFromFile("");
   ref_processor.loadXTableFromFile("");
   ref_processor.loadZTableFromFile("");
@@ -93,7 +96,7 @@ int main(int argc, char **argv) {
   p.buffer_length = 352*424*10*2;
   p.buffer = new unsigned char[p.buffer_length];
 
-  loadBufferFromFile(binpath + "../rawir/rawir_4599.bin", p.buffer, p.buffer_length);
+  loadBufferFromFile(binpath + "rawir.bin", p.buffer, p.buffer_length);
 
   libfreenect2::Frame *ir, *depth;
   cv::Mat cpu_ir, cpu_depth, ogl_ir, ogl_depth;

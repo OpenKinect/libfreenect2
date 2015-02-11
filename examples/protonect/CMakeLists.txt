@@ -155,6 +155,14 @@ ADD_DEFINITIONS(-DRESOURCES_INC)
 ADD_LIBRARY(freenect2 SHARED ${SOURCES})
 TARGET_LINK_LIBRARIES(freenect2 ${LIBRARIES})
   
+ADD_EXECUTABLE(test_opengl
+  src/test_opengl_depth_packet_processor.cpp
+)
+
+TARGET_LINK_LIBRARIES(test_opengl
+  freenect2
+)
+
 ADD_EXECUTABLE(Protonect
   Protonect.cpp
 )

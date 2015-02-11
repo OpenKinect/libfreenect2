@@ -79,7 +79,7 @@ DepthPacketProcessor *BasePacketPipeline::getDepthPacketProcessor() const
   return depth_processor_;
 }
 
-CpuPacketPipeline::CpuPacketPipeline()
+CpuPacketPipeline::CpuPacketPipeline(bool dump_test_data) : dump_test_data_( dump_test_data )
 { 
   initialize();
 }
@@ -88,11 +88,11 @@ CpuPacketPipeline::~CpuPacketPipeline() { }
 
 DepthPacketProcessor *CpuPacketPipeline::createDepthPacketProcessor()
 {
-  CpuDepthPacketProcessor *depth_processor = new CpuDepthPacketProcessor();
+  CpuDepthPacketProcessor *depth_processor = new CpuDepthPacketProcessor(dump_test_data_);
   depth_processor->load11To16LutFromFile("11to16.bin");
   depth_processor->loadXTableFromFile("xTable.bin");
   depth_processor->loadZTableFromFile("zTable.bin");
-  
+
   return depth_processor;
 }
 
