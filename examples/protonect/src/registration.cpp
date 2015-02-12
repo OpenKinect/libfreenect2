@@ -71,12 +71,17 @@ void Registration::depth_to_color(float mx, float my, float& rx, float& ry)
   rx = wx / (color->color_f * color_q);
   ry = wy / (color->color_f * color_q);
 }
-/*
-    rx += (depth->shift_m / z) - (depth->shift_m / depth->shift_d);
 
-    rx = rx * color->fx + color_cx;
-    ry = ry * color->fy + color_cy;
-}*/
+void Registration::apply( int dx, int dy, float dz, float& cx, float &cy)
+{
+  float rx = depth_to_color_map[dx][dy][0];
+  float ry = depth_to_color_map[dx][dy][1];
+
+  rx += (color->shift_m / dz) - (color->shift_m / color->shift_d);
+
+  cx = rx * color->color_f + color->color_cx;
+  cy = ry * color->color_f + color->color_cy;
+}
 
 Registration::Registration(protocol::DepthCameraParamsResponse *depth_p, protocol::RgbCameraParamsResponse *rgb_p):
   depth(depth_p), color(rgb_p)
