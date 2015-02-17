@@ -935,6 +935,9 @@ void OpenGLDepthPacketProcessor::process(const DepthPacket &packet)
 
   impl_->stopTiming();
 
+  ir->timestamp = packet.timestamp;
+  depth->timestamp = packet.timestamp;
+
   if(has_listener)
   {
     if(!this->listener_->onNewFrame(Frame::Ir, ir))

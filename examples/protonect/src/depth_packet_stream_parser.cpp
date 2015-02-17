@@ -113,7 +113,7 @@ void DepthPacketStreamParser::onDataReceived(unsigned char* buffer, size_t in_le
               packet.sequence = current_sequence_;
               packet.buffer = buffer_.back().data;
               packet.buffer_length = buffer_.back().length;
-
+              packet.timestamp = current_timestamp_;
               processor_->process(packet);
             }
             else
@@ -128,6 +128,7 @@ void DepthPacketStreamParser::onDataReceived(unsigned char* buffer, size_t in_le
 
           current_sequence_ = footer->sequence;
           current_subsequence_ = 0;
+          current_timestamp_ = footer->timestamp;
         }
 
         Buffer &fb = buffer_.front();

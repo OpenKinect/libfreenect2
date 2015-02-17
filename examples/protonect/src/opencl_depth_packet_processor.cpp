@@ -654,6 +654,9 @@ void OpenCLDepthPacketProcessor::process(const DepthPacket &packet)
 
   impl_->stopTiming();
 
+  impl_->ir_frame->timestamp = packet.timestamp;
+  impl_->depth_frame->timestamp = packet.timestamp;
+
   if(has_listener)
   {
     if(this->listener_->onNewFrame(Frame::Ir, impl_->ir_frame))
