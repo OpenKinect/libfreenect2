@@ -139,7 +139,7 @@ public:
       dump << "   ";
       for (int j = 0; (j < 16) && (j < length); j++)
       {
-        char c = data[i*16+j];
+        unsigned char c = data[i*16+j];
         dump << (((c<32)||(c>128))?'.':c);
       }
       dump << std::endl;
