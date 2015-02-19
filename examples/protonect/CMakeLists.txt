@@ -163,6 +163,14 @@ TARGET_LINK_LIBRARIES(test_opengl
   freenect2
 )
 
+ADD_EXECUTABLE(test_opengl_dump
+  src/test_opengl_depth_packet_processor.cpp
+)
+
+TARGET_LINK_LIBRARIES(test_opengl_dump
+  freenect2
+)
+
 ADD_EXECUTABLE(Protonect
   Protonect.cpp
 )
