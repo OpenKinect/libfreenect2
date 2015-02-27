@@ -11,8 +11,7 @@ rm -rf $LIBUSB_SOURCE_DIR $LIBUSB_INSTALL_DIR
 git clone https://github.com/libusb/libusb.git $LIBUSB_SOURCE_DIR
 
 cd $LIBUSB_SOURCE_DIR
-git checkout v1.0.19
-git apply $DEPENDS_DIR/linux_usbfs_increase_max_iso_buffer_length.patch
+git checkout 51b10191033ca3a3819dcf46e1da2465b99497c2
 ./bootstrap.sh
 ./configure --prefix=$LIBUSB_INSTALL_DIR
 make && make install
@@ -35,15 +34,3 @@ make && make install
 
 cd $DEPENDS_DIR
 
-# glew
-GLEW_SOURCE_DIR=$DEPENDS_DIR/glew_src
-GLEW_INSTALL_DIR=$DEPENDS_DIR/glew
-
-rm -rf $GLEW_SOURCE_DIR $GLEW_INSTALL_DIR
-
-git clone https://github.com/nigels-com/glew.git $GLEW_SOURCE_DIR
-cd $GLEW_SOURCE_DIR
-export GLEW_DEST=$GLEW_INSTALL_DIR
-make extensions && make all && make install.all
-
-cd $DEPENDS_DIR

@@ -96,7 +96,8 @@ DepthPacketProcessor *CpuPacketPipeline::createDepthPacketProcessor()
   return depth_processor;
 }
 
-OpenGLPacketPipeline::OpenGLPacketPipeline(bool debug) : debug_(debug)
+#ifdef LIBFREENECT2_WITH_OPENGL_SUPPORT
+OpenGLPacketPipeline::OpenGLPacketPipeline(void *parent_opengl_context, bool debug) : parent_opengl_context_(parent_opengl_context), debug_(debug)
 { 
   initialize();
 }
@@ -105,13 +106,14 @@ OpenGLPacketPipeline::~OpenGLPacketPipeline() { }
 
 DepthPacketProcessor *OpenGLPacketPipeline::createDepthPacketProcessor()
 {
-  OpenGLDepthPacketProcessor *depth_processor = new OpenGLDepthPacketProcessor(0, debug_);
+  OpenGLDepthPacketProcessor *depth_processor = new OpenGLDepthPacketProcessor(parent_opengl_context_, debug_);
   depth_processor->load11To16LutFromFile("11to16.bin");
   depth_processor->loadXTableFromFile("xTable.bin");
   depth_processor->loadZTableFromFile("zTable.bin");
   
   return depth_processor;
 }
+#endif // LIBFREENECT2_WITH_OPENGL_SUPPORT
 
 
 #ifdef LIBFREENECT2_WITH_OPENCL_SUPPORT

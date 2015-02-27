@@ -28,8 +28,6 @@
 #include <iostream>
 #include <signal.h>
 
-#include <libfreenect2/opengl.h>
-
 #include <opencv2/opencv.hpp>
 
 #include <libfreenect2/libfreenect2.hpp>
@@ -55,7 +53,6 @@ int main(int argc, char *argv[])
     binpath = program_path.substr(0, executable_name_idx);
   }
 
-  glfwInit();
 
   libfreenect2::Freenect2 freenect2;
   libfreenect2::Freenect2Device *dev = freenect2.openDefaultDevice();

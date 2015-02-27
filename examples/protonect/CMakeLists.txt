@@ -7,6 +7,7 @@ SET(MY_DIR ${libfreenect2_SOURCE_DIR})
 
 OPTION(ENABLE_CXX11 "Enable C++11 support" OFF)
 OPTION(ENABLE_OPENCL "Enable OpenCL support" ON)
+OPTION(ENABLE_OPENGL "Enable OpenGL support" ON)
 
 IF(ENABLE_CXX11)
   INCLUDE(CheckCXXCompilerFlag)
@@ -48,23 +49,16 @@ INCLUDE_DIRECTORIES(${OpenCV_INCLUDE_DIR})
 INCLUDE_DIRECTORIES("${MY_DIR}/../../depends/libusb/include/libusb-1.0/")
 LINK_DIRECTORIES("${MY_DIR}/../../depends/libusb/lib/")
 
-# GLEW
-INCLUDE_DIRECTORIES("${MY_DIR}/../../depends/glew/include/")
-if (APPLE)
-  LINK_DIRECTORIES("${MY_DIR}/../../depends/glew/lib/")
-else()
-  LINK_DIRECTORIES("${MY_DIR}/../../depends/glew/lib64/")
-endif()
-ADD_DEFINITIONS(-DGLEW_MX -DGLEW_STATIC)
+IF(ENABLE_OPENGL)
+  # GLFW
+  SET(BUILD_SHARED_LIBS ON CACHE BOOL "Build shared libraries")
+  SET(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "Build the GLFW example programs")
+  SET(GLFW_BUILD_TESTS OFF CACHE BOOL "Build the GLFW test programs")
+  SET(GLFW_BUILD_DOCS OFF CACHE BOOL "Build the GLFW documentation")
 
-# GLFW
-SET(BUILD_SHARED_LIBS ON CACHE BOOL "Build shared libraries")
-SET(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "Build the GLFW example programs")
-SET(GLFW_BUILD_TESTS OFF CACHE BOOL "Build the GLFW test programs")
-SET(GLFW_BUILD_DOCS OFF CACHE BOOL "Build the GLFW documentation")
-
-ADD_SUBDIRECTORY(${MY_DIR}/../../depends/glfw_src/ ${MY_DIR}/../../depends/glfw)
-INCLUDE_DIRECTORIES(${MY_DIR}/../../depends/glfw_src/include/)
+  ADD_SUBDIRECTORY(${MY_DIR}/../../depends/glfw_src/ ${MY_DIR}/../../depends/glfw)
+  INCLUDE_DIRECTORIES(${MY_DIR}/../../depends/glfw_src/include/)
+ENDIF(ENABLE_OPENGL)
 
 if(APPLE)
   # libjpeg-turbo
@@ -111,26 +105,28 @@ SET(RESOURCES
   zTable.bin
 )
 
-# TODO: only append if building with opengl support
-LIST(APPEND SOURCES
-  src/opengl.cpp
-  src/opengl_depth_packet_processor.cpp
-)
 
-LIST(APPEND LIBRARIES
-  GLEWmx
-  glfw
-  ${GLFW_LIBRARIES}
-)
+IF(ENABLE_OPENGL)
+  SET(LIBFREENECT2_WITH_OPENGL_SUPPORT 1)
+  LIST(APPEND SOURCES
+    src/flextGL.c
+    src/opengl_depth_packet_processor.cpp
+  )
 
-LIST(APPEND RESOURCES
-  src/shader/debug.fs
-  src/shader/default.vs
-  src/shader/filter1.fs
-  src/shader/filter2.fs
-  src/shader/stage1.fs
-  src/shader/stage2.fs
-)
+  LIST(APPEND LIBRARIES
+    glfw
+    ${GLFW_LIBRARIES}
+  )
+
+  LIST(APPEND RESOURCES
+    src/shader/debug.fs
+    src/shader/default.vs
+    src/shader/filter1.fs
+    src/shader/filter2.fs
+    src/shader/stage1.fs
+    src/shader/stage2.fs
+  )
+ENDIF(ENABLE_OPENGL)
 
 IF(ENABLE_OPENCL AND OPENCL_FOUND)
   SET(LIBFREENECT2_WITH_OPENCL_SUPPORT 1)
@@ -158,14 +154,6 @@ INCLUDE_DIRECTORIES("${MY_DIR}/include")
 ADD_DEFINITIONS(-DRESOURCES_INC)
 ADD_LIBRARY(freenect2 SHARED ${SOURCES})
 TARGET_LINK_LIBRARIES(freenect2 ${LIBRARIES})
-
-ADD_EXECUTABLE(test_opengl
-  src/test_opengl_depth_packet_processor.cpp
-)
-
-TARGET_LINK_LIBRARIES(test_opengl
-  freenect2
-)
   
 ADD_EXECUTABLE(Protonect
   Protonect.cpp

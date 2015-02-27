@@ -475,10 +475,10 @@ void Freenect2DeviceImpl::start()
   command_tx_.execute(ReadRgbCameraParametersCommand(nextCommandSeq()), result);
   RgbCameraParamsResponse *rgb_p = reinterpret_cast<RgbCameraParamsResponse *>(result.data);
 
-  rgb_camera_params_.fx = rgb_p->intrinsics[0];
-  rgb_camera_params_.fy = rgb_p->intrinsics[0];
-  rgb_camera_params_.cx = rgb_p->intrinsics[1];
-  rgb_camera_params_.cy = rgb_p->intrinsics[2];
+  rgb_camera_params_.fx = rgb_p->color_f;
+  rgb_camera_params_.fy = rgb_p->color_f;
+  rgb_camera_params_.cx = rgb_p->color_cx;
+  rgb_camera_params_.cy = rgb_p->color_cy;
 
   command_tx_.execute(ReadStatus0x090000Command(nextCommandSeq()), result);
   std::cout << "[Freenect2DeviceImpl] ReadStatus0x090000 response" << std::endl;
@@ -600,6 +600,19 @@ void Freenect2DeviceImpl::close()
   std::cout << "[Freenect2DeviceImpl] closed" << std::endl;
 }
 
+PacketPipeline *createDefaultPacketPipeline()
+{
+#ifdef LIBFREENECT2_WITH_OPENGL_SUPPORT
+  return new OpenGLPacketPipeline();
+#else
+  #ifdef LIBFREENECT2_WITH_OPENCL_SUPPORT
+    return new OpenCLPacketPipeline();
+  #else
+  return new CpuPacketPipeline();
+  #endif
+#endif
+}
+
 Freenect2::Freenect2(void *usb_context) :
     impl_(new Freenect2Impl(usb_context))
 {
@@ -628,7 +641,7 @@ std::string Freenect2::getDefaultDeviceSerialNumber()
 
 Freenect2Device *Freenect2::openDevice(int idx)
 {
-  return openDevice(idx, new DefaultPacketPipeline());
+  return openDevice(idx, createDefaultPacketPipeline());
 }
 
 Freenect2Device *Freenect2::openDevice(int idx, const PacketPipeline *pipeline)
@@ -719,7 +732,7 @@ Freenect2Device *Freenect2::openDevice(int idx, const PacketPipeline *pipeline, 
 
 Freenect2Device *Freenect2::openDevice(const std::string &serial)
 {
-  return openDevice(serial, new DefaultPacketPipeline());
+  return openDevice(serial, createDefaultPacketPipeline());
 }
 
 Freenect2Device *Freenect2::openDevice(const std::string &serial, const PacketPipeline *pipeline)
