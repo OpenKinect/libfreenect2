@@ -34,17 +34,17 @@
 #include <libfreenect2/frame_listener_impl.h>
 #include <libfreenect2/threading.h>
 
-bool protonect_shutdown = false;
+bool k22v4l_shutdown = false;
 
 void sigint_handler(int s)
 {
-  protonect_shutdown = true;
+  k22v4l_shutdown = true;
 }
 
 int main(int argc, char *argv[])
 {
   std::string program_path(argv[0]);
-  size_t executable_name_idx = program_path.rfind("Protonect");
+  size_t executable_name_idx = program_path.rfind("k22v4l");
 
   std::string binpath = "/";
 
@@ -64,7 +64,7 @@ int main(int argc, char *argv[])
   }
 
   signal(SIGINT,sigint_handler);
-  protonect_shutdown = false;
+  k22v4l_shutdown = false;
 
   libfreenect2::SyncMultiFrameListener listener(libfreenect2::Frame::Color | libfreenect2::Frame::Ir | libfreenect2::Frame::Depth);
   libfreenect2::FrameMap frames;
@@ -76,7 +76,7 @@ int main(int argc, char *argv[])
   std::cout << "device serial: " << dev->getSerialNumber() << std::endl;
   std::cout << "device firmware: " << dev->getFirmwareVersion() << std::endl;
 
-  while(!protonect_shutdown)
+  while(!k22v4l_shutdown)
   {
     listener.waitForNewFrame(frames);
     libfreenect2::Frame *rgb = frames[libfreenect2::Frame::Color];
@@ -88,7 +88,7 @@ int main(int argc, char *argv[])
     cv::imshow("depth", cv::Mat(depth->height, depth->width, CV_32FC1, depth->data) / 4500.0f);
 
     int key = cv::waitKey(1);
-    protonect_shutdown = protonect_shutdown || (key > 0 && ((key & 0xFF) == 27)); // shutdown on escape
+    k22v4l_shutdown = k22v4l_shutdown || (key > 0 && ((key & 0xFF) == 27)); // shutdown on escape
 
     listener.release(frames);
     //libfreenect2::this_thread::sleep_for(libfreenect2::chrono::milliseconds(100));
