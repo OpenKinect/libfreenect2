@@ -39,8 +39,8 @@
 #include <sys/ioctl.h>
 
 #define VIDEO_DEVICE_RGB "/dev/video0"
-#define VIDEO_DEVICE_DEPTH "/dev/video1"
-#define VIDEO_DEVICE_IR "/dev/video2"
+#define VIDEO_DEVICE_IR "/dev/video1"
+#define VIDEO_DEVICE_DEPTH "/dev/video2"
 
 bool k22v4l_shutdown = false;
 
@@ -84,15 +84,30 @@ int main(int argc, char *argv[])
   std::cout << "device serial: " << dev->getSerialNumber() << std::endl;
   std::cout << "device firmware: " << dev->getFirmwareVersion() << std::endl;
   
-  // init V4L loopback output
+  // don't do that at home, one int to retrieve various return code
+  int ret_code;
+  
+  // init V4L loopback output for RGB
   int fd_rgb = open(VIDEO_DEVICE_RGB, O_RDWR);
   assert(fd_rgb >= 0);
   // what should handle
   struct v4l2_capability vid_caps;
-  int ret_code = ioctl(fd_rgb, VIDIOC_QUERYCAP, &vid_caps);
+  ret_code = ioctl(fd_rgb, VIDIOC_QUERYCAP, &vid_caps);
   assert(ret_code != -1);
   
-  std::cout << "init feed" << std::endl;
+  // init V4L loopback output for IR
+  int fd_ir = open(VIDEO_DEVICE_IR, O_RDWR);
+  assert(fd_ir >= 0);
+  ret_code = ioctl(fd_ir, VIDIOC_QUERYCAP, &vid_caps);
+  assert(ret_code != -1);
+  
+  // init V4L loopback output for DEPTH
+  int fd_depth = open(VIDEO_DEVICE_DEPTH, O_RDWR);
+  assert(fd_depth >= 0);
+  ret_code = ioctl(fd_depth, VIDIOC_QUERYCAP, &vid_caps);
+  assert(ret_code != -1);
+  
+  std::cout << "init feeds" << std::endl;
   // first run to get pointer to frame
   listener.waitForNewFrame(frames);
   libfreenect2::Frame *rgb = frames[libfreenect2::Frame::Color];
@@ -112,8 +127,43 @@ int main(int argc, char *argv[])
   vid_format_rgb.fmt.pix.colorspace = V4L2_COLORSPACE_SRGB;
   ret_code = ioctl(fd_rgb, VIDIOC_S_FMT, &vid_format_rgb);
   assert(ret_code != -1);
+  
+  std::cout << "configure v4l loopback for IR" << std::endl;
+  // configure for our RBG device
+  struct v4l2_format vid_format_ir;
+  vid_format_ir.type = V4L2_BUF_TYPE_VIDEO_OUTPUT;
+  vid_format_ir.fmt.pix.width = ir->width;
+  vid_format_ir.fmt.pix.height = ir->height;
+  vid_format_ir.fmt.pix.pixelformat = V4L2_PIX_FMT_Y16; // black and white 16bits
+  vid_format_ir.fmt.pix.sizeimage = ir->width * ir->height * 2;
+  vid_format_ir.fmt.pix.field = V4L2_FIELD_NONE;
+  vid_format_ir.fmt.pix.bytesperline = rgb->width * 2;
+  vid_format_ir.fmt.pix.colorspace = V4L2_COLORSPACE_SRGB;
+  ret_code = ioctl(fd_ir, VIDIOC_S_FMT, &vid_format_ir);
+  assert(ret_code != -1);
+  
+  std::cout << "configure v4l loopback for DEPTH" << std::endl;
+  // configure for our RBG device
+  struct v4l2_format vid_format_depth;
+  vid_format_depth.type = V4L2_BUF_TYPE_VIDEO_OUTPUT;
+  vid_format_depth.fmt.pix.width = ir->width;
+  vid_format_depth.fmt.pix.height = ir->height;
+  vid_format_depth.fmt.pix.pixelformat = V4L2_PIX_FMT_Y16; // black and white 16bits
+  vid_format_depth.fmt.pix.sizeimage = ir->width * ir->height * 2;
+  vid_format_depth.fmt.pix.field = V4L2_FIELD_NONE;
+  vid_format_depth.fmt.pix.bytesperline = rgb->width * 2;
+  vid_format_depth.fmt.pix.colorspace = V4L2_COLORSPACE_SRGB;
+  ret_code = ioctl(fd_depth, VIDIOC_S_FMT, &vid_format_depth);
+  assert(ret_code != -1);
 
   std::cout << "start loop" << std::endl;
+  
+  // use opencv to confert pixel format (float to int), need some matrix
+  cv::Mat mat_ir, tmp_ir;
+  cv::Mat mat_depth, tmp_depth;
+  
+  // dummy image for dummy frame
+  cv::Mat mat_dummy(240,320, CV_8UC1,128);
   
   while(!k22v4l_shutdown)
   {
@@ -123,14 +173,22 @@ int main(int argc, char *argv[])
     ir = frames[libfreenect2::Frame::Ir];
     depth = frames[libfreenect2::Frame::Depth];
 
-    //cv::imshow("rgb", cv::Mat(rgb->height, rgb->width, CV_8UC3, rgb->data));
-    //cv::imshow("ir", cv::Mat(ir->height, ir->width, CV_32FC1, ir->data) / 20000.0f);
-    //cv::imshow("depth", cv::Mat(depth->height, depth->width, CV_32FC1, depth->data) / 4500.0f);
-
+    // could write directly RGB image as it's 3xint8
     ret_code = write(fd_rgb, rgb->data, rgb->width * rgb->height * 3);
     
-    std::cout << "written: " << ret_code << std::endl;
+    // IR: use a matrix to convert from float32 to int16 and normalize data to adjust brightness
+    mat_ir = cv::Mat(ir->height, ir->width, CV_32FC1, ir->data) ; 
+    cv::normalize(mat_ir, tmp_ir, 0, 255*255, cv::NORM_MINMAX, CV_16UC1); // 255*255 for color depth...
+    ret_code = write(fd_ir, tmp_ir.data, ir->width * ir->height * 2);
     
+    // same with depth
+    mat_depth = cv::Mat(depth->height, depth->width, CV_32FC1, depth->data) ; 
+    cv::normalize(mat_depth, tmp_depth, 0, 255*255, cv::NORM_MINMAX, CV_16UC1);
+    ret_code = write(fd_depth, tmp_depth.data, depth->width * depth->height * 2);
+    
+    // one hell of a GUI
+    cv::imshow("esc to quit", mat_dummy);
+      
     int key = cv::waitKey(1);
     k22v4l_shutdown = k22v4l_shutdown || (key > 0 && ((key & 0xFF) == 27)); // shutdown on escape
 
