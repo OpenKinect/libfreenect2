@@ -113,9 +113,9 @@ int main(int argc, char *argv[])
   libfreenect2::Frame *rgb = frames[libfreenect2::Frame::Color];
   libfreenect2::Frame *ir = frames[libfreenect2::Frame::Ir];
   libfreenect2::Frame *depth = frames[libfreenect2::Frame::Depth];
-    
-  std::cout << "configure v4l loopback for RGB" << std::endl;
+
   // configure for our RBG device
+  std::cout << "configure v4l loopback for RGB" << std::endl;
   struct v4l2_format vid_format_rgb;
   vid_format_rgb.type = V4L2_BUF_TYPE_VIDEO_OUTPUT;
   vid_format_rgb.fmt.pix.width = rgb->width;
@@ -128,8 +128,8 @@ int main(int argc, char *argv[])
   ret_code = ioctl(fd_rgb, VIDIOC_S_FMT, &vid_format_rgb);
   assert(ret_code != -1);
   
+  // configure for our IR device
   std::cout << "configure v4l loopback for IR" << std::endl;
-  // configure for our RBG device
   struct v4l2_format vid_format_ir;
   vid_format_ir.type = V4L2_BUF_TYPE_VIDEO_OUTPUT;
   vid_format_ir.fmt.pix.width = ir->width;
@@ -142,8 +142,8 @@ int main(int argc, char *argv[])
   ret_code = ioctl(fd_ir, VIDIOC_S_FMT, &vid_format_ir);
   assert(ret_code != -1);
   
+  // configure for our DEPTH device
   std::cout << "configure v4l loopback for DEPTH" << std::endl;
-  // configure for our RBG device
   struct v4l2_format vid_format_depth;
   vid_format_depth.type = V4L2_BUF_TYPE_VIDEO_OUTPUT;
   vid_format_depth.fmt.pix.width = ir->width;
