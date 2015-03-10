@@ -32,6 +32,8 @@
 #include <iostream>
 #include <fstream>
 
+#include <limits>
+
 #if defined(WIN32)
 #define _USE_MATH_DEFINES
 #include <math.h>
