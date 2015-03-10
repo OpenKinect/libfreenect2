@@ -102,7 +102,7 @@ git clone https://github.com/OpenKinect/libfreenect2.git
 1. Install a bunch of dependencies
 
     ```
-sudo apt-get install -y build-essential libturbojpeg libtool autoconf libudev-dev cmake mesa-common-dev freeglut3-dev libxrandr-dev doxygen libxi-dev libopencv-dev
+sudo apt-get install -y build-essential libturbojpeg libtool autoconf libudev-dev cmake mesa-common-dev freeglut3-dev libxrandr-dev doxygen libxi-dev libopencv-dev automake
 
 cd libfreenect2/depends
 sh install_ubuntu.sh
