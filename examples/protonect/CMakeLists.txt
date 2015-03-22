@@ -164,7 +164,7 @@ TARGET_LINK_LIBRARIES(test_opengl
 )
 
 ADD_EXECUTABLE(test_opengl_dump
-  src/test_opengl_depth_packet_processor.cpp
+  src/test_opengl_dump.cpp
 )
 
 TARGET_LINK_LIBRARIES(test_opengl_dump
