@@ -162,7 +162,7 @@ void kernel filterPixelStage1(global const float3 *a, global const float3 *b, gl
         weighted_a_acc += weight * other_a;
         weighted_b_acc += weight * other_b;
         weight_acc += weight;
-        dist_acc += select((float3)(0.0f), dist, c1);
+        dist_acc += select(dist, (float3)(0.0f), c1);
       }
     }
 
