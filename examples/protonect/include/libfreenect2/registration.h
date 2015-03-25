@@ -45,8 +45,8 @@ private:
   void undistort_depth(int dx, int dy, float& mx, float& my);
   void depth_to_color(float mx, float my, float& rx, float& ry);
 
-  protocol::DepthCameraParamsResponse *depth;
-  protocol::RgbCameraParamsResponse *color;
+  protocol::DepthCameraParamsResponse depth;
+  protocol::RgbCameraParamsResponse color;
 
   float undistort_map[512][424][2];
   float depth_to_color_map[512][424][2];

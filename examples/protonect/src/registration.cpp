@@ -41,14 +41,14 @@ static const float color_q = 0.002199;
 
 void Registration::undistort_depth(int x, int y, float& mx, float& my)
 {
-  float dx = ((float)x - depth->cx) / depth->fx;
-  float dy = ((float)y - depth->cy) / depth->fy;
+  float dx = ((float)x - depth.cx) / depth.fx;
+  float dy = ((float)y - depth.cy) / depth.fy;
 
   float ps = (dx * dx) + (dy * dy);
-  float qs = ((ps * depth->k3 + depth->k2) * ps + depth->k1) * ps + 1.0;
+  float qs = ((ps * depth.k3 + depth.k2) * ps + depth.k1) * ps + 1.0;
   for (int i = 0; i < 9; i++) {
     float qd = ps / (qs * qs);
-    qs = ((qd * depth->k3 + depth->k2) * qd + depth->k1) * qd + 1.0;
+    qs = ((qd * depth.k3 + depth.k2) * qd + depth.k1) * qd + 1.0;
   }
 
   mx = dx / qs;
@@ -57,23 +57,23 @@ void Registration::undistort_depth(int x, int y, float& mx, float& my)
 
 void Registration::depth_to_color(float mx, float my, float& rx, float& ry)
 {
-  mx *= depth->fx * depth_q;
-  my *= depth->fy * depth_q;
+  mx *= depth.fx * depth_q;
+  my *= depth.fy * depth_q;
 
   float wx =
-    (mx * mx * mx * color->mx_x3y0) + (my * my * my * color->mx_x0y3) +
-    (mx * mx * my * color->mx_x2y1) + (my * my * mx * color->mx_x1y2) +
-    (mx * mx * color->mx_x2y0) + (my * my * color->mx_x0y2) + (mx * my * color->mx_x1y1) +
-    (mx * color->mx_x1y0) + (my * color->mx_x0y1) + (color->mx_x0y0);
+    (mx * mx * mx * color.mx_x3y0) + (my * my * my * color.mx_x0y3) +
+    (mx * mx * my * color.mx_x2y1) + (my * my * mx * color.mx_x1y2) +
+    (mx * mx * color.mx_x2y0) + (my * my * color.mx_x0y2) + (mx * my * color.mx_x1y1) +
+    (mx * color.mx_x1y0) + (my * color.mx_x0y1) + (color.mx_x0y0);
 
   float wy =
-    (mx * mx * mx * color->my_x3y0) + (my * my * my * color->my_x0y3) +
-    (mx * mx * my * color->my_x2y1) + (my * my * mx * color->my_x1y2) +
-    (mx * mx * color->my_x2y0) + (my * my * color->my_x0y2) + (mx * my * color->my_x1y1) +
-    (mx * color->my_x1y0) + (my * color->my_x0y1) + (color->my_x0y0);
+    (mx * mx * mx * color.my_x3y0) + (my * my * my * color.my_x0y3) +
+    (mx * mx * my * color.my_x2y1) + (my * my * mx * color.my_x1y2) +
+    (mx * mx * color.my_x2y0) + (my * my * color.my_x0y2) + (mx * my * color.my_x1y1) +
+    (mx * color.my_x1y0) + (my * color.my_x0y1) + (color.my_x0y0);
 
-  rx = wx / (color->color_f * color_q);
-  ry = wy / (color->color_f * color_q);
+  rx = wx / (color.color_f * color_q);
+  ry = wy / (color.color_f * color_q);
 }
 
 void Registration::apply( int dx, int dy, float dz, float& cx, float &cy)
@@ -81,14 +81,14 @@ void Registration::apply( int dx, int dy, float dz, float& cx, float &cy)
   float rx = depth_to_color_map[dx][dy][0];
   float ry = depth_to_color_map[dx][dy][1];
 
-  rx += (color->shift_m / dz) - (color->shift_m / color->shift_d);
+  rx += (color.shift_m / dz) - (color.shift_m / color.shift_d);
 
-  cx = rx * color->color_f + color->color_cx;
-  cy = ry * color->color_f + color->color_cy;
+  cx = rx * color.color_f + color.color_cx;
+  cy = ry * color.color_f + color.color_cy;
 }
 
 Registration::Registration(protocol::DepthCameraParamsResponse *depth_p, protocol::RgbCameraParamsResponse *rgb_p):
-  depth(depth_p), color(rgb_p)
+  depth(*depth_p), color(*rgb_p)
 {
   float mx, my;
   float rx, ry;
