@@ -72,8 +72,8 @@ void Registration::depth_to_color(float mx, float my, float& rx, float& ry)
     (mx * mx * color.my_x2y0) + (my * my * color.my_x0y2) + (mx * my * color.my_x1y1) +
     (mx * color.my_x1y0) + (my * color.my_x0y1) + (color.my_x0y0);
 
-  rx = wx / (color.color_f * color_q);
-  ry = wy / (color.color_f * color_q);
+  rx = wx / (color.fx * color_q);
+  ry = wy / (color.fx * color_q);
 }
 
 void Registration::apply( int dx, int dy, float dz, float& cx, float &cy)
@@ -83,11 +83,11 @@ void Registration::apply( int dx, int dy, float dz, float& cx, float &cy)
 
   rx += (color.shift_m / dz) - (color.shift_m / color.shift_d);
 
-  cx = rx * color.color_f + color.color_cx;
-  cy = ry * color.color_f + color.color_cy;
+  cx = rx * color.fx + color.cx;
+  cy = ry * color.fy + color.cy;
 }
 
-Registration::Registration(protocol::DepthCameraParamsResponse *depth_p, protocol::RgbCameraParamsResponse *rgb_p):
+Registration::Registration(Freenect2Device::IrCameraParams *depth_p, Freenect2Device::ColorCameraParams *rgb_p):
   depth(*depth_p), color(*rgb_p)
 {
   float mx, my;

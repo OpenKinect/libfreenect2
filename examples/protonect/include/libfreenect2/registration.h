@@ -27,9 +27,9 @@
 #ifndef REGISTRATION_H_
 #define REGISTRATION_H_
 
-#include <stddef.h>
+#include <string>
 #include <libfreenect2/config.h>
-#include <libfreenect2/protocol/response.h>
+#include <libfreenect2/libfreenect2.hpp>
 
 namespace libfreenect2
 {
@@ -37,7 +37,7 @@ namespace libfreenect2
 class LIBFREENECT2_API Registration
 {
 public:
-  Registration(protocol::DepthCameraParamsResponse *depth_p, protocol::RgbCameraParamsResponse *rgb_p);
+  Registration(Freenect2Device::IrCameraParams *depth_p, Freenect2Device::ColorCameraParams *rgb_p);
 
   void apply( int dx, int dy, float dz, float& cx, float &cy);
 
@@ -45,8 +45,8 @@ private:
   void undistort_depth(int dx, int dy, float& mx, float& my);
   void depth_to_color(float mx, float my, float& rx, float& ry);
 
-  protocol::DepthCameraParamsResponse depth;
-  protocol::RgbCameraParamsResponse color;
+  Freenect2Device::IrCameraParams depth;
+  Freenect2Device::ColorCameraParams color;
 
   float undistort_map[512][424][2];
   float depth_to_color_map[512][424][2];
