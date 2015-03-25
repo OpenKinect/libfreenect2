@@ -42,7 +42,7 @@ public:
   void apply( int dx, int dy, float dz, float& cx, float &cy);
 
 private:
-  void undistort_depth(float dx, float dy, float& mx, float& my);
+  void undistort_depth(int dx, int dy, float& mx, float& my);
   void depth_to_color(float mx, float my, float& rx, float& ry);
 
   protocol::DepthCameraParamsResponse *depth;

@@ -39,14 +39,18 @@ namespace libfreenect2
 static const float depth_q = 0.01;
 static const float color_q = 0.002199;
 
-void Registration::undistort_depth(float dx, float dy, float& mx, float& my)
+void Registration::undistort_depth(int x, int y, float& mx, float& my)
 {
+  float dx = ((float)x - depth->cx) / depth->fx;
+  float dy = ((float)y - depth->cy) / depth->fy;
+
   float ps = (dx * dx) + (dy * dy);
   float qs = ((ps * depth->k3 + depth->k2) * ps + depth->k1) * ps + 1.0;
   for (int i = 0; i < 9; i++) {
     float qd = ps / (qs * qs);
     qs = ((qd * depth->k3 + depth->k2) * qd + depth->k1) * qd + 1.0;
   }
+
   mx = dx / qs;
   my = dy / qs;
 }
@@ -87,24 +91,21 @@ Registration::Registration(protocol::DepthCameraParamsResponse *depth_p, protoco
   depth(depth_p), color(rgb_p)
 {
   float mx, my;
-  int rx, ry;
+  float rx, ry;
 
   for (int x = 0; x < 512; x++)
     for (int y = 0; y < 424; y++) {
       undistort_depth(x,y,mx,my);
-      rx = round(mx);
-      ry = round(my);
-      undistort_map[rx][ry][0] = x;
-      undistort_map[rx][ry][1] = y;
+      undistort_map[x][y][0] = mx;
+      undistort_map[x][y][1] = my;
   }
 
   for (int x = 0; x < 512; x++)
     for (int y = 0; y < 424; y++) {
-      depth_to_color(x,y,mx,my);
-      rx = round(mx);
-      ry = round(my);
-      depth_to_color_map[rx][ry][0] = x;
-      depth_to_color_map[rx][ry][1] = y;
+      undistort_depth(x,y,mx,my);
+      depth_to_color(mx,my,rx,ry);
+      depth_to_color_map[x][y][0] = rx;
+      depth_to_color_map[x][y][1] = ry;
   }
 }
 
