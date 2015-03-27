@@ -87,8 +87,8 @@ void Registration::apply( int dx, int dy, float dz, float& cx, float &cy)
   cy = ry * color.fy + color.cy;
 }
 
-Registration::Registration(Freenect2Device::IrCameraParams *depth_p, Freenect2Device::ColorCameraParams *rgb_p):
-  depth(*depth_p), color(*rgb_p)
+Registration::Registration(Freenect2Device::IrCameraParams depth_p, Freenect2Device::ColorCameraParams rgb_p):
+  depth(depth_p), color(rgb_p)
 {
   float mx, my;
   float rx, ry;

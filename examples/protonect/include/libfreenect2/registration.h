@@ -37,7 +37,7 @@ namespace libfreenect2
 class LIBFREENECT2_API Registration
 {
 public:
-  Registration(Freenect2Device::IrCameraParams *depth_p, Freenect2Device::ColorCameraParams *rgb_p);
+  Registration(Freenect2Device::IrCameraParams depth_p, Freenect2Device::ColorCameraParams rgb_p);
 
   void apply( int dx, int dy, float dz, float& cx, float &cy);
 
