@@ -39,6 +39,25 @@ Install the libusbK backend driver for libusbx:
 5. Click the Replace Driver button. Click yes on the warning about replacing a system driver. (This is because it is a composite parent.)
 6. Done. 
 
+Refer to `depends/README.depends.txt` for instructions of the following three steps:
+* Install CMake, OpenCV, TurboJPEG, Intel OpenCL SDK (if Intel GPU)
+* Build or install libusbx
+* Build GLFW
+
+Building libfreenect2 in a cmd.exe with Visual Studio:
+
+````
+cd example/protonect
+mkdir build && cd build
+cmake .. -G "Visual Studio 12 2013 Win64" -DOpenCV_DIR=%cd%\..\..\..\depends\opencv\build -DCMAKE_INSTALL_PREFIX=%cd%\..\..\..\install
+cmake --build . --config Release --target install
+cd ..\..\..\install
+set PATH=%PATH%;%cd%\lib;%cd%\..\depends\libusb\lib;%cd%\..\depends\opencv\build\x64\vc12\bin
+.\bin\Protonect.exe
+````
+
+#### Uninstalling libusbK and restoring to the official SDK
+
 To uninstall the libusbK driver (and get back the official SDK driver, if installed):
 
 1. Open Device Manager
