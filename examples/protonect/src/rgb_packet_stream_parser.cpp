@@ -29,6 +29,7 @@
 #include <memory.h>
 #include <iostream>
 
+
 namespace libfreenect2
 {
 
@@ -36,9 +37,24 @@ namespace libfreenect2
 LIBFREENECT2_PACK(struct RawRgbPacket
 {
   uint32_t sequence;
-  uint32_t unknown0;
+  uint32_t magic_header; // is 'BBBB' equal 0x42424242
 
   unsigned char jpeg_buffer[0];
+});
+
+LIBFREENECT2_PACK(struct RgbPacketFooter {
+    uint32_t magic_header; // is '9999' equal 0x39393939
+    uint32_t sequence;
+    int32_t filler_length; // Filler length of filler before footer
+    int32_t unknown2; // seems 0 always
+    int32_t unknown3; // seems 0 always
+    uint32_t timestamp;
+    float exposure; // ranges from 0.5 to about 60.0 with powerfull light at camera or totally covered
+    float gain; // ranges from 1.0 when camera is clear to 1.5 when camera is covered.
+    uint32_t magic_footer; // is 'BBBB' equal 0x42424242
+    uint32_t packet_size;
+    float unknown4; // consistenly 1.0
+    uint8_t unknown5[12]; // 0 all the time.
 });
 
 RgbPacketStreamParser::RgbPacketStreamParser() :
@@ -58,36 +74,45 @@ void RgbPacketStreamParser::setPacketProcessor(BaseRgbPacketProcessor *processor
 
 void RgbPacketStreamParser::onDataReceived(unsigned char* buffer, size_t length)
 {
+  // if no data return
+  if (length == 0)
+    return;
+
   Buffer &fb = buffer_.front();
 
-  // package containing data
-  if(length > 0)
+  // clear buffer if overflow of data
+  if (fb.length + length > fb.capacity)
   {
-    if(fb.length + length <= fb.capacity)
-    {
-      memcpy(fb.data + fb.length, buffer, length);
-      fb.length += length;
-    }
-    else
-    {
-      std::cerr << "[RgbPacketStreamParser::handleNewData] buffer overflow!" << std::endl;
-    }
+    std::cerr << "[RgbPacketStreamParser::handleNewData] Buffer overflow - resetting." << std::endl;
+    fb.length = 0;
+    return;
+  }
 
-    // not full transfer buffer and we already have some data -> signals end of rgb image packet
-    // TODO: better method, is unknown0 a magic? detect JPEG magic?
-    if(length < 0x4000 && fb.length > sizeof(RgbPacket))
+  memcpy(&fb.data[fb.length], buffer, length);
+  fb.length += length;
+
+  if (fb.length < sizeof(RgbPacketFooter))
+    return;
+
+  RgbPacketFooter* footer = reinterpret_cast<RgbPacketFooter *>(&fb.data[fb.length - sizeof(RgbPacketFooter)]);
+
+  // if magic markers match
+  if (footer->magic_header == 0x39393939 && footer->magic_footer == 0x42424242)
+  {
+    RawRgbPacket *raw_packet = reinterpret_cast<RawRgbPacket *>(fb.data);
+
+    if (fb.length == footer->packet_size && raw_packet->sequence == footer->sequence)
     {
-      // can the processor handle the next image?
-      if(processor_->ready())
+      if (processor_->ready())
       {
         buffer_.swap();
         Buffer &bb = buffer_.back();
 
-        RawRgbPacket *raw_packet = reinterpret_cast<RawRgbPacket *>(bb.data);
         RgbPacket rgb_packet;
         rgb_packet.sequence = raw_packet->sequence;
+        rgb_packet.timestamp = footer->timestamp;
         rgb_packet.jpeg_buffer = raw_packet->jpeg_buffer;
-        rgb_packet.jpeg_buffer_length = bb.length - sizeof(RawRgbPacket);
+        rgb_packet.jpeg_buffer_length = bb.length - sizeof(RawRgbPacket) - sizeof(RgbPacketFooter) - footer->filler_length;
 
         // call the processor
         processor_->process(rgb_packet);
@@ -96,9 +121,15 @@ void RgbPacketStreamParser::onDataReceived(unsigned char* buffer, size_t length)
       {
         std::cerr << "[RgbPacketStreamParser::handleNewData] skipping rgb packet!" << std::endl;
       }
-
-      // reset front buffer
+      // clear buffer and return
       buffer_.front().length = 0;
+      return;
+    }
+    else
+    {
+      std::cerr << "[RgbPacketStreamParser::handleNewData] packetsize or sequence doesn't match!" << std::endl;
+      fb.length = 0;
+      return;
     }
   }
 }
