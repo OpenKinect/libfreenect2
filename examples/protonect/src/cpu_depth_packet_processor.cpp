@@ -743,6 +743,9 @@ void CpuDepthPacketProcessor::process(const DepthPacket &packet)
 
   impl_->startTiming();
 
+  impl_->ir_frame->timestamp = packet.timestamp;
+  impl_->depth_frame->timestamp = packet.timestamp;
+
   cv::Mat m = cv::Mat::zeros(424, 512, CV_32FC(9)), m_filtered = cv::Mat::zeros(424, 512, CV_32FC(9)), m_max_edge_test = cv::Mat::ones(424, 512, CV_8UC1);
 
   float *m_ptr = m.ptr<float>();

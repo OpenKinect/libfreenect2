@@ -33,19 +33,14 @@ namespace libfreenect2
 {
 
 DepthPacketStreamParser::DepthPacketStreamParser() :
-    processor_(noopProcessor<DepthPacket>()),
-    current_sequence_(0),
-    current_subsequence_(0)
+  processor_(noopProcessor<DepthPacket>()),
+  next_subsequence_(0)
 {
-  size_t single_image = 512*424*11/8;
+  size_t single_image = 512 * 424 * 11 / 8;
 
-  buffer_.allocate((single_image) * 10);
-  buffer_.front().length = buffer_.front().capacity;
-  buffer_.back().length = buffer_.back().capacity;
-
-  work_buffer_.data = new unsigned char[single_image * 2];
-  work_buffer_.capacity = single_image * 2;
-  work_buffer_.length = 0;
+  buffer_.allocate((single_image)* 10);
+  buffer_.front().length = 0;
+  buffer_.back().length = 0;
 }
 
 DepthPacketStreamParser::~DepthPacketStreamParser()
@@ -59,122 +54,86 @@ void DepthPacketStreamParser::setPacketProcessor(libfreenect2::BaseDepthPacketPr
 
 void DepthPacketStreamParser::onDataReceived(unsigned char* buffer, size_t in_length)
 {
-  // TODO: simplify this crap (so code, such unreadable, wow ;)
-  Buffer &wb = work_buffer_;
+  if (in_length == 0)
+    return;
 
-  size_t in_offset = 0;
+  DepthSubPacketFooter *footer = 0;
 
-  while(in_offset < in_length)
+  Buffer &fb = buffer_.front();
+
+  for (size_t i = 0; i < in_length; i++)
   {
-    unsigned char *ptr_in = buffer + in_offset, *ptr_out = wb.data + wb.length;
-    DepthSubPacketFooter *footer = 0;
-    bool footer_found = false;
+    footer = reinterpret_cast<DepthSubPacketFooter *>(&buffer[i]);
 
-    size_t max_length = std::min<size_t>(wb.capacity - wb.length, in_length - 8);
-
-    for(; in_offset < max_length; ++in_offset)
+    if (footer->magic0 == 0x0 && footer->magic1 == 0x9 && footer->subsequence != 9)
     {
-      footer = reinterpret_cast<DepthSubPacketFooter *>(ptr_in);
-
-      if(footer->magic0 == 0x0 && footer->magic1 == 0x9)
+      if (next_subsequence_ == footer->subsequence)
       {
-        footer_found = true;
-        break;
-      }
-
-      *ptr_out = *ptr_in;
-      ++ptr_in;
-      ++ptr_out;
-    }
-
-    wb.length = ptr_out - wb.data;
-
-    if(footer_found)
-    {
-      if((in_length - in_offset) < sizeof(DepthSubPacketFooter))
-      {
-        std::cerr << "[DepthPacketStreamParser::handleNewData] incomplete footer detected!" << std::endl;
-      }
-      else if(footer->length > wb.length)
-      {
-        std::cerr << "[DepthPacketStreamParser::handleNewData] image data too short!" << std::endl;
+        // last part of current subsequence so copy up to where footer is found.
+        memcpy(&fb.data[fb.length], buffer, i);
+        fb.length += i;
+        next_subsequence_ = footer->subsequence + 1;
       }
       else
       {
-        if(current_sequence_ != footer->sequence)
+        // reset buffer if we get a sequence out of order.
+        std::cerr << "[DepthPacketStreamParser::handleNewData] Subsequence out of order. Got: " << footer->subsequence << " expected: " << next_subsequence_ << std::endl;
+        fb.length = 0;
+        next_subsequence_ = 0;
+      }
+      return;
+    }
+    else if (footer->magic0 == 0x0 && footer->magic1 == 0x9 && footer->subsequence == 9)
+    {
+      // got the last subsequence so copy up to where footer is found
+      next_subsequence_ = 0;
+
+      memcpy(&fb.data[fb.length], buffer, i);
+      fb.length += i;
+
+      // does the received amount of data match expected
+      if (fb.length == fb.capacity)
+      {
+        if (processor_->ready())
         {
-          if(current_subsequence_ == 0x3ff)
-          {
-            if(processor_->ready())
-            {
-              buffer_.swap();
+          buffer_.swap();
 
-              DepthPacket packet;
-              packet.sequence = current_sequence_;
-              packet.buffer = buffer_.back().data;
-              packet.buffer_length = buffer_.back().length;
+          DepthPacket packet;
+          packet.sequence = footer->sequence;
+          packet.timestamp = footer->timestamp;
+          packet.buffer = buffer_.back().data;
+          packet.buffer_length = buffer_.back().length;
 
-              processor_->process(packet);
-            }
-            else
-            {
-              //std::cerr << "[DepthPacketStreamParser::handleNewData] skipping depth packet!" << std::endl;
-            }
-          }
-          else
-          {
-            std::cerr << "[DepthPacketStreamParser::handleNewData] not all subsequences received " << current_subsequence_ << std::endl;
-          }
+          processor_->process(packet);
 
-          current_sequence_ = footer->sequence;
-          current_subsequence_ = 0;
-        }
-
-        Buffer &fb = buffer_.front();
-
-        // set the bit corresponding to the subsequence number to 1
-        current_subsequence_ |= 1 << footer->subsequence;
-
-        if(footer->subsequence * footer->length > fb.length)
-        {
-          std::cerr << "[DepthPacketStreamParser::handleNewData] front buffer too short! subsequence number is " << footer->subsequence << std::endl;
         }
         else
         {
-          memcpy(fb.data + (footer->subsequence * footer->length), wb.data + (wb.length - footer->length), footer->length);
+          std::cerr << "[DepthPacketStreamParser::handleNewData] skipping depth packet!" << std::endl;
         }
-      }
 
-      // reset working buffer
-      wb.length = 0;
-      // skip header
-      in_offset += sizeof(DepthSubPacketFooter);
-    }
-    else
-    {
-      if((wb.length + 8) >= wb.capacity)
+        // if a complete packet is processed or skipped, reset buffer.
+        fb.length = 0;
+        return;
+      }
+      else
       {
-        std::cerr << "[DepthPacketStreamParser::handleNewData] working buffer full, resetting it!" << std::endl;
-        wb.length = 0;
-        ptr_out = wb.data;
+        // if data amount doesn't match, reset buffer.
+        std::cerr << "[DepthPacketStreamParser::handleNewData] Depth packet not complete - resetting buffer" << std::endl;
+        fb.length = 0;
+        return;
       }
-
-      // copy remaining 8 bytes
-      if((in_length - in_offset) != 8)
-      {
-        std::cerr << "[DepthPacketStreamParser::handleNewData] remaining data should be 8 bytes, but is " << (in_length - in_offset) << std::endl;
-      }
-
-      for(; in_offset < in_length; ++in_offset)
-      {
-        *ptr_out = *ptr_in;
-        ++ptr_in;
-        ++ptr_out;
-      }
-
-      wb.length = ptr_out - wb.data;
     }
   }
+  // copy data if space
+  if (fb.length + in_length > fb.capacity)
+  {
+    std::cerr << "[DepthPacketStreamParser::handleNewData] Buffer full - reseting" << std::endl;
+    fb.length = 0;
+  }
+
+  memcpy(&fb.data[fb.length], buffer, in_length);
+  fb.length += in_length;
 }
 
 } /* namespace libfreenect2 */
