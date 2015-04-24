@@ -29,6 +29,7 @@
 
 #include <deque>
 #include <libusb.h>
+#include <libfreenect2/threading.h>
 
 #include <libfreenect2/data_callback.h>
 
@@ -70,6 +71,8 @@ private:
   libusb_device_handle *device_handle_;
   unsigned char device_endpoint_;
 
+  mutex pending_transfers_lock_;
+  mutex idle_transfers_lock_;
   TransferQueue idle_transfers_, pending_transfers_;
   unsigned char *buffer_;
   size_t buffer_size_;
