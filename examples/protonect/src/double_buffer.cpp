@@ -37,7 +37,7 @@ DoubleBuffer::DoubleBuffer() :
 
 DoubleBuffer::~DoubleBuffer()
 {
-  if(buffer_data_ != 0)
+  if(buffer_data_ != 0 && !external_buffer_)
   {
     buffer_[0].data = 0;
     buffer_[1].data = 0;
@@ -49,6 +49,7 @@ void DoubleBuffer::allocate(size_t buffer_size)
 {
   size_t total_buffer_size = 2 * buffer_size;
   buffer_data_ = new unsigned char[total_buffer_size];
+  external_buffer_ = false;
 
   buffer_[0].capacity = buffer_size;
   buffer_[0].length = 0;
@@ -57,6 +58,22 @@ void DoubleBuffer::allocate(size_t buffer_size)
   buffer_[1].capacity = buffer_size;
   buffer_[1].length = 0;
   buffer_[1].data = buffer_data_ + buffer_size;
+}
+
+void DoubleBuffer::setbuffer(unsigned char *buf, size_t size)
+{
+  if (!external_buffer_)
+    delete[] buffer_data_;
+  external_buffer_ = true;
+  buffer_data_ = buf;
+
+  buffer_[0].capacity = size / 2;
+  buffer_[0].length = size / 2;
+  buffer_[0].data = buf;
+
+  buffer_[1].capacity = size / 2;
+  buffer_[1].length = size / 2;
+  buffer_[1].data = buf + size / 2;
 }
 
 void DoubleBuffer::swap()

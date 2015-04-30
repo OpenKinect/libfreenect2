@@ -76,6 +76,12 @@ public:
     }
     packet_condition_.notify_one();
   }
+
+  virtual unsigned char *getPacketBuffer(size_t size)
+  {
+    return processor_->getPacketBuffer(size);
+  }
+
 private:
   PacketProcessorPtr processor_;
   bool current_packet_available_;
