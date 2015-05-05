@@ -1,4 +1,5 @@
-#/bin/sh
+#!/bin/sh
+
 cd `dirname $0`
 DEPENDS_DIR=`pwd`
 
@@ -33,4 +34,3 @@ cmake -DCMAKE_INSTALL_PREFIX=$GLFW_INSTALL_DIR -DBUILD_SHARED_LIBS=TRUE ..
 make && make install
 
 cd $DEPENDS_DIR
-
