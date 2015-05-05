@@ -44,6 +44,44 @@ static inline VAStatus vaSafeCall(VAStatus err)
 namespace libfreenect2
 {
 
+struct VaapiFrame: Frame
+{
+  VADisplay display;
+  VAImage image;
+
+  VaapiFrame(VADisplay display, size_t width, size_t height, size_t bytes_per_pixel):
+    Frame(width, height, bytes_per_pixel, false),
+    display(display)
+  {
+    /* Create image */
+    VAImageFormat format = {0};
+    format.fourcc = VA_FOURCC_BGRX;
+    format.byte_order = VA_LSB_FIRST;
+    format.bits_per_pixel = bytes_per_pixel;
+    format.depth = 8;
+
+    vaSafeCall(vaCreateImage(display, &format, width, height, &image));
+  }
+
+  void draw(VASurfaceID surface)
+  {
+    if (data != NULL)
+      vaSafeCall(vaUnmapBuffer(display, image.buf));
+    vaSafeCall(vaGetImage(display, surface, 0, 0, width, height, image.image_id));
+    vaSafeCall(vaMapBuffer(display, image.buf, (void**)&data));
+  }
+
+  ~VaapiFrame()
+  {
+    if (data != NULL)
+    {
+      vaSafeCall(vaUnmapBuffer(display, image.buf));
+      data = NULL;
+    }
+    vaSafeCall(vaDestroyImage(display, image.image_id));
+  }
+};
+
 class VaapiJpegRgbPacketProcessorImpl
 {
 public:
@@ -52,7 +90,6 @@ public:
   VAConfigID config;
   VASurfaceID surface;
   VAContextID context;
-  VAImage image;
 
   struct jpeg_decompress_struct dinfo;
   struct jpeg_error_mgr jerr;
@@ -60,7 +97,7 @@ public:
   static const int WIDTH = 1920;
   static const int HEIGHT = 1080;
 
-  Frame *frame;
+  VaapiFrame *frame;
 
   double timing_acc;
   double timing_acc_n;
@@ -83,7 +120,6 @@ public:
 
   ~VaapiJpegRgbPacketProcessorImpl()
   {
-    vaSafeCall(vaDestroyImage(display, image.image_id));
     vaSafeCall(vaDestroyContext(display, context));
     vaSafeCall(vaDestroySurfaces(display, &surface, 1));
     vaSafeCall(vaDestroyConfig(display, config));
@@ -95,7 +131,7 @@ public:
 
   void newFrame()
   {
-    frame = new Frame(1920, 1080, 4);
+    frame = new VaapiFrame(display, 1920, 1080, 4);
   }
 
   void startTiming()
@@ -181,15 +217,6 @@ public:
     vaSafeCall(vaCreateSurfaces(display, rtformat, WIDTH, HEIGHT, &surface, 1, NULL, 0));
 
     vaSafeCall(vaCreateContext(display, config, WIDTH, HEIGHT, 0, &surface, 1, &context));
-
-    /* Create image */
-    VAImageFormat format = {0};
-    format.fourcc = VA_FOURCC_BGRX;
-    format.byte_order = VA_LSB_FIRST;
-    format.bits_per_pixel = 4*8;
-    format.depth = 8;
-
-    vaSafeCall(vaCreateImage(display, &format, WIDTH, HEIGHT, &image));
   }
 
   VABufferID createBuffer(VABufferType type, unsigned int size, void *data)
@@ -280,7 +307,7 @@ public:
   void decompress(unsigned char *buf, size_t len)
   {
     jpeg_mem_src(&dinfo, buf, len);
-    int header_status = jpeg_read_header(&dinfo, TRUE);
+    int header_status = jpeg_read_header(&dinfo, true);
     if (header_status != JPEG_HEADER_OK)
       throw std::runtime_error("jpeg not ready for decompression");
 
@@ -302,12 +329,7 @@ public:
     /* Sync surface */
     vaSafeCall(vaSyncSurface(display, surface));
 
-    vaSafeCall(vaGetImage(display, surface, 0, 0, WIDTH, HEIGHT, image.image_id));
-
-    unsigned char *image_mem;
-    vaSafeCall(vaMapBuffer(display, image.buf, (void**)&image_mem));
-    memcpy(frame->data, image_mem, 1920*1080*4);
-    vaSafeCall(vaUnmapBuffer(display, image.buf));
+    frame->draw(surface);
   }
 };
 
