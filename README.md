@@ -140,9 +140,8 @@ Make sure you install the driver as describe above first.
 
 ### Windows / Visual Studio
 
-2. Open the .sln file from ./build/msvc for your version of Visual Studio.
-3. Confirm the platform configuration has x64 selected
-4. Build and run.
+	1. Use CMake to generate a solution.
+	2. Build and run.
 
 ### Other platforms
 

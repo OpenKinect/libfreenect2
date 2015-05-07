@@ -45,8 +45,6 @@ struct LIBFREENECT2_API RgbPacket
   size_t jpeg_buffer_length;
 };
 
-// explicit instantiation and export to make vsc++ happy
-template class LIBFREENECT2_API PacketProcessor<RgbPacket>;
 typedef PacketProcessor<RgbPacket> BaseRgbPacketProcessor;
 
 class LIBFREENECT2_API RgbPacketProcessor : public BaseRgbPacketProcessor
