@@ -95,14 +95,11 @@ Registration::Registration(Freenect2Device::IrCameraParams depth_p, Freenect2Dev
 
   for (int x = 0; x < 512; x++)
     for (int y = 0; y < 424; y++) {
+
       undistort_depth(x,y,mx,my);
       undistort_map[x][y][0] = mx;
       undistort_map[x][y][1] = my;
-  }
 
-  for (int x = 0; x < 512; x++)
-    for (int y = 0; y < 424; y++) {
-      undistort_depth(x,y,mx,my);
       depth_to_color(mx,my,rx,ry);
       depth_to_color_map[x][y][0] = rx;
       depth_to_color_map[x][y][1] = ry;
