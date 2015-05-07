@@ -87,6 +87,43 @@ void Registration::apply( int dx, int dy, float dz, float& cx, float &cy)
   cy = ry * color.fy + color.cy;
 }
 
+void Registration::apply(Frame* rgb, Frame* depth, unsigned char* registered)
+{
+  if (!depth || !rgb || !registered)
+    return;
+
+  float* depth_raw = (float*)depth->data;
+  float cx, cy;
+  int c_off, d_off, r_off;
+
+  for (int x = 0; x < depth->width; x++) {
+    for (int y = 0; y < depth->height; y++) {
+
+      d_off = y*depth->width + x;
+      r_off = d_off*3;
+
+      float z_raw = depth_raw[d_off];
+      if (z_raw == 0.0) {
+        registered[r_off+0] = 0;
+        registered[r_off+1] = 0;
+        registered[r_off+2] = 0;
+        continue;
+      }
+
+      apply(x,y,z_raw,cx,cy);
+
+      // is rounding the right way to go here - no subpixel precision?
+      c_off = (round(cx) + round(cy) * rgb->width) * 3;
+      if ((c_off < 0) || (c_off > rgb->width*rgb->height*3)) continue;
+
+      registered[r_off+0] = rgb->data[c_off+0];
+      registered[r_off+1] = rgb->data[c_off+1];
+      registered[r_off+2] = rgb->data[c_off+2];
+    }
+  }
+
+}
+
 Registration::Registration(Freenect2Device::IrCameraParams depth_p, Freenect2Device::ColorCameraParams rgb_p):
   depth(depth_p), color(rgb_p)
 {

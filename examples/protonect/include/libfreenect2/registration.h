@@ -30,6 +30,7 @@
 #include <string>
 #include <libfreenect2/config.h>
 #include <libfreenect2/libfreenect2.hpp>
+#include <libfreenect2/frame_listener.hpp>
 
 namespace libfreenect2
 {
@@ -39,7 +40,11 @@ class LIBFREENECT2_API Registration
 public:
   Registration(Freenect2Device::IrCameraParams depth_p, Freenect2Device::ColorCameraParams rgb_p);
 
+  // undistort/register a single depth data point
   void apply( int dx, int dy, float dz, float& cx, float &cy);
+
+  // undistort/register a whole image
+  void apply(Frame* rgb, Frame* depth, unsigned char* registered);
 
 private:
   void undistort_depth(int dx, int dy, float& mx, float& my);
