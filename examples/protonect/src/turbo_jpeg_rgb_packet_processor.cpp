@@ -50,7 +50,7 @@ public:
     decompressor = tjInitDecompress();
     if(decompressor == 0)
     {
-      std::cerr << "[TurboJpegRgbPacketProcessor] Failed to initialize TurboJPEG decompressor! TurboJPEG error: '" << tjGetErrorStr() << "'" << std::endl;
+      std::cerr << "[TurboJpegRgbPacketProcessorImpl] Failed to initialize TurboJPEG decompressor! TurboJPEG error: '" << tjGetErrorStr() << "'" << std::endl;
     }
 
     newFrame();
@@ -66,7 +66,7 @@ public:
     {
       if(tjDestroy(decompressor) == -1)
       {
-        std::cerr << "[TurboJpegRgbPacketProcessor] Failed to destroy TurboJPEG decompressor! TurboJPEG error: '" << tjGetErrorStr() << "'" << std::endl;
+        std::cerr << "[~TurboJpegRgbPacketProcessorImpl] Failed to destroy TurboJPEG decompressor! TurboJPEG error: '" << tjGetErrorStr() << "'" << std::endl;
       }
     }
   }
