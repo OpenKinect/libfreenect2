@@ -90,7 +90,7 @@ int main(int argc, char *argv[])
     cv::imshow("ir", cv::Mat(ir->height, ir->width, CV_32FC1, ir->data) / 20000.0f);
     cv::imshow("depth", cv::Mat(depth->height, depth->width, CV_32FC1, depth->data) / 4500.0f);
 
-    uint8_t registered[depth->height*depth->width*3];
+    uint8_t registered[depth->height*depth->width*rgb->bytes_per_pixel];
     registration.apply(rgb,depth,registered);
     cv::imshow("registered", cv::Mat(depth->height, depth->width, CV_8UC3, registered));
 

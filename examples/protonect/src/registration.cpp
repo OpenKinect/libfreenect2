@@ -100,7 +100,7 @@ void Registration::apply(Frame* rgb, Frame* depth, unsigned char* registered)
     for (int y = 0; y < depth->height; y++) {
 
       d_off = y*depth->width + x;
-      r_off = d_off*3;
+      r_off = d_off*rgb->bytes_per_pixel;
 
       float z_raw = depth_raw[d_off];
       if (z_raw == 0.0) {
@@ -113,8 +113,8 @@ void Registration::apply(Frame* rgb, Frame* depth, unsigned char* registered)
       apply(x,y,z_raw,cx,cy);
 
       // is rounding the right way to go here - no subpixel precision?
-      c_off = (round(cx) + round(cy) * rgb->width) * 3;
-      if ((c_off < 0) || (c_off > rgb->width*rgb->height*3)) continue;
+      c_off = (round(cx) + round(cy) * rgb->width) * rgb->bytes_per_pixel;
+      if ((c_off < 0) || (c_off > rgb->width*rgb->height*rgb->bytes_per_pixel)) continue;
 
       registered[r_off+0] = rgb->data[c_off+0];
       registered[r_off+1] = rgb->data[c_off+1];
