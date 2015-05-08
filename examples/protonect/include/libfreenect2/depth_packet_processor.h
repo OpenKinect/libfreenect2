@@ -44,8 +44,6 @@ struct LIBFREENECT2_API DepthPacket
   size_t buffer_length;
 };
 
-// explicit instantiation and export to make vsc++ happy
-template class LIBFREENECT2_API PacketProcessor<DepthPacket>; 
 typedef PacketProcessor<DepthPacket> BaseDepthPacketProcessor;
 
 class LIBFREENECT2_API DepthPacketProcessor : public BaseDepthPacketProcessor
