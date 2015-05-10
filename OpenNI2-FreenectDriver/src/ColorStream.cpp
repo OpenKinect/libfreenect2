@@ -4,11 +4,11 @@
 using namespace FreenectDriver;
 
 
-ColorStream::ColorStream(Freenect::FreenectDevice* pDevice) : VideoStream(pDevice)
+ColorStream::ColorStream(libfreenect2::Freenect2Device* pDevice) : VideoStream(pDevice)
 {
-  video_mode = makeOniVideoMode(ONI_PIXEL_FORMAT_RGB888, 640, 480, 30);
+  video_mode = makeOniVideoMode(ONI_PIXEL_FORMAT_RGB888, 1920, 1080, 30);
   setVideoMode(video_mode);
-  pDevice->startVideo();
+  pDevice->start();
 }
 
 // Add video modes here as you implement them
@@ -16,7 +16,7 @@ ColorStream::FreenectVideoModeMap ColorStream::getSupportedVideoModes()
 {
   FreenectVideoModeMap modes;
   //                    pixelFormat, resolutionX, resolutionY, fps    freenect_video_format, freenect_resolution
-  modes[makeOniVideoMode(ONI_PIXEL_FORMAT_RGB888, 640, 480, 30)] = std::pair<freenect_video_format, freenect_resolution>(FREENECT_VIDEO_RGB, FREENECT_RESOLUTION_MEDIUM);
+  modes[makeOniVideoMode(ONI_PIXEL_FORMAT_RGB888, 1920, 1080, 30)] = std::pair<freenect2_video_format, freenect2_resolution>(FREENECT2_VIDEO_RGB, FREENECT2_RESOLUTION_1920x1080);
 
 
   return modes;
@@ -35,15 +35,17 @@ OniStatus ColorStream::setVideoMode(OniVideoMode requested_mode)
   if (matched_mode_iter == supported_video_modes.end())
     return ONI_STATUS_NOT_SUPPORTED;
 
-  freenect_video_format format = matched_mode_iter->second.first;
-  freenect_resolution resolution = matched_mode_iter->second.second;
+  freenect2_video_format format = matched_mode_iter->second.first;
+  freenect2_resolution resolution = matched_mode_iter->second.second;
 
+#if 0
   try { device->setVideoFormat(format, resolution); }
   catch (std::runtime_error e)
   {
     LogError("Format " + to_string(format) + " and resolution " + to_string(resolution) + " combination not supported by libfreenect");
     return ONI_STATUS_NOT_SUPPORTED;
   }
+#endif // 0
   video_mode = requested_mode;
   return ONI_STATUS_OK;
 }
@@ -66,7 +68,11 @@ void ColorStream::populateFrame(void* data, OniFrame* frame) const
     case ONI_PIXEL_FORMAT_RGB888:
       uint8_t* source = static_cast<uint8_t*>(data);
       uint8_t* target = static_cast<uint8_t*>(frame->data);
-      std::copy(source, source + frame->dataSize, target);
+      for (uint8_t* p = source; p < source + frame->dataSize; p+=3) {
+          *target++ = p[2];
+          *target++ = p[1];
+          *target++ = p[0];
+      }
       return;
   }
 }

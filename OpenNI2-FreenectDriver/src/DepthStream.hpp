@@ -3,7 +3,7 @@
 #include <algorithm> // for transform()
 #include <cmath> // for M_PI
 #include <cstdio> // for memcpy
-#include "libfreenect.hpp"
+#include "libfreenect2/libfreenect2.hpp"
 #include "Driver/OniDriverAPI.h"
 #include "PS1080.h"
 #include "VideoStream.hpp"
@@ -32,7 +32,7 @@ namespace FreenectDriver
     static const double EMITTER_DCMOS_DISTANCE_VAL = 7.5;
 
   private:
-    typedef std::map< OniVideoMode, std::pair<freenect_depth_format, freenect_resolution> > FreenectDepthModeMap;
+    typedef std::map< OniVideoMode, std::pair<freenect2_depth_format, freenect2_resolution> > FreenectDepthModeMap;
     static const OniSensorType sensor_type = ONI_SENSOR_DEPTH;
     OniImageRegistrationMode image_registration_mode;
 
@@ -41,7 +41,7 @@ namespace FreenectDriver
     void populateFrame(void* data, OniFrame* frame) const;
 
   public:
-    DepthStream(Freenect::FreenectDevice* pDevice);
+    DepthStream(libfreenect2::Freenect2Device* pDevice);
     //~DepthStream() { }
 
     static OniSensorInfo getSensorInfo()

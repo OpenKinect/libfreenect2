@@ -1,9 +1,11 @@
 #pragma once
 
-#include "libfreenect.hpp"
+#include <sstream>
+#include <map>
+#include "libfreenect2.h"
+#include "libfreenect2/libfreenect2.hpp"
 #include "PS1080.h"
 #include "Utility.hpp"
-
 
 namespace FreenectDriver
 {
@@ -17,14 +19,14 @@ namespace FreenectDriver
 
   protected:
     static const OniSensorType sensor_type;
-    Freenect::FreenectDevice* device;
+    libfreenect2::Freenect2Device* device;
     bool running; // buildFrame() does something iff true
     OniVideoMode video_mode;
     OniCropping cropping;
     bool mirroring;
 
   public:
-    VideoStream(Freenect::FreenectDevice* device) :
+    VideoStream(libfreenect2::Freenect2Device* device) :
       frame_id(1),
       device(device),
       mirroring(false)
