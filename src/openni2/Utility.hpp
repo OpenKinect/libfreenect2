@@ -54,11 +54,11 @@ static std::string to_string(const T& n)
 
 
 // global logging
-namespace FreenectDriver
+namespace Freenect2Driver
 {
   static void WriteMessage(std::string info)
   {
-    std::cout << "OpenNI2-FreenectDriver: " << info << std::endl;
+    std::cout << "OpenNI2-Freenect2Driver: " << info << std::endl;
   }
   
   // DriverServices is set in DeviceDriver.cpp so all files can call errorLoggerAppend()
@@ -69,6 +69,6 @@ namespace FreenectDriver
     WriteMessage("(ERROR) " + error);
     
     if (DriverServices != NULL)
-      DriverServices->errorLoggerAppend(std::string("OpenNI2-FreenectDriver: " + error).c_str());
+      DriverServices->errorLoggerAppend(std::string("OpenNI2-Freenect2Driver: " + error).c_str());
   }
 }
