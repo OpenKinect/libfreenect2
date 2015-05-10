@@ -4,12 +4,12 @@
 using namespace FreenectDriver;
 
 
-DepthStream::DepthStream(Freenect::FreenectDevice* pDevice) : VideoStream(pDevice)
+DepthStream::DepthStream(libfreenect2::Freenect2Device* pDevice) : VideoStream(pDevice)
 {
   video_mode = makeOniVideoMode(ONI_PIXEL_FORMAT_DEPTH_1_MM, 640, 480, 30);
   image_registration_mode = ONI_IMAGE_REGISTRATION_OFF;
   setVideoMode(video_mode);
-  pDevice->startDepth();
+  pDevice->start();
 }
 
 // Add video modes here as you implement them
@@ -19,7 +19,7 @@ DepthStream::FreenectDepthModeMap DepthStream::getSupportedVideoModes()
 {
   FreenectDepthModeMap modes;
   //                      pixelFormat, resolutionX, resolutionY, fps
-  modes[makeOniVideoMode(ONI_PIXEL_FORMAT_DEPTH_1_MM, 640, 480, 30)] = std::pair<freenect_depth_format, freenect_resolution>(FREENECT_DEPTH_MM, FREENECT_RESOLUTION_MEDIUM);
+  modes[makeOniVideoMode(ONI_PIXEL_FORMAT_DEPTH_1_MM, 512, 424, 30)] = std::pair<freenect2_depth_format, freenect2_resolution>(FREENECT2_DEPTH_MM, FREENECT2_RESOLUTION_512x424);
 
 
   return modes;
@@ -32,6 +32,7 @@ OniStatus DepthStream::setVideoMode(OniVideoMode requested_mode)
   if (matched_mode_iter == supported_video_modes.end())
     return ONI_STATUS_NOT_SUPPORTED;
 
+#if 0
   freenect_depth_format format = matched_mode_iter->second.first;
   freenect_resolution resolution = matched_mode_iter->second.second;
   if (image_registration_mode == ONI_IMAGE_REGISTRATION_DEPTH_TO_COLOR) // try forcing registration mode
@@ -49,6 +50,7 @@ OniStatus DepthStream::setVideoMode(OniVideoMode requested_mode)
     }
     return ONI_STATUS_NOT_SUPPORTED;
   }
+#endif // 0
   video_mode = requested_mode;
   return ONI_STATUS_OK;
 }

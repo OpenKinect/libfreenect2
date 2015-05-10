@@ -2,7 +2,9 @@
 
 #include <algorithm> // for transform()
 #include <cmath> // for M_PI
-#include "libfreenect.hpp"
+#include <map>
+#include "libfreenect2.h"
+#include "libfreenect2/libfreenect2.hpp"
 #include "Driver/OniDriverAPI.h"
 #include "VideoStream.hpp"
 
@@ -18,7 +20,7 @@ namespace FreenectDriver
     static const float VERTICAL_FOV = 48.6 * (M_PI / 180);
 
   private:
-    typedef std::map< OniVideoMode, std::pair<freenect_video_format, freenect_resolution> > FreenectVideoModeMap;
+    typedef std::map< OniVideoMode, std::pair<freenect2_video_format, freenect2_resolution> > FreenectVideoModeMap;
     static const OniSensorType sensor_type = ONI_SENSOR_COLOR;
 
     static FreenectVideoModeMap getSupportedVideoModes();
@@ -29,7 +31,7 @@ namespace FreenectDriver
     bool auto_exposure;
 
   public:
-    ColorStream(Freenect::FreenectDevice* pDevice);
+    ColorStream(libfreenect2::Freenect2Device* pDevice);
     //~ColorStream() { }
 
     static OniSensorInfo getSensorInfo()
@@ -116,6 +118,7 @@ namespace FreenectDriver
         default:
           return VideoStream::setProperty(propertyId, data, dataSize);
       
+#if 0      
         // camera
         case ONI_STREAM_PROPERTY_AUTO_WHITE_BALANCE: // OniBool
         {
@@ -150,6 +153,7 @@ namespace FreenectDriver
           int ret = device->setFlag(FREENECT_MIRROR_VIDEO, mirroring);
           return (ret == 0) ? ONI_STATUS_OK : ONI_STATUS_ERROR;
         }
+#endif
       }
     }
   };

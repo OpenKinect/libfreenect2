@@ -17,17 +17,17 @@
 #include <map>
 #include <string>
 #include "Driver/OniDriverAPI.h"
-#include "freenect_internal.h"
-#include "libfreenect.hpp"
+#include "libfreenect2/libfreenect2.hpp"
 #include "DepthStream.hpp"
 #include "ColorStream.hpp"
 
 
 namespace FreenectDriver
 {
-  class Device : public oni::driver::DeviceBase, public Freenect::FreenectDevice
+  class Device : public oni::driver::DeviceBase  //, public libfreenect2::Freenect2Device
   {
   private:
+    libfreenect2::Freenect2Device *dev;
     ColorStream* color;
     DepthStream* depth;
 
@@ -40,7 +40,8 @@ namespace FreenectDriver
     }
 
   public:
-    Device(freenect_context* fn_ctx, int index) : Freenect::FreenectDevice(fn_ctx, index),
+    Device(freenect2_context* fn_ctx, int index) : //libfreenect2::Freenect2Device(fn_ctx, index),
+      dev(NULL),
       color(NULL),
       depth(NULL) { }
     ~Device()
@@ -48,6 +49,12 @@ namespace FreenectDriver
       destroyStream(color);
       destroyStream(depth);
     }
+
+    // for Freenect2Device
+    void setFreenect2Device(libfreenect2::Freenect2Device *dev) { this->dev = dev; }
+    void start() { dev->start(); }
+    void stop() { dev->stop(); }
+    void close() { dev->close(); }
 
     // for DeviceBase
 
@@ -72,11 +79,11 @@ namespace FreenectDriver
           return NULL;
         case ONI_SENSOR_COLOR:
           if (! color)
-            color = new ColorStream(this);
+            color = new ColorStream(dev);
           return color;
         case ONI_SENSOR_DEPTH:
           if (! depth)
-            depth = new DepthStream(this);
+            depth = new DepthStream(dev);
           return depth;
         // todo: IR
       }
@@ -87,6 +94,18 @@ namespace FreenectDriver
       if (pStream == NULL)
         return;
 
+#if 1
+      // destroy them all :-)
+      dev->stop();
+      if (color != NULL) {
+        delete color;
+        color = NULL;
+      }
+      if (depth != NULL) {
+        delete depth;
+        depth = NULL;
+      }
+#else // 0
       if (pStream == color)
       {
         Freenect::FreenectDevice::stopVideo();
@@ -99,6 +118,7 @@ namespace FreenectDriver
         delete depth;
         depth = NULL;
       }
+#endif // 0
     }
 
     // todo: fill out properties
@@ -208,7 +228,7 @@ namespace FreenectDriver
   };
 
 
-  class Driver : public oni::driver::DriverBase, private Freenect::Freenect
+  class Driver : public oni::driver::DriverBase, private libfreenect2::Freenect2
   {
   private:
     typedef std::map<OniDeviceInfo, oni::driver::DeviceBase*> OniDeviceMap;
@@ -229,10 +249,13 @@ namespace FreenectDriver
   public:
     Driver(OniDriverServices* pDriverServices) : DriverBase(pDriverServices)
     {
-      WriteMessage("Using libfreenect v" + to_string(PROJECT_VER));
+        //WriteMessage("Using libfreenect v" + to_string(PROJECT_VER));
+      WriteMessage("Using libfreenect2");
 
+#if 0
       freenect_set_log_level(m_ctx, FREENECT_LOG_DEBUG);
       freenect_select_subdevices(m_ctx, FREENECT_DEVICE_CAMERA); // OpenNI2 doesn't use MOTOR or AUDIO
+#endif // 0
       DriverServices = &getServices();
     }
     ~Driver() { shutdown(); }
@@ -242,7 +265,10 @@ namespace FreenectDriver
     OniStatus initialize(oni::driver::DeviceConnectedCallback connectedCallback, oni::driver::DeviceDisconnectedCallback disconnectedCallback, oni::driver::DeviceStateChangedCallback deviceStateChangedCallback, void* pCookie)
     {
       DriverBase::initialize(connectedCallback, disconnectedCallback, deviceStateChangedCallback, pCookie);
-      for (int i = 0; i < Freenect::deviceCount(); i++)
+      std::cout << "##" << std::endl;
+      std::cout << "## HELLO!" << std::endl;
+      std::cout << "##" << std::endl;
+      for (int i = 0; i < Freenect2::enumerateDevices(); i++)
       {
         std::string uri = devid_to_uri(i);
 
@@ -256,6 +282,7 @@ namespace FreenectDriver
         deviceConnected(&info);
         deviceStateChanged(&info, 0);
 
+#if 0
         freenect_device* dev;
         if (freenect_open_device(m_ctx, &dev, i) == 0)
         {
@@ -267,6 +294,7 @@ namespace FreenectDriver
         {
           WriteMessage("Unable to open device to query VID/PID");
         }
+#endif // 0
       }
       return ONI_STATUS_OK;
     }
@@ -285,7 +313,8 @@ namespace FreenectDriver
           {
             WriteMessage("Opening device " + std::string(uri));
             int id = uri_to_devid(iter->first.uri);
-            Device* device = &createDevice<Device>(id);
+            Device* device = new Device(NULL, id);
+            device->setFreenect2Device(openDevice(id)); // XXX, detault pipeline // const PacketPipeline *factory);
             iter->second = device;
             return device;
           }
@@ -305,7 +334,9 @@ namespace FreenectDriver
           WriteMessage("Closing device " + std::string(iter->first.uri));
           int id = uri_to_devid(iter->first.uri);
           devices.erase(iter);
-          deleteDevice(id);
+          Device* device = (Device*)iter->second;
+          device->stop();
+          device->close();
           return;
         }
       }
@@ -328,7 +359,9 @@ namespace FreenectDriver
       {
         WriteMessage("Closing device " + std::string(iter->first.uri));
         int id = uri_to_devid(iter->first.uri);
-        deleteDevice(id);
+        Device* device = (Device*)iter->second;
+        device->stop();
+        device->close();
       }
 
       devices.clear();
