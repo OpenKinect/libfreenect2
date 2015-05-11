@@ -78,6 +78,7 @@ int main(int argc, char *argv[])
   std::cout << "device firmware: " << dev->getFirmwareVersion() << std::endl;
 
   libfreenect2::Registration registration(dev->getIrCameraParams(), dev->getColorCameraParams());
+  uint8_t* registered = NULL;
 
   while(!protonect_shutdown)
   {
@@ -90,7 +91,7 @@ int main(int argc, char *argv[])
     cv::imshow("ir", cv::Mat(ir->height, ir->width, CV_32FC1, ir->data) / 20000.0f);
     cv::imshow("depth", cv::Mat(depth->height, depth->width, CV_32FC1, depth->data) / 4500.0f);
 
-    uint8_t registered[depth->height*depth->width*rgb->bytes_per_pixel];
+    if (!registered) registered = new uint8_t[depth->height*depth->width*rgb->bytes_per_pixel];
     registration.apply(rgb,depth,registered);
     cv::imshow("registered", cv::Mat(depth->height, depth->width, CV_8UC3, registered));
 
@@ -105,6 +106,8 @@ int main(int argc, char *argv[])
   // TODO: bad things will happen, if frame listeners are freed before dev->stop() :(
   dev->stop();
   dev->close();
+
+  delete[] registered;
 
   return 0;
 }
