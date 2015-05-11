@@ -77,7 +77,7 @@ int main(int argc, char *argv[])
   std::cout << "device serial: " << dev->getSerialNumber() << std::endl;
   std::cout << "device firmware: " << dev->getFirmwareVersion() << std::endl;
 
-  libfreenect2::Registration registration(dev->getIrCameraParams(), dev->getColorCameraParams());
+  libfreenect2::Registration* registration = new libfreenect2::Registration(dev->getIrCameraParams(), dev->getColorCameraParams());
   uint8_t* registered = NULL;
 
   while(!protonect_shutdown)
@@ -92,7 +92,7 @@ int main(int argc, char *argv[])
     cv::imshow("depth", cv::Mat(depth->height, depth->width, CV_32FC1, depth->data) / 4500.0f);
 
     if (!registered) registered = new uint8_t[depth->height*depth->width*rgb->bytes_per_pixel];
-    registration.apply(rgb,depth,registered);
+    registration->apply(rgb,depth,registered);
     cv::imshow("registered", cv::Mat(depth->height, depth->width, CV_8UC3, registered));
 
     int key = cv::waitKey(1);
@@ -108,6 +108,7 @@ int main(int argc, char *argv[])
   dev->close();
 
   delete[] registered;
+  delete registration;
 
   return 0;
 }
