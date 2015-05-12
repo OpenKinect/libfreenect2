@@ -26,8 +26,9 @@
 
 #include <libfreenect2/rgb_packet_processor.h>
 
-#include <opencv2/opencv.hpp>
+//#include <opencv2/opencv.hpp>
 #include <turbojpeg.h>
+#include <iostream>
 
 namespace libfreenect2
 {
@@ -78,12 +79,12 @@ public:
 
   void startTiming()
   {
-    timing_current_start = cv::getTickCount();
+    //timing_current_start = cv::getTickCount();
   }
 
   void stopTiming()
   {
-    timing_acc += (cv::getTickCount() - timing_current_start) / cv::getTickFrequency();
+    //timing_acc += (cv::getTickCount() - timing_current_start) / cv::getTickFrequency();
     timing_acc_n += 1.0;
 
     if(timing_acc_n >= 100.0)
@@ -110,7 +111,7 @@ void TurboJpegRgbPacketProcessor::process(const RgbPacket &packet)
 {
   if(impl_->decompressor != 0 && listener_ != 0)
   {
-    impl_->startTiming();
+    //impl_->startTiming();
 
     int r = tjDecompress2(impl_->decompressor, packet.jpeg_buffer, packet.jpeg_buffer_length, impl_->frame->data, 1920, 1920 * tjPixelSize[TJPF_BGR], 1080, TJPF_BGR, 0);
 
@@ -126,7 +127,7 @@ void TurboJpegRgbPacketProcessor::process(const RgbPacket &packet)
       std::cerr << "[TurboJpegRgbPacketProcessor::doProcess] Failed to decompress rgb image! TurboJPEG error: '" << tjGetErrorStr() << "'" << std::endl;
     }
 
-    impl_->stopTiming();
+    //impl_->stopTiming();
   }
 }
 

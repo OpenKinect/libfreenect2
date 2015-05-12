@@ -40,10 +40,7 @@ SET(LIBRARY_OUTPUT_PATH ${MY_DIR}/lib)
 FIND_PACKAGE(OpenCL)
 
 # dependencies
-FIND_PACKAGE(OpenCV REQUIRED)
-
-# OpenCV
-INCLUDE_DIRECTORIES(${OpenCV_INCLUDE_DIR})
+FIND_PACKAGE(OpenCV)
 
 # LibUSB
 INCLUDE_DIRECTORIES("${MY_DIR}/../../depends/libusb/include/libusb-1.0/")
@@ -95,7 +92,6 @@ SET(SOURCES
 
 SET(LIBRARIES
   usb-1.0
-  ${OpenCV_LIBS}
   turbojpeg
   ${LIBFREENECT2_THREADING_LIBRARIES}
 )
