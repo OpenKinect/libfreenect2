@@ -40,6 +40,7 @@ namespace libfreenect2
 struct LIBFREENECT2_API DepthPacket
 {
   uint32_t sequence;
+  uint32_t timestamp;
   unsigned char *buffer;
   size_t buffer_length;
 };
