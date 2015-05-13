@@ -36,9 +36,27 @@ namespace libfreenect2
 LIBFREENECT2_PACK(struct RawRgbPacket
 {
   uint32_t sequence;
-  uint32_t unknown0;
+  uint32_t magic_header; // is 'BBBB' equal 0x42424242
 
   unsigned char jpeg_buffer[0];
+});
+
+// starting from JPEG EOI: 0xff 0xd9
+// char pad_0xa5[]; //0-3 bytes alignment of 0xa5
+// char filler[filler_length] = "ZZZZ...";
+LIBFREENECT2_PACK(struct RgbPacketFooter {
+  uint32_t magic_header; // is '9999' equal 0x39393939
+  uint32_t sequence;
+  uint32_t filler_length;
+  uint32_t unknown1; // seems 0 always
+  uint32_t unknown2; // seems 0 always
+  uint32_t timestamp;
+  float exposure; // ? ranges from 0.5 to about 60.0 with powerfull light at camera or totally covered
+  float gain; // ? ranges from 1.0 when camera is clear to 1.5 when camera is covered.
+  uint32_t magic_footer; // is 'BBBB' equal 0x42424242
+  uint32_t packet_size;
+  float unknown3; // seems 1.0f always
+  uint32_t unknown4[3]; // seems to be 0 all the time.
 });
 
 RgbPacketStreamParser::RgbPacketStreamParser() :
@@ -71,12 +89,54 @@ void RgbPacketStreamParser::onDataReceived(unsigned char* buffer, size_t length)
     else
     {
       std::cerr << "[RgbPacketStreamParser::onDataReceived] buffer overflow!" << std::endl;
+      fb.length = 0;
+      return;
     }
 
-    // not full transfer buffer and we already have some data -> signals end of rgb image packet
-    // TODO: better method, is unknown0 a magic? detect JPEG magic?
-    if(length < 0x4000 && fb.length > sizeof(RgbPacket))
+    // not enough data to do anything
+    if (fb.length <= sizeof(RawRgbPacket) + sizeof(RgbPacketFooter))
+      return;
+
+    RgbPacketFooter* footer = reinterpret_cast<RgbPacketFooter *>(&fb.data[fb.length - sizeof(RgbPacketFooter)]);
+
+    if (footer->magic_header == 0x39393939 && footer->magic_footer == 0x42424242)
     {
+      RawRgbPacket *raw_packet = reinterpret_cast<RawRgbPacket *>(fb.data);
+
+      if (fb.length != footer->packet_size || raw_packet->sequence != footer->sequence)
+      {
+        std::cerr << "[RgbPacketStreamParser::onDataReceived] packetsize or sequence doesn't match!" << std::endl;
+        fb.length = 0;
+        return;
+      }
+
+      if (fb.length - sizeof(RawRgbPacket) - sizeof(RgbPacketFooter) < footer->filler_length)
+      {
+        std::cerr << "[RgbPacketStreamParser::onDataReceived] not enough space for packet filler!" << std::endl;
+        fb.length = 0;
+        return;
+      }
+
+      size_t jpeg_length = 0;
+      //check for JPEG EOI 0xff 0xd9 within 0 to 3 alignment bytes
+      size_t length_no_filler = fb.length - sizeof(RawRgbPacket) - sizeof(RgbPacketFooter) - footer->filler_length;
+      for (size_t i = 0; i < 4; i++)
+      {
+        if (length_no_filler < i + 2)
+          break;
+        size_t eoi = length_no_filler - i;
+
+        if (raw_packet->jpeg_buffer[eoi - 2] == 0xff && raw_packet->jpeg_buffer[eoi - 1] == 0xd9)
+          jpeg_length = eoi;
+      }
+
+      if (jpeg_length == 0)
+      {
+        std::cerr << "[RgbPacketStreamParser::onDataReceived] no JPEG detected!" << std::endl;
+        fb.length = 0;
+        return;
+      }
+
       // can the processor handle the next image?
       if(processor_->ready())
       {
@@ -87,7 +147,7 @@ void RgbPacketStreamParser::onDataReceived(unsigned char* buffer, size_t length)
         RgbPacket rgb_packet;
         rgb_packet.sequence = raw_packet->sequence;
         rgb_packet.jpeg_buffer = raw_packet->jpeg_buffer;
-        rgb_packet.jpeg_buffer_length = bb.length - sizeof(RawRgbPacket);
+        rgb_packet.jpeg_buffer_length = jpeg_length;
 
         // call the processor
         processor_->process(rgb_packet);
