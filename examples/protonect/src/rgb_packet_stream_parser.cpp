@@ -146,6 +146,7 @@ void RgbPacketStreamParser::onDataReceived(unsigned char* buffer, size_t length)
         RawRgbPacket *raw_packet = reinterpret_cast<RawRgbPacket *>(bb.data);
         RgbPacket rgb_packet;
         rgb_packet.sequence = raw_packet->sequence;
+        rgb_packet.timestamp = footer->timestamp;
         rgb_packet.jpeg_buffer = raw_packet->jpeg_buffer;
         rgb_packet.jpeg_buffer_length = jpeg_length;
 

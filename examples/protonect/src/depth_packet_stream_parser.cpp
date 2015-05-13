@@ -105,6 +105,7 @@ void DepthPacketStreamParser::onDataReceived(unsigned char* buffer, size_t in_le
 
               DepthPacket packet;
               packet.sequence = current_sequence_;
+              packet.timestamp = footer->timestamp;
               packet.buffer = buffer_.back().data;
               packet.buffer_length = buffer_.back().length;
 
