@@ -95,7 +95,7 @@ std::string loadShaderSource(const std::string& filename)
 
   if(!loadResource(filename, &data, &length))
   {
-    std::cerr << "failed to load shader source!" << std::endl;
+    std::cerr << "[loadShaderSource] failed to load shader source!" << std::endl;
     return "";
   }
 

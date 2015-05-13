@@ -70,7 +70,7 @@ void RgbPacketStreamParser::onDataReceived(unsigned char* buffer, size_t length)
     }
     else
     {
-      std::cerr << "[RgbPacketStreamParser::handleNewData] buffer overflow!" << std::endl;
+      std::cerr << "[RgbPacketStreamParser::onDataReceived] buffer overflow!" << std::endl;
     }
 
     // not full transfer buffer and we already have some data -> signals end of rgb image packet
@@ -94,7 +94,7 @@ void RgbPacketStreamParser::onDataReceived(unsigned char* buffer, size_t length)
       }
       else
       {
-        std::cerr << "[RgbPacketStreamParser::handleNewData] skipping rgb packet!" << std::endl;
+        std::cerr << "[RgbPacketStreamParser::onDataReceived] skipping rgb packet!" << std::endl;
       }
 
       // reset front buffer

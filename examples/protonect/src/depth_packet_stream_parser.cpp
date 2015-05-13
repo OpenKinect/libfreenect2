@@ -93,11 +93,11 @@ void DepthPacketStreamParser::onDataReceived(unsigned char* buffer, size_t in_le
     {
       if((in_length - in_offset) < sizeof(DepthSubPacketFooter))
       {
-        std::cerr << "[DepthPacketStreamParser::handleNewData] incomplete footer detected!" << std::endl;
+        std::cerr << "[DepthPacketStreamParser::onDataReceived] incomplete footer detected!" << std::endl;
       }
       else if(footer->length > wb.length)
       {
-        std::cerr << "[DepthPacketStreamParser::handleNewData] image data too short!" << std::endl;
+        std::cerr << "[DepthPacketStreamParser::onDataReceived] image data too short!" << std::endl;
       }
       else
       {
@@ -123,7 +123,7 @@ void DepthPacketStreamParser::onDataReceived(unsigned char* buffer, size_t in_le
           }
           else
           {
-            std::cerr << "[DepthPacketStreamParser::handleNewData] not all subsequences received " << current_subsequence_ << std::endl;
+            std::cerr << "[DepthPacketStreamParser::onDataReceived] not all subsequences received " << current_subsequence_ << std::endl;
           }
 
           current_sequence_ = footer->sequence;
@@ -137,7 +137,7 @@ void DepthPacketStreamParser::onDataReceived(unsigned char* buffer, size_t in_le
 
         if(footer->subsequence * footer->length > fb.length)
         {
-          std::cerr << "[DepthPacketStreamParser::handleNewData] front buffer too short! subsequence number is " << footer->subsequence << std::endl;
+          std::cerr << "[DepthPacketStreamParser::onDataReceived] front buffer too short! subsequence number is " << footer->subsequence << std::endl;
         }
         else
         {
@@ -154,7 +154,7 @@ void DepthPacketStreamParser::onDataReceived(unsigned char* buffer, size_t in_le
     {
       if((wb.length + 8) >= wb.capacity)
       {
-        std::cerr << "[DepthPacketStreamParser::handleNewData] working buffer full, resetting it!" << std::endl;
+        std::cerr << "[DepthPacketStreamParser::onDataReceived] working buffer full, resetting it!" << std::endl;
         wb.length = 0;
         ptr_out = wb.data;
       }
@@ -162,7 +162,7 @@ void DepthPacketStreamParser::onDataReceived(unsigned char* buffer, size_t in_le
       // copy remaining 8 bytes
       if((in_length - in_offset) != 8)
       {
-        std::cerr << "[DepthPacketStreamParser::handleNewData] remaining data should be 8 bytes, but is " << (in_length - in_offset) << std::endl;
+        std::cerr << "[DepthPacketStreamParser::onDataReceived] remaining data should be 8 bytes, but is " << (in_length - in_offset) << std::endl;
       }
 
       for(; in_offset < in_length; ++in_offset)
