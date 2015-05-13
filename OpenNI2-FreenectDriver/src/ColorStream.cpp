@@ -6,7 +6,7 @@ using namespace FreenectDriver;
 
 ColorStream::ColorStream(libfreenect2::Freenect2Device* pDevice) : VideoStream(pDevice)
 {
-  video_mode = makeOniVideoMode(ONI_PIXEL_FORMAT_RGB888, 640, 480, 30);
+  video_mode = makeOniVideoMode(ONI_PIXEL_FORMAT_RGB888, 1920, 1080, 30);
   setVideoMode(video_mode);
   pDevice->start();
 }
@@ -68,7 +68,11 @@ void ColorStream::populateFrame(void* data, OniFrame* frame) const
     case ONI_PIXEL_FORMAT_RGB888:
       uint8_t* source = static_cast<uint8_t*>(data);
       uint8_t* target = static_cast<uint8_t*>(frame->data);
-      std::copy(source, source + frame->dataSize, target);
+      for (uint8_t* p = source; p < source + frame->dataSize; p+=3) {
+          *target++ = p[2];
+          *target++ = p[1];
+          *target++ = p[0];
+      }
       return;
   }
 }

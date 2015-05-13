@@ -18,13 +18,14 @@
 #include <string>
 #include "Driver/OniDriverAPI.h"
 #include "libfreenect2/libfreenect2.hpp"
+#include <libfreenect2/frame_listener.hpp>
 #include "DepthStream.hpp"
 #include "ColorStream.hpp"
 
 
 namespace FreenectDriver
 {
-  class Device : public oni::driver::DeviceBase  //, public libfreenect2::Freenect2Device
+  class Device : public oni::driver::DeviceBase,  public libfreenect2::FrameListener
   {
   private:
     libfreenect2::Freenect2Device *dev;
@@ -32,11 +33,17 @@ namespace FreenectDriver
     DepthStream* depth;
 
     // for Freenect::FreenectDevice
-    void DepthCallback(void* data, uint32_t timestamp) {
-      depth->buildFrame(data, timestamp);
-    }
-    void VideoCallback(void* data, uint32_t timestamp) {
-      color->buildFrame(data, timestamp);
+    bool onNewFrame(libfreenect2::Frame::Type type, libfreenect2::Frame *frame) {
+      if (type == libfreenect2::Frame::Color) {
+        if (color)
+          color->buildFrame(frame->data, 0); // timestamp);
+      } else 
+      if (type == libfreenect2::Frame::Ir) {
+      } else 
+      if (type == libfreenect2::Frame::Depth) {
+        if (depth)
+          depth->buildFrame(frame->data, 0); // timestamp);
+      }
     }
 
   public:
@@ -51,7 +58,11 @@ namespace FreenectDriver
     }
 
     // for Freenect2Device
-    void setFreenect2Device(libfreenect2::Freenect2Device *dev) { this->dev = dev; }
+    void setFreenect2Device(libfreenect2::Freenect2Device *dev) {
+      this->dev = dev;
+      dev->setColorFrameListener(this);
+      dev->setIrAndDepthFrameListener(this);
+    }
     void start() { dev->start(); }
     void stop() { dev->stop(); }
     void close() { dev->close(); }
@@ -86,6 +97,8 @@ namespace FreenectDriver
             depth = new DepthStream(dev);
           return depth;
         // todo: IR
+        case ONI_SENSOR_IR:
+          std::cout << "## FreenectDriver::Device::createStream(IR): TODO" << std::endl;
       }
     }
 
@@ -265,9 +278,6 @@ namespace FreenectDriver
     OniStatus initialize(oni::driver::DeviceConnectedCallback connectedCallback, oni::driver::DeviceDisconnectedCallback disconnectedCallback, oni::driver::DeviceStateChangedCallback deviceStateChangedCallback, void* pCookie)
     {
       DriverBase::initialize(connectedCallback, disconnectedCallback, deviceStateChangedCallback, pCookie);
-      std::cout << "##" << std::endl;
-      std::cout << "## HELLO!" << std::endl;
-      std::cout << "##" << std::endl;
       for (int i = 0; i < Freenect2::enumerateDevices(); i++)
       {
         std::string uri = devid_to_uri(i);

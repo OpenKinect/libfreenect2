@@ -6,7 +6,7 @@ using namespace FreenectDriver;
 
 DepthStream::DepthStream(libfreenect2::Freenect2Device* pDevice) : VideoStream(pDevice)
 {
-  video_mode = makeOniVideoMode(ONI_PIXEL_FORMAT_DEPTH_1_MM, 640, 480, 30);
+  video_mode = makeOniVideoMode(ONI_PIXEL_FORMAT_DEPTH_1_MM, 512, 424, 30);
   image_registration_mode = ONI_IMAGE_REGISTRATION_OFF;
   setVideoMode(video_mode);
   pDevice->start();
@@ -78,7 +78,7 @@ void DepthStream::populateFrame(void* data, OniFrame* frame) const
 
   // copy stream buffer from freenect
 
-  uint16_t* source = static_cast<uint16_t*>(data) + frame->cropOriginX + frame->cropOriginY * video_mode.resolutionX;
+  float* source = static_cast<float*>(data) + frame->cropOriginX + frame->cropOriginY * video_mode.resolutionX;
   uint16_t* target = static_cast<uint16_t*>(frame->data);
   const unsigned int skipWidth = video_mode.resolutionX - frame->width;
 
