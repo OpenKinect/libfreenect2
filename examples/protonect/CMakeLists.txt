@@ -8,6 +8,7 @@ SET(MY_DIR ${libfreenect2_SOURCE_DIR})
 OPTION(ENABLE_CXX11 "Enable C++11 support" OFF)
 OPTION(ENABLE_OPENCL "Enable OpenCL support" ON)
 OPTION(ENABLE_OPENGL "Enable OpenGL support" ON)
+OPTION(ENABLE_VAAPI "Enable VA-API support" ON)
 
 IF(ENABLE_CXX11)
   INCLUDE(CheckCXXCompilerFlag)
@@ -145,6 +146,25 @@ IF(ENABLE_OPENCL AND OPENCL_FOUND)
     src/opencl_depth_packet_processor.cl
   )
 ENDIF(ENABLE_OPENCL AND OPENCL_FOUND)
+
+IF(ENABLE_VAAPI)
+  INCLUDE(FindPkgConfig)
+  PKG_CHECK_MODULES(VAAPI libva libva-drm)
+ENDIF(ENABLE_VAAPI)
+
+IF(ENABLE_VAAPI AND VAAPI_FOUND)
+  SET(LIBFREENECT2_WITH_VAAPI_SUPPORT 1)
+  INCLUDE_DIRECTORIES(${VAAPI_INCLUDE_DIRS})
+
+  LIST(APPEND SOURCES
+    src/vaapi_jpeg_rgb_packet_processor.cpp
+  )
+
+  LIST(APPEND LIBRARIES
+    ${VAAPI_LIBRARIES}
+    jpeg
+  )
+ENDIF(ENABLE_VAAPI AND VAAPI_FOUND)
 
 CONFIGURE_FILE("${MY_DIR}/include/libfreenect2/config.h.in" "${MY_DIR}/include/libfreenect2/config.h" @ONLY)
 
