@@ -21,6 +21,7 @@
 #include <libfreenect2/frame_listener.hpp>
 #include "DepthStream.hpp"
 #include "ColorStream.hpp"
+#include "IrStream.hpp"
 
 
 namespace FreenectDriver
@@ -31,6 +32,7 @@ namespace FreenectDriver
     libfreenect2::Freenect2Device *dev;
     ColorStream* color;
     DepthStream* depth;
+    IrStream* ir;
 
     // for Freenect::FreenectDevice
     bool onNewFrame(libfreenect2::Frame::Type type, libfreenect2::Frame *frame) {
@@ -39,6 +41,8 @@ namespace FreenectDriver
           color->buildFrame(frame->data, 0); // timestamp);
       } else 
       if (type == libfreenect2::Frame::Ir) {
+        if (ir)
+          ir->buildFrame(frame->data, 0); // timestamp);
       } else 
       if (type == libfreenect2::Frame::Depth) {
         if (depth)
@@ -50,10 +54,12 @@ namespace FreenectDriver
     Device(freenect2_context* fn_ctx, int index) : //libfreenect2::Freenect2Device(fn_ctx, index),
       dev(NULL),
       color(NULL),
+      ir(NULL),
       depth(NULL) { }
     ~Device()
     {
       destroyStream(color);
+      destroyStream(ir);
       destroyStream(depth);
     }
 
@@ -73,10 +79,11 @@ namespace FreenectDriver
 
     OniStatus getSensorInfoList(OniSensorInfo** pSensors, int* numSensors)
     {
-      *numSensors = 2;
+      *numSensors = 3;
       OniSensorInfo * sensors = new OniSensorInfo[*numSensors];
       sensors[0] = depth->getSensorInfo();
       sensors[1] = color->getSensorInfo();
+      sensors[2] = ir->getSensorInfo();
       *pSensors = sensors;
       return ONI_STATUS_OK;
     }
@@ -96,9 +103,10 @@ namespace FreenectDriver
           if (! depth)
             depth = new DepthStream(dev);
           return depth;
-        // todo: IR
         case ONI_SENSOR_IR:
-          std::cout << "## FreenectDriver::Device::createStream(IR): TODO" << std::endl;
+          if (! ir)
+            ir = new IrStream(dev);
+          return ir;
       }
     }
 
@@ -107,31 +115,23 @@ namespace FreenectDriver
       if (pStream == NULL)
         return;
 
-#if 1
-      // destroy them all :-)
+      // stop them all
       dev->stop();
-      if (color != NULL) {
-        delete color;
-        color = NULL;
-      }
-      if (depth != NULL) {
-        delete depth;
-        depth = NULL;
-      }
-#else // 0
       if (pStream == color)
       {
-        Freenect::FreenectDevice::stopVideo();
         delete color;
         color = NULL;
       }
       if (pStream == depth)
       {
-        Freenect::FreenectDevice::stopDepth();
         delete depth;
         depth = NULL;
       }
-#endif // 0
+      if (pStream == ir)
+      {
+        delete ir;
+        ir = NULL;
+      }
     }
 
     // todo: fill out properties
