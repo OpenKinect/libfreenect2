@@ -89,6 +89,7 @@ class VaapiJpegRgbPacketProcessor : public RgbPacketProcessor
 public:
   VaapiJpegRgbPacketProcessor();
   virtual ~VaapiJpegRgbPacketProcessor();
+  virtual libfreenect2::DoubleBuffer *getPacketBuffer();
 protected:
   virtual void process(const libfreenect2::RgbPacket &packet);
 private:
