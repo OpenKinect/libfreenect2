@@ -48,7 +48,6 @@ public:
 
   virtual void onDataReceived(unsigned char* buffer, size_t length);
 private:
-  libfreenect2::DoubleBuffer buffer_;
   BaseRgbPacketProcessor *processor_;
 };
 

@@ -38,10 +38,6 @@ DepthPacketStreamParser::DepthPacketStreamParser() :
 {
   size_t single_image = 512*424*11/8;
 
-  buffer_.allocate((single_image) * 10);
-  buffer_.front().length = buffer_.front().capacity;
-  buffer_.back().length = buffer_.back().capacity;
-
   work_buffer_.data = new unsigned char[single_image];
   work_buffer_.capacity = single_image;
   work_buffer_.length = 0;
@@ -54,10 +50,18 @@ DepthPacketStreamParser::~DepthPacketStreamParser()
 void DepthPacketStreamParser::setPacketProcessor(libfreenect2::BaseDepthPacketProcessor *processor)
 {
   processor_ = (processor != 0) ? processor : noopProcessor<DepthPacket>();
+
+  DoubleBuffer &buffer_ = *processor_->getPacketBuffer();
+  size_t single_image = 512*424*11/8;
+
+  buffer_.allocate((single_image) * 10);
+  buffer_.front().length = buffer_.front().capacity;
+  buffer_.back().length = buffer_.back().capacity;
 }
 
 void DepthPacketStreamParser::onDataReceived(unsigned char* buffer, size_t in_length)
 {
+  DoubleBuffer &buffer_ = *processor_->getPacketBuffer();
   Buffer &wb = work_buffer_;
 
   if(in_length == 0)
