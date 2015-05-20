@@ -34,6 +34,7 @@
 #include <libfreenect2/frame_listener_impl.h>
 #include <libfreenect2/threading.h>
 #include <libfreenect2/registration.h>
+#include <libfreenect2/packet_pipeline.h>
 
 bool protonect_shutdown = false;
 
@@ -54,13 +55,94 @@ int main(int argc, char *argv[])
     binpath = program_path.substr(0, executable_name_idx);
   }
 
-
   libfreenect2::Freenect2 freenect2;
-  libfreenect2::Freenect2Device *dev = freenect2.openDefaultDevice();
+  libfreenect2::Freenect2Device *dev = 0;
+  libfreenect2::PacketPipeline *pipeline = 0;
+  std::string serial;
+
+  enum {
+    DEFAULT,
+    CPU,
+    OPENGL,
+    OPENCL
+  } selected_pipeline = DEFAULT;
+
+  for(int argI = 1; argI < argc; ++argI)
+  {
+    const std::string arg(argv[argI]);
+
+    if(arg == "cpu")
+    {
+      selected_pipeline = CPU;
+    }
+    else if(arg == "gl")
+    {
+      selected_pipeline = OPENGL;
+    }
+    else if(arg == "cl")
+    {
+      selected_pipeline = OPENCL;
+    }
+    else if(arg.find_first_not_of("0123456789") == std::string::npos) //check if parameter could be a serial number
+    {
+      serial = arg;
+    }
+    else
+    {
+      std::cout << "Unknown argument: " << arg << std::endl;
+    }
+  }
+
+  switch(selected_pipeline)
+  {
+  case DEFAULT:
+    break;
+  case CPU:
+    pipeline = new libfreenect2::CpuPacketPipeline();
+    break;
+  case OPENGL:
+#ifdef LIBFREENECT2_WITH_OPENGL_SUPPORT
+    pipeline = new libfreenect2::OpenGLPacketPipeline();
+#else
+    std::cout << "OpenGL pipeline is not supported! Using default pipeline instead." << std::endl;
+#endif
+    break;
+  case OPENCL:
+#ifdef LIBFREENECT2_WITH_OPENGL_SUPPORT
+    pipeline = new libfreenect2::OpenCLPacketPipeline();
+#else
+    std::cout << "OpenCL pipeline is not supported! Using default pipeline instead." << std::endl;
+#endif
+    break;
+  }
+
+  if(serial.empty() && pipeline)
+  {
+    dev = freenect2.openDefaultDevice(pipeline);
+  }
+  else if(serial.empty())
+  {
+    dev = freenect2.openDefaultDevice();
+  }
+  else if(pipeline)
+  {
+    dev = freenect2.openDevice(serial, pipeline);
+  }
+  else
+  {
+    dev = freenect2.openDevice(serial);
+  }
 
   if(dev == 0)
   {
-    std::cout << "no device connected or failure opening the default one!" << std::endl;
+    if(serial.empty())
+    {
+      std::cout << "no device connected or failure opening the default one!" << std::endl;
+    }
+    else
+    {
+      std::cout << "could not open device with serial: " << serial << "!" << std::endl;
+    }
     return -1;
   }
 
