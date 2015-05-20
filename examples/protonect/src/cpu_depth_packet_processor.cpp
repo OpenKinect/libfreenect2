@@ -816,6 +816,9 @@ void CpuDepthPacketProcessor::process(const DepthPacket &packet)
       }
   }
 
+  impl_->ir_frame->sequence = packet.sequence;
+  impl_->depth_frame->sequence = packet.sequence;
+
   if(listener_->onNewFrame(Frame::Ir, impl_->ir_frame))
   {
     impl_->newIrFrame();
