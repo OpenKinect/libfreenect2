@@ -58,14 +58,9 @@ int main(int argc, char *argv[])
   libfreenect2::Freenect2 freenect2;
   libfreenect2::Freenect2Device *dev = 0;
   libfreenect2::PacketPipeline *pipeline = 0;
-  std::string serial;
 
-  enum {
-    DEFAULT,
-    CPU,
-    OPENGL,
-    OPENCL
-  } selected_pipeline = DEFAULT;
+  freenect2.enumerateDevices();
+  std::string serial = freenect2.getDefaultDeviceSerialNumber();
 
   for(int argI = 1; argI < argc; ++argI)
   {
@@ -73,15 +68,26 @@ int main(int argc, char *argv[])
 
     if(arg == "cpu")
     {
-      selected_pipeline = CPU;
+      if(!pipeline)
+        pipeline = new libfreenect2::CpuPacketPipeline();
     }
     else if(arg == "gl")
     {
-      selected_pipeline = OPENGL;
+#ifdef LIBFREENECT2_WITH_OPENGL_SUPPORT
+      if(!pipeline)
+        pipeline = new libfreenect2::OpenGLPacketPipeline();
+#else
+      std::cout << "OpenGL pipeline is not supported!" << std::endl;
+#endif
     }
     else if(arg == "cl")
     {
-      selected_pipeline = OPENCL;
+#ifdef LIBFREENECT2_WITH_OPENCL_SUPPORT
+      if(!pipeline)
+        pipeline = new libfreenect2::OpenCLPacketPipeline();
+#else
+      std::cout << "OpenCL pipeline is not supported!" << std::endl;
+#endif
     }
     else if(arg.find_first_not_of("0123456789") == std::string::npos) //check if parameter could be a serial number
     {
@@ -93,38 +99,7 @@ int main(int argc, char *argv[])
     }
   }
 
-  switch(selected_pipeline)
-  {
-  case DEFAULT:
-    break;
-  case CPU:
-    pipeline = new libfreenect2::CpuPacketPipeline();
-    break;
-  case OPENGL:
-#ifdef LIBFREENECT2_WITH_OPENGL_SUPPORT
-    pipeline = new libfreenect2::OpenGLPacketPipeline();
-#else
-    std::cout << "OpenGL pipeline is not supported! Using default pipeline instead." << std::endl;
-#endif
-    break;
-  case OPENCL:
-#ifdef LIBFREENECT2_WITH_OPENGL_SUPPORT
-    pipeline = new libfreenect2::OpenCLPacketPipeline();
-#else
-    std::cout << "OpenCL pipeline is not supported! Using default pipeline instead." << std::endl;
-#endif
-    break;
-  }
-
-  if(serial.empty() && pipeline)
-  {
-    dev = freenect2.openDefaultDevice(pipeline);
-  }
-  else if(serial.empty())
-  {
-    dev = freenect2.openDefaultDevice();
-  }
-  else if(pipeline)
+  if(pipeline)
   {
     dev = freenect2.openDevice(serial, pipeline);
   }
