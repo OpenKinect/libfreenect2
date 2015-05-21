@@ -580,9 +580,7 @@ public:
         {
           if(max_edge_test_ok)
           {
-            float tmp1 = 1500.0f > raw_depth ? 30.0f : 0.02f * raw_depth;
             float edge_count = 0.0f;
-
             *depth_out = edge_count > params.max_edge_count ? 0.0f : raw_depth;
           }
           else
