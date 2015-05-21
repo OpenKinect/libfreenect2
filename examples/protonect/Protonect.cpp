@@ -59,7 +59,12 @@ int main(int argc, char *argv[])
   libfreenect2::Freenect2Device *dev = 0;
   libfreenect2::PacketPipeline *pipeline = 0;
 
-  freenect2.enumerateDevices();
+  if(freenect2.enumerateDevices() == 0)
+  {
+    std::cout << "no device connected!" << std::endl;
+    return -1;
+  }
+
   std::string serial = freenect2.getDefaultDeviceSerialNumber();
 
   for(int argI = 1; argI < argc; ++argI)
@@ -110,14 +115,7 @@ int main(int argc, char *argv[])
 
   if(dev == 0)
   {
-    if(serial.empty())
-    {
-      std::cout << "no device connected or failure opening the default one!" << std::endl;
-    }
-    else
-    {
-      std::cout << "could not open device with serial: " << serial << "!" << std::endl;
-    }
+    std::cout << "failure opening device!" << std::endl;
     return -1;
   }
 
