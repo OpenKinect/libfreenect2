@@ -69,26 +69,47 @@ endif()
 SET(RESOURCES_INC_FILE "${MY_DIR}/src/resources.inc")
 
 SET(SOURCES
+  include/libfreenect2/protocol/command.h
+  include/libfreenect2/protocol/command_transaction.h
+  include/libfreenect2/protocol/response.h
+  include/libfreenect2/protocol/usb_control.h
+  
+  include/libfreenect2/usb/event_loop.h
+  include/libfreenect2/usb/transfer_pool.h
+
+  include/libfreenect2/async_packet_processor.h  
+  include/libfreenect2/depth_packet_processor.h
+  include/libfreenect2/depth_packet_stream_parser.h
+  include/libfreenect2/double_buffer.h
+  include/libfreenect2/frame_listener.hpp
+  include/libfreenect2/frame_listener_impl.h
+  include/libfreenect2/config.h
+  include/libfreenect2/libfreenect2.hpp
+  include/libfreenect2/packet_pipeline.h
+  include/libfreenect2/packet_processor.h
+  include/libfreenect2/registration.h
+  include/libfreenect2/resource.h
+  include/libfreenect2/rgb_packet_processor.h
+  include/libfreenect2/rgb_packet_stream_parser.h
+  include/libfreenect2/threading.h
+  
   src/transfer_pool.cpp
   src/event_loop.cpp
-  
+  src/usb_control.cpp
   src/double_buffer.cpp
   src/frame_listener_impl.cpp
   src/packet_pipeline.cpp
-  
   src/rgb_packet_stream_parser.cpp
   src/rgb_packet_processor.cpp
   src/turbo_jpeg_rgb_packet_processor.cpp
-  
   src/depth_packet_stream_parser.cpp
   src/depth_packet_processor.cpp
   src/cpu_depth_packet_processor.cpp
   src/resource.cpp
-  
-  src/usb_control.cpp
   src/command_transaction.cpp
   src/registration.cpp
   src/libfreenect2.cpp
+  
   ${LIBFREENECT2_THREADING_SOURCE}
   ${RESOURCES_INC_FILE}
 )
