@@ -34,6 +34,7 @@
 #include <libfreenect2/frame_listener_impl.h>
 #include <libfreenect2/threading.h>
 #include <libfreenect2/registration.h>
+#include <libfreenect2/packet_pipeline.h>
 
 bool protonect_shutdown = false;
 
@@ -54,13 +55,67 @@ int main(int argc, char *argv[])
     binpath = program_path.substr(0, executable_name_idx);
   }
 
-
   libfreenect2::Freenect2 freenect2;
-  libfreenect2::Freenect2Device *dev = freenect2.openDefaultDevice();
+  libfreenect2::Freenect2Device *dev = 0;
+  libfreenect2::PacketPipeline *pipeline = 0;
+
+  if(freenect2.enumerateDevices() == 0)
+  {
+    std::cout << "no device connected!" << std::endl;
+    return -1;
+  }
+
+  std::string serial = freenect2.getDefaultDeviceSerialNumber();
+
+  for(int argI = 1; argI < argc; ++argI)
+  {
+    const std::string arg(argv[argI]);
+
+    if(arg == "cpu")
+    {
+      if(!pipeline)
+        pipeline = new libfreenect2::CpuPacketPipeline();
+    }
+    else if(arg == "gl")
+    {
+#ifdef LIBFREENECT2_WITH_OPENGL_SUPPORT
+      if(!pipeline)
+        pipeline = new libfreenect2::OpenGLPacketPipeline();
+#else
+      std::cout << "OpenGL pipeline is not supported!" << std::endl;
+#endif
+    }
+    else if(arg == "cl")
+    {
+#ifdef LIBFREENECT2_WITH_OPENCL_SUPPORT
+      if(!pipeline)
+        pipeline = new libfreenect2::OpenCLPacketPipeline();
+#else
+      std::cout << "OpenCL pipeline is not supported!" << std::endl;
+#endif
+    }
+    else if(arg.find_first_not_of("0123456789") == std::string::npos) //check if parameter could be a serial number
+    {
+      serial = arg;
+    }
+    else
+    {
+      std::cout << "Unknown argument: " << arg << std::endl;
+    }
+  }
+
+  if(pipeline)
+  {
+    dev = freenect2.openDevice(serial, pipeline);
+  }
+  else
+  {
+    dev = freenect2.openDevice(serial);
+  }
 
   if(dev == 0)
   {
-    std::cout << "no device connected or failure opening the default one!" << std::endl;
+    std::cout << "failure opening device!" << std::endl;
     return -1;
   }
 
