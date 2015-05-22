@@ -60,7 +60,7 @@ IF(ENABLE_OPENGL)
   INCLUDE_DIRECTORIES(${MY_DIR}/../../depends/glfw_src/include/)
 ENDIF(ENABLE_OPENGL)
 
-if(APPLE)
+if(APPLE OR WIN32)
   # libjpeg-turbo
   INCLUDE_DIRECTORIES("${MY_DIR}/../../depends/libjpeg_turbo/include/")
   LINK_DIRECTORIES("${MY_DIR}/../../depends/libjpeg_turbo/lib/")
@@ -114,8 +114,13 @@ SET(SOURCES
   ${RESOURCES_INC_FILE}
 )
 
+SET(LIBUSB usb-1.0)
+IF(MSVC)
+  SET(LIBUSB libusb-1.0)
+ENDIF(MSVC)
+
 SET(LIBRARIES
-  usb-1.0
+  ${LIBUSB}
   ${OpenCV_LIBS}
   turbojpeg
   ${LIBFREENECT2_THREADING_LIBRARIES}
@@ -187,6 +192,7 @@ TARGET_LINK_LIBRARIES(Protonect
 
 CONFIGURE_FILE(freenect2.cmake.in "${PROJECT_BINARY_DIR}/freenect2Config.cmake" @ONLY)
 
+INSTALL(TARGETS Protonect DESTINATION bin)
 INSTALL(TARGETS freenect2 DESTINATION lib)
 INSTALL(DIRECTORY "${MY_DIR}/include/" DESTINATION include PATTERN "*.in" EXCLUDE)
 IF(LIBFREENECT2_THREADING_TINYTHREAD)
