@@ -1,11 +1,5 @@
 # libfreenect2
 
-## Maintainers:
-
-* Joshua Blake <joshblake@gmail.com>
-* Florian Echtler
-* Christian Kerl
-
 ## Description
 Driver for Kinect for Windows v2 (K4W2) devices (release and developer preview).
 
@@ -14,13 +8,45 @@ Note: libfreenect2 does not do anything for either Kinect for Windows v1 or Kine
 This driver supports:
 * RGB image transfer
 * IR and depth image transfer
+* registration of RGB and depth images
 
 Missing features:
-* registration of RGB and depth images
 * audio transfer
 * firmware updates
 
 Watch the OpenKinect wiki at www.openkinect.org and the mailing list at https://groups.google.com/forum/#!forum/openkinect for the latest developments and more information about the K4W2 USB protocol.
+
+## FAQ
+
+### Can I use the Kinect v2 without an USB3 port?
+
+No. It's a pure USB3 device due to the high bandwidth requirements.
+
+### Protonect complains about "no device connected" or "failure opening device".
+
+Either your device is connected to an USB2-only port (see above), or you don't have permissions to access the device. On Linux, try running Protonect as root (e.g. using `sudo`). If that fixes things, place `contrib/90-kinect2.rules` into `/etc/udev/rules.d/` and re-plug the device.
+
+### I'm getting lots of USB transfer errors, and/or only blank windows.
+
+USB3 as a whole is a flaky thing. If you're running Linux, try upgrading to a recent kernel (>= 3.16) first. If that doesn't work, try a different USB3 controller. The following ones are known to work on a 3.16 kernel:
+* Intel Corporation 8 Series/C220 Series Chipset Family USB xHCI
+* Intel Corporation 7 Series/C210 Series Chipset Family USB xHCI
+* NEC Corporation uPD720200 USB 3.0 Host Controller
+
+Probably not working:
+* ASMedia Technology Inc. Device 1142
+
+Finally, it's also possible that your executable is not actually using the patched libusb from the depends/ folder which is required at the moment. Check this using `ldd`, and adjust your `LD_LIBRARY_PATH` if necessary.
+
+### I'm seeing the color camera stream, but no depth/IR (black windows).
+
+The depth packet processor runs on OpenGL by default. You can try alternatives, such as OpenCL (by running `Protonect cl`) or CPU (`Protonect cpu`). At least the CPU DPP should always produce some output, although slow. For OpenCL on Intel/Linux, you can also try to set `/sys/module/i915/parameters/enable_cmd_parser` to 0.
+
+## Maintainers:
+
+* Joshua Blake <joshblake@gmail.com>
+* Florian Echtler
+* Christian Kerl
 
 ## Installation
 
