@@ -7,13 +7,10 @@
 #include "Driver/OniDriverAPI.h"
 #include "PS1080.h"
 #include "VideoStream.hpp"
-#include "S2D.h"
-#include "D2S.h"
-
 
 namespace FreenectDriver
 {
-  class DepthStream : public VideoStream
+  class IrStream : public VideoStream
   {
   public:
     // from NUI library and converted to radians
@@ -32,21 +29,21 @@ namespace FreenectDriver
     static const double EMITTER_DCMOS_DISTANCE_VAL = 7.5;
 
   private:
-    typedef std::map< OniVideoMode, std::pair<freenect2_depth_format, freenect2_resolution> > FreenectDepthModeMap;
-    static const OniSensorType sensor_type = ONI_SENSOR_DEPTH;
+    typedef std::map< OniVideoMode, std::pair<freenect2_ir_format, freenect2_resolution> > FreenectIrModeMap;
+    static const OniSensorType sensor_type = ONI_SENSOR_IR;
     OniImageRegistrationMode image_registration_mode;
 
-    static FreenectDepthModeMap getSupportedVideoModes();
+    static FreenectIrModeMap getSupportedVideoModes();
     OniStatus setVideoMode(OniVideoMode requested_mode);
     void populateFrame(void* data, OniFrame* frame) const;
 
   public:
-    DepthStream(libfreenect2::Freenect2Device* pDevice);
-    //~DepthStream() { }
+    IrStream(libfreenect2::Freenect2Device* pDevice);
+    //~IrStream() { }
 
     static OniSensorInfo getSensorInfo()
     {
-      FreenectDepthModeMap supported_modes = getSupportedVideoModes();
+      FreenectIrModeMap supported_modes = getSupportedVideoModes();
       OniVideoMode* modes = new OniVideoMode[supported_modes.size()];
       std::transform(supported_modes.begin(), supported_modes.end(), modes, ExtractKey());
       OniSensorInfo sensors = { sensor_type, static_cast<int>(supported_modes.size()), modes };
@@ -82,8 +79,6 @@ namespace FreenectDriver
         case XN_STREAM_PROPERTY_ZERO_PLANE_DISTANCE:
         case XN_STREAM_PROPERTY_ZERO_PLANE_PIXEL_SIZE:
         case XN_STREAM_PROPERTY_EMITTER_DCMOS_DISTANCE:
-        case XN_STREAM_PROPERTY_S2D_TABLE:
-        case XN_STREAM_PROPERTY_D2S_TABLE:
           return true;
       }
     }
@@ -193,16 +188,6 @@ namespace FreenectDriver
             return ONI_STATUS_ERROR;
           }
           *(static_cast<double*>(data)) = EMITTER_DCMOS_DISTANCE_VAL;
-          return ONI_STATUS_OK;
-        case XN_STREAM_PROPERTY_S2D_TABLE:              // OniDepthPixel[]
-          *pDataSize = sizeof(S2D);
-          //std::copy(S2D, S2D+1, static_cast<OniDepthPixel*>(data));
-          memcpy(data, S2D, *pDataSize);
-          return ONI_STATUS_OK;
-        case XN_STREAM_PROPERTY_D2S_TABLE:              // unsigned short[]
-          *pDataSize = sizeof(D2S);
-          //std::copy(D2S, D2S+1, static_cast<unsigned short*>(data));
-          memcpy(data, D2S, *pDataSize);
           return ONI_STATUS_OK;
       }
     }
