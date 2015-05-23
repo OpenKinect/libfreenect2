@@ -16,6 +16,7 @@
 */
 #include <map>
 #include <string>
+#include <sys/time.h>
 #include "Driver/OniDriverAPI.h"
 #include "libfreenect2/libfreenect2.hpp"
 #include <libfreenect2/frame_listener.hpp>
@@ -34,19 +35,26 @@ namespace FreenectDriver
     DepthStream* depth;
     IrStream* ir;
 
+    struct timeval ts_epoc;
+    long getTimestamp() {
+      struct timeval ts;
+      gettimeofday(&ts, NULL);
+      return (ts.tv_sec - ts_epoc.tv_sec) * 1000 + ts.tv_usec / 1000;  // XXX, ignoring nsec of the epoc.
+    }
+
     // for Freenect::FreenectDevice
     bool onNewFrame(libfreenect2::Frame::Type type, libfreenect2::Frame *frame) {
       if (type == libfreenect2::Frame::Color) {
         if (color)
-          color->buildFrame(frame->data, 0); // timestamp);
+          color->buildFrame(frame->data, getTimestamp());
       } else 
       if (type == libfreenect2::Frame::Ir) {
         if (ir)
-          ir->buildFrame(frame->data, 0); // timestamp);
+          ir->buildFrame(frame->data, getTimestamp());
       } else 
       if (type == libfreenect2::Frame::Depth) {
         if (depth)
-          depth->buildFrame(frame->data, 0); // timestamp);
+          depth->buildFrame(frame->data, getTimestamp());
       }
     }
 
@@ -55,7 +63,10 @@ namespace FreenectDriver
       dev(NULL),
       color(NULL),
       ir(NULL),
-      depth(NULL) { }
+      depth(NULL)
+    {
+      gettimeofday(&ts_epoc, NULL);
+    }
     ~Device()
     {
       destroyStream(color);
