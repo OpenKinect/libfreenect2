@@ -22,7 +22,6 @@
 #include <string>
 #include <cstdlib>
 #include <vector>
-#include <sys/time.h>
 #include <Driver/OniDriverAPI.h>
 #include <libfreenect2/libfreenect2.hpp>
 #include <libfreenect2/frame_listener.hpp>
@@ -50,38 +49,56 @@ namespace Freenect2Driver
     libfreenect2::SyncMultiFrameListener listener;
     libfreenect2::thread* thread;
 
-    struct timeval ts_epoc;
-    long getTimestamp() {
-      struct timeval ts;
-      gettimeofday(&ts, NULL);
-      return (ts.tv_sec - ts_epoc.tv_sec) * 1000 + ts.tv_usec / 1000;  // XXX, ignoring nsec of the epoc.
-    }
-
     static void static_run(void* cookie)
     {
       static_cast<Device*>(cookie)->run();
-      }
+    }
+
+    VideoStream* getStream(libfreenect2::Frame::Type type)
+    {
+      if (type == libfreenect2::Frame::Depth)
+        return depth;
+      if (type == libfreenect2::Frame::Ir)
+        return ir;
+      if (type == libfreenect2::Frame::Color)
+        return color;
+      return NULL;
+    }
 
     void run()
     {
       libfreenect2::FrameMap frames;
+      uint32_t seqNum = 0;
+      libfreenect2::Frame::Type seqType;
+
+      struct streams {
+        const char* name;
+        libfreenect2::Frame::Type type;
+      } streams[] = {
+          { "Ir",    libfreenect2::Frame::Ir    },
+          { "Depth", libfreenect2::Frame::Depth },
+          { "Color", libfreenect2::Frame::Color }
+      };
       while(!device_stop)
       {
         listener.waitForNewFrame(frames);
 
-        libfreenect2::Frame *irFrame    = frames[libfreenect2::Frame::Ir];
-        libfreenect2::Frame *depthFrame = frames[libfreenect2::Frame::Depth];
-        libfreenect2::Frame *colorFrame = frames[libfreenect2::Frame::Color];
-        const long timeStamp = getTimestamp();
-        if (depth)
-          depth->buildFrame(depthFrame, timeStamp);
-        if (ir)
-          ir->buildFrame(irFrame, timeStamp);
-        if (color)
-          color->buildFrame(colorFrame, timeStamp);
+        for (int i = 0; i < sizeof(streams)/sizeof(*streams); i++) {
+          struct streams& s = streams[i];
+          VideoStream* stream = getStream(s.type);
+          libfreenect2::Frame *frame = frames[s.type];
+          if (stream) {
+            if (seqNum == 0)
+              seqType = s.type;
+            if (s.type == seqType)
+              seqNum++;
+            frame->timestamp = seqNum * 33369;
+            stream->buildFrame(frame);
+          }
+        }
 
         listener.release(frames);
-    }
+      }
     }
 
     OniStatus setStreamProperties(VideoStream* stream, std::string pfx)
@@ -112,7 +129,6 @@ namespace Freenect2Driver
       listener(libfreenect2::Frame::Depth | libfreenect2::Frame::Ir | libfreenect2::Frame::Color),
       thread(NULL)
     {
-      gettimeofday(&ts_epoc, NULL);
       thread = new libfreenect2::thread(&Device::static_run, this);
     }
     ~Device()
@@ -472,10 +488,12 @@ namespace Freenect2Driver
         {
           WriteMessage("Closing device " + std::string(iter->first.uri));
           int id = uri_to_devid(iter->first.uri);
-          devices.erase(iter);
+
           Device* device = (Device*)iter->second;
           device->stop();
           device->close();
+
+          devices.erase(iter);
           return;
         }
       }
