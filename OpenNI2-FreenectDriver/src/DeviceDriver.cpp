@@ -34,6 +34,7 @@ namespace FreenectDriver
     ColorStream* color;
     DepthStream* depth;
     IrStream* ir;
+    Registration *reg;
 
     struct timeval ts_epoc;
     long getTimestamp() {
@@ -61,6 +62,7 @@ namespace FreenectDriver
   public:
     Device(freenect2_context* fn_ctx, int index) : //libfreenect2::Freenect2Device(fn_ctx, index),
       dev(NULL),
+      reg(NULL),
       color(NULL),
       ir(NULL),
       depth(NULL)
@@ -72,6 +74,10 @@ namespace FreenectDriver
       destroyStream(color);
       destroyStream(ir);
       destroyStream(depth);
+      if (reg) {
+        delete reg;
+        reg = NULL;
+      }
     }
 
     // for Freenect2Device
@@ -79,6 +85,7 @@ namespace FreenectDriver
       this->dev = dev;
       dev->setColorFrameListener(this);
       dev->setIrAndDepthFrameListener(this);
+      reg = new Registration(dev);
     }
     void start() { dev->start(); }
     void stop() { dev->stop(); }
@@ -108,15 +115,15 @@ namespace FreenectDriver
           return NULL;
         case ONI_SENSOR_COLOR:
           if (! color)
-            color = new ColorStream(dev);
+            color = new ColorStream(dev, reg);
           return color;
         case ONI_SENSOR_DEPTH:
           if (! depth)
-            depth = new DepthStream(dev);
+            depth = new DepthStream(dev, reg);
           return depth;
         case ONI_SENSOR_IR:
           if (! ir)
-            ir = new IrStream(dev);
+            ir = new IrStream(dev, reg);
           return ir;
       }
     }

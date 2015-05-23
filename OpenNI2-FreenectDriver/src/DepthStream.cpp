@@ -4,7 +4,7 @@
 using namespace FreenectDriver;
 
 
-DepthStream::DepthStream(libfreenect2::Freenect2Device* pDevice) : VideoStream(pDevice)
+DepthStream::DepthStream(libfreenect2::Freenect2Device* pDevice, FreenectDriver::Registration *reg) : VideoStream(pDevice, reg)
 {
   video_mode = makeOniVideoMode(ONI_PIXEL_FORMAT_DEPTH_1_MM, 512, 424, 30);
   image_registration_mode = ONI_IMAGE_REGISTRATION_OFF;
@@ -109,6 +109,8 @@ void DepthStream::populateFrame(void* data, OniFrame* frame) const
       source += skipWidth;
     }
   }
+
+  reg->depthFrame(frame);
 
   /*
   uint16_t* data_ptr = static_cast<uint16_t*>(data);

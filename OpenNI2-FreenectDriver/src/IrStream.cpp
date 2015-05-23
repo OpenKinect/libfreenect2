@@ -4,7 +4,7 @@
 using namespace FreenectDriver;
 
 
-IrStream::IrStream(libfreenect2::Freenect2Device* pDevice) : VideoStream(pDevice)
+IrStream::IrStream(libfreenect2::Freenect2Device* pDevice, FreenectDriver::Registration *reg) : VideoStream(pDevice, reg)
 {
   video_mode = makeOniVideoMode(ONI_PIXEL_FORMAT_GRAY16, 512, 424, 30);
   image_registration_mode = ONI_IMAGE_REGISTRATION_OFF;

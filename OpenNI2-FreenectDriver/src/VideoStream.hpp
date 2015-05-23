@@ -6,6 +6,7 @@
 #include "libfreenect2/libfreenect2.hpp"
 #include "PS1080.h"
 #include "Utility.hpp"
+#include "Registration.hpp"
 
 namespace FreenectDriver
 {
@@ -24,11 +25,13 @@ namespace FreenectDriver
     OniVideoMode video_mode;
     OniCropping cropping;
     bool mirroring;
+    FreenectDriver::Registration* reg;
 
   public:
-    VideoStream(libfreenect2::Freenect2Device* device) :
+    VideoStream(libfreenect2::Freenect2Device* device, FreenectDriver::Registration* reg) :
       frame_id(1),
       device(device),
+      reg(reg),
       mirroring(false)
       {
         // joy of structs

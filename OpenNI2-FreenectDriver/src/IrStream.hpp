@@ -38,7 +38,7 @@ namespace FreenectDriver
     void populateFrame(void* data, OniFrame* frame) const;
 
   public:
-    IrStream(libfreenect2::Freenect2Device* pDevice);
+    IrStream(libfreenect2::Freenect2Device* pDevice, FreenectDriver::Registration *reg);
     //~IrStream() { }
 
     static OniSensorInfo getSensorInfo()

@@ -31,7 +31,7 @@ namespace FreenectDriver
     bool auto_exposure;
 
   public:
-    ColorStream(libfreenect2::Freenect2Device* pDevice);
+    ColorStream(libfreenect2::Freenect2Device* pDevice, FreenectDriver::Registration *reg);
     //~ColorStream() { }
 
     static OniSensorInfo getSensorInfo()

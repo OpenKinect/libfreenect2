@@ -4,9 +4,10 @@
 using namespace FreenectDriver;
 
 
-ColorStream::ColorStream(libfreenect2::Freenect2Device* pDevice) : VideoStream(pDevice)
+ColorStream::ColorStream(libfreenect2::Freenect2Device* pDevice, FreenectDriver::Registration *reg) : VideoStream(pDevice, reg)
 {
-  video_mode = makeOniVideoMode(ONI_PIXEL_FORMAT_RGB888, 1920, 1080, 30);
+  //video_mode = makeOniVideoMode(ONI_PIXEL_FORMAT_RGB888, 1920, 1080, 30);
+  video_mode = makeOniVideoMode(ONI_PIXEL_FORMAT_RGB888, 512, 424, 30);
   setVideoMode(video_mode);
   pDevice->start();
 }
@@ -16,7 +17,8 @@ ColorStream::FreenectVideoModeMap ColorStream::getSupportedVideoModes()
 {
   FreenectVideoModeMap modes;
   //                    pixelFormat, resolutionX, resolutionY, fps    freenect_video_format, freenect_resolution
-  modes[makeOniVideoMode(ONI_PIXEL_FORMAT_RGB888, 1920, 1080, 30)] = std::pair<freenect2_video_format, freenect2_resolution>(FREENECT2_VIDEO_RGB, FREENECT2_RESOLUTION_1920x1080);
+  //modes[makeOniVideoMode(ONI_PIXEL_FORMAT_RGB888, 1920, 1080, 30)] = std::pair<freenect2_video_format, freenect2_resolution>(FREENECT2_VIDEO_RGB, FREENECT2_RESOLUTION_1920x1080);
+  modes[makeOniVideoMode(ONI_PIXEL_FORMAT_RGB888, 512, 424, 30)] = std::pair<freenect2_video_format, freenect2_resolution>(FREENECT2_VIDEO_RGB, FREENECT2_RESOLUTION_1920x1080);
 
 
   return modes;
@@ -66,13 +68,7 @@ void ColorStream::populateFrame(void* data, OniFrame* frame) const
       return;
 
     case ONI_PIXEL_FORMAT_RGB888:
-      uint8_t* source = static_cast<uint8_t*>(data);
-      uint8_t* target = static_cast<uint8_t*>(frame->data);
-      for (uint8_t* p = source; p < source + frame->dataSize; p+=3) {
-          *target++ = p[2];
-          *target++ = p[1];
-          *target++ = p[0];
-      }
+      reg->colorFrameRGB888(static_cast<uint8_t*>(data), frame);
       return;
   }
 }
