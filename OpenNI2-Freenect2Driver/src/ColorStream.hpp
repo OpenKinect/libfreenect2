@@ -27,6 +27,8 @@ namespace Freenect2Driver
     OniStatus setVideoMode(OniVideoMode requested_mode);
     void populateFrame(libfreenect2::Frame* srcFrame, int srcX, int srcY, OniFrame* dstFrame, int dstX, int dstY, int width, int height) const;
     
+    static void copyFrame(uint8_t* srcPix, int srcX, int srcY, int srcStride, uint8_t* dstPix, int dstX, int dstY, int dstStride, int width, int height, bool mirroring);
+
     bool auto_white_balance;
     bool auto_exposure;
 

@@ -31,7 +31,6 @@ namespace Freenect2Driver
   private:
     typedef std::map< OniVideoMode, std::pair<freenect2_ir_format, freenect2_resolution> > FreenectIrModeMap;
     static const OniSensorType sensor_type = ONI_SENSOR_IR;
-    OniImageRegistrationMode image_registration_mode;
 
     static FreenectIrModeMap getSupportedVideoModes();
     OniStatus setVideoMode(OniVideoMode requested_mode);
@@ -50,18 +49,7 @@ namespace Freenect2Driver
       return sensors;
     }
 
-    OniImageRegistrationMode getImageRegistrationMode() const { return image_registration_mode; }
-    OniStatus setImageRegistrationMode(OniImageRegistrationMode mode)
-    {
-      if (!isImageRegistrationModeSupported(mode))
-        return ONI_STATUS_NOT_SUPPORTED;
-      image_registration_mode = mode;
-      return setVideoMode(video_mode);
-    }
-
     // from StreamBase
-    OniBool isImageRegistrationModeSupported(OniImageRegistrationMode mode) { return (mode == ONI_IMAGE_REGISTRATION_OFF || mode == ONI_IMAGE_REGISTRATION_DEPTH_TO_COLOR); }
-
     OniBool isPropertySupported(int propertyId)
     {
       switch(propertyId)

@@ -76,7 +76,11 @@ void DepthStream::populateFrame(libfreenect2::Frame* srcFrame, int srcX, int src
   dstFrame->stride = dstFrame->width * sizeof(uint16_t);
 
   // XXX, save depth map for registration
-  reg->depthFrame(srcFrame);
+  if (reg->isEnabled())
+    reg->depthFrame(srcFrame);
+
+  if (srcFrame->width < dstFrame->width || srcFrame->height < dstFrame->height)
+    memset(dstFrame->data, 0x00, dstFrame->width * dstFrame->height * 2);
 
   // copy stream buffer from freenect
   copyFrame(static_cast<float*>((void*)srcFrame->data), srcX, srcY, srcFrame->width,

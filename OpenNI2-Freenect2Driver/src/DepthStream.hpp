@@ -59,6 +59,7 @@ namespace Freenect2Driver
       if (!isImageRegistrationModeSupported(mode))
         return ONI_STATUS_NOT_SUPPORTED;
       image_registration_mode = mode;
+      reg->setEnable(image_registration_mode == ONI_IMAGE_REGISTRATION_DEPTH_TO_COLOR);
       return setVideoMode(video_mode);
     }
 

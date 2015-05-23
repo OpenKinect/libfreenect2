@@ -6,6 +6,7 @@
 #include "libfreenect2/libfreenect2.hpp"
 #include "PS1080.h"
 #include "Utility.hpp"
+#include "Registration.hpp"
 
 namespace Freenect2Driver
 {
