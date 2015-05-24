@@ -7,7 +7,7 @@
 #include "PS1080.h"
 #include "Utility.hpp"
 
-namespace FreenectDriver
+namespace Freenect2Driver
 {
   class VideoStream : public oni::driver::StreamBase
   {
@@ -24,9 +24,10 @@ namespace FreenectDriver
     OniVideoMode video_mode;
     OniCropping cropping;
     bool mirroring;
+    Freenect2Driver::Registration* reg;
 
   public:
-    VideoStream(libfreenect2::Freenect2Device* device) :
+    VideoStream(libfreenect2::Freenect2Device* device, Freenect2Driver::Registration* reg) :
       frame_id(1),
       device(device),
       mirroring(false)
