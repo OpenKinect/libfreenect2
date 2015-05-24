@@ -1,6 +1,6 @@
 #include <libfreenect2/registration.h>
 
-namespace FreenectDriver {
+namespace Freenect2Driver {
   class Registration {
   private:
     libfreenect2::Freenect2Device* dev;

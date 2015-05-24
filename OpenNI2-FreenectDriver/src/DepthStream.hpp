@@ -11,7 +11,7 @@
 #include "D2S.h"
 
 
-namespace FreenectDriver
+namespace Freenect2Driver
 {
   class DepthStream : public VideoStream
   {
@@ -41,7 +41,7 @@ namespace FreenectDriver
     void populateFrame(void* data, OniFrame* frame) const;
 
   public:
-    DepthStream(libfreenect2::Freenect2Device* pDevice, FreenectDriver::Registration *reg);
+    DepthStream(libfreenect2::Freenect2Device* pDevice, Freenect2Driver::Registration *reg);
     //~DepthStream() { }
 
     static OniSensorInfo getSensorInfo()

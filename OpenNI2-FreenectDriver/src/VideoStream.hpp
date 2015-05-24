@@ -8,7 +8,7 @@
 #include "Utility.hpp"
 #include "Registration.hpp"
 
-namespace FreenectDriver
+namespace Freenect2Driver
 {
   class VideoStream : public oni::driver::StreamBase
   {
@@ -25,10 +25,10 @@ namespace FreenectDriver
     OniVideoMode video_mode;
     OniCropping cropping;
     bool mirroring;
-    FreenectDriver::Registration* reg;
+    Freenect2Driver::Registration* reg;
 
   public:
-    VideoStream(libfreenect2::Freenect2Device* device, FreenectDriver::Registration* reg) :
+    VideoStream(libfreenect2::Freenect2Device* device, Freenect2Driver::Registration* reg) :
       frame_id(1),
       device(device),
       reg(reg),

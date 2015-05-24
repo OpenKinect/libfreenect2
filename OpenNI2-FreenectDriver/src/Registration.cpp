@@ -2,7 +2,7 @@
 #include "Driver/OniDriverAPI.h"
 #include "Registration.hpp"
 
-using namespace FreenectDriver;
+using namespace Freenect2Driver;
     
 const int Registration::depthWidth;
 const int Registration::depthHeight;

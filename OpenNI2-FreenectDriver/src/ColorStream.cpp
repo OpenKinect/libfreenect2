@@ -1,10 +1,10 @@
 #include <string>
 #include "ColorStream.hpp"
 
-using namespace FreenectDriver;
+using namespace Freenect2Driver;
 
 
-ColorStream::ColorStream(libfreenect2::Freenect2Device* pDevice, FreenectDriver::Registration *reg) : VideoStream(pDevice, reg)
+ColorStream::ColorStream(libfreenect2::Freenect2Device* pDevice, Freenect2Driver::Registration *reg) : VideoStream(pDevice, reg)
 {
   //video_mode = makeOniVideoMode(ONI_PIXEL_FORMAT_RGB888, 1920, 1080, 30);
   video_mode = makeOniVideoMode(ONI_PIXEL_FORMAT_RGB888, 512, 424, 30);

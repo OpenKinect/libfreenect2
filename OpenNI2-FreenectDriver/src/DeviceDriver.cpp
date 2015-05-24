@@ -14,6 +14,10 @@
 *  See the License for the specific language governing permissions and
 *  limitations under the License.
 */
+/**
+*  OpenNI2 Freenect2 Driver
+*  Copyright 2015 hanyazou@gmail.com
+*/
 #include <map>
 #include <string>
 #include <sys/time.h>
@@ -25,7 +29,7 @@
 #include "IrStream.hpp"
 
 
-namespace FreenectDriver
+namespace Freenect2Driver
 {
   class Device : public oni::driver::DeviceBase,  public libfreenect2::FrameListener
   {
@@ -407,6 +411,6 @@ namespace FreenectDriver
 // macros defined in XnLib (not included) - workaround
 #define XN_NEW(type, arg...) new type(arg)
 #define XN_DELETE(p) delete(p)
-ONI_EXPORT_DRIVER(FreenectDriver::Driver);
+ONI_EXPORT_DRIVER(Freenect2Driver::Driver);
 #undef XN_NEW
 #undef XN_DELETE

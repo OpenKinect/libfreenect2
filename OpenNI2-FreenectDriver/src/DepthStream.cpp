@@ -1,10 +1,10 @@
 #include <string>
 #include "DepthStream.hpp"
 
-using namespace FreenectDriver;
+using namespace Freenect2Driver;
 
 
-DepthStream::DepthStream(libfreenect2::Freenect2Device* pDevice, FreenectDriver::Registration *reg) : VideoStream(pDevice, reg)
+DepthStream::DepthStream(libfreenect2::Freenect2Device* pDevice, Freenect2Driver::Registration *reg) : VideoStream(pDevice, reg)
 {
   video_mode = makeOniVideoMode(ONI_PIXEL_FORMAT_DEPTH_1_MM, 512, 424, 30);
   image_registration_mode = ONI_IMAGE_REGISTRATION_OFF;

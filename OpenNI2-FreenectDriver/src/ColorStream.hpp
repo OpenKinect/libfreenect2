@@ -9,7 +9,7 @@
 #include "VideoStream.hpp"
 
 
-namespace FreenectDriver
+namespace Freenect2Driver
 {
   class ColorStream : public VideoStream
   {
@@ -31,7 +31,7 @@ namespace FreenectDriver
     bool auto_exposure;
 
   public:
-    ColorStream(libfreenect2::Freenect2Device* pDevice, FreenectDriver::Registration *reg);
+    ColorStream(libfreenect2::Freenect2Device* pDevice, Freenect2Driver::Registration *reg);
     //~ColorStream() { }
 
     static OniSensorInfo getSensorInfo()

@@ -8,7 +8,7 @@
 #include "PS1080.h"
 #include "VideoStream.hpp"
 
-namespace FreenectDriver
+namespace Freenect2Driver
 {
   class IrStream : public VideoStream
   {
@@ -38,7 +38,7 @@ namespace FreenectDriver
     void populateFrame(void* data, OniFrame* frame) const;
 
   public:
-    IrStream(libfreenect2::Freenect2Device* pDevice, FreenectDriver::Registration *reg);
+    IrStream(libfreenect2::Freenect2Device* pDevice, Freenect2Driver::Registration *reg);
     //~IrStream() { }
 
     static OniSensorInfo getSensorInfo()
