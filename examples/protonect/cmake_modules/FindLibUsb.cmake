@@ -4,7 +4,7 @@
 #  http://libusb-win32.sf.net
 # 
 # It will use PkgConfig if present and supported, else search
-# it on its own. If the LibUSB_ROOT_DIR environment variable
+# it on its own. If the LibUSB_ROOT environment variable
 # is defined, it will be used as base path.
 # The following standard variables get defined:
 #  LibUSB_FOUND:    true if LibUSB was found
@@ -19,7 +19,7 @@ find_path ( LibUSB_INCLUDE_DIR
     libusb.h
   PATHS
     $ENV{ProgramFiles}/LibUSB-Win32
-    $ENV{LibUSB_ROOT_DIR}
+    $ENV{LibUSB_ROOT}
   PATH_SUFFIXES
     libusb
   )
@@ -45,7 +45,7 @@ find_library ( LibUSB_LIBRARY_RELEASE
     libusb libusb-1.0 usb
   PATHS
     $ENV{ProgramFiles}/LibUSB-Win32
-    $ENV{LibUSB_ROOT_DIR}
+    $ENV{LibUSB_ROOT}
   PATH_SUFFIXES
     ${LibUSB_LIBRARY_PATH_SUFFIX_RELEASE}
   )
@@ -55,7 +55,7 @@ find_library ( LibUSB_LIBRARY_DEBUG
     libusb libusb-1.0 libusb-1.0d usb
   PATHS
     $ENV{ProgramFiles}/LibUSB-Win32
-    $ENV{LibUSB_ROOT_DIR}
+    $ENV{LibUSB_ROOT}
   PATH_SUFFIXES
     ${LibUSB_LIBRARY_PATH_SUFFIX_DEBUG}
   )  
@@ -80,7 +80,7 @@ endif ( LibUSB_FOUND )
 
 if ( NOT LibUSB_FOUND )
   if ( NOT LibUSB_FIND_QUIETLY )
-  message ( STATUS "LibUSB not found, try setting LibUSB_ROOT_DIR environment variable." )
+  message ( STATUS "LibUSB not found, try setting LibUSB_ROOT environment variable." )
   endif ( NOT LibUSB_FIND_QUIETLY )
   if ( LibUSB_FIND_REQUIRED )
   message ( FATAL_ERROR "LibUSB could not be found." )
