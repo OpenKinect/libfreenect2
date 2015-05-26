@@ -2,11 +2,7 @@ include(CheckCSourceCompiles)
 
 if(NOT TurboJPEG_INCLUDE_DIR)
   if(WIN32)
-    if(${CMAKE_SIZEOF_VOID_P} EQUAL 8)
-      set(DEFAULT_TurboJPEG_INCLUDE_DIR $ENV{TurboJPEG64_ROOT}/include)
-    else()
-      set(DEFAULT_TurboJPEG_INCLUDE_DIR $ENV{TurboJPEG_ROOT}/include)
-    endif()
+    set(DEFAULT_TurboJPEG_INCLUDE_DIR $ENV{TurboJPEG_ROOT}/include)
   else()
     set(DEFAULT_TurboJPEG_INCLUDE_DIR /opt/libjpeg-turbo/include)
   endif()
@@ -26,18 +22,12 @@ endif()
 
 
 if(WIN32)
-  if(${CMAKE_SIZEOF_VOID_P} EQUAL 8)
-    set(DEFAULT_TurboJPEG_LIBRARY $ENV{TurboJPEG64_ROOT}/lib/turbojpeg.lib)
-  else()
-    set(DEFAULT_TurboJPEG_LIBRARY $ENV{TurboJPEG_ROOT}/lib/turbojpeg.lib)
-  endif()
+  set(DEFAULT_TurboJPEG_LIBRARY $ENV{TurboJPEG_ROOT}/lib/turbojpeg.lib)
 else()
-    find_library(DEFAULT_TurboJPEG_LIBRARY NAMES libturbojpeg.so libturbojpeg.a
-        HINTS /opt/libjpeg-turbo/lib64/ /opt/libjpeg-turbo/lib/)
+  find_library(DEFAULT_TurboJPEG_LIBRARY NAMES libturbojpeg.so libturbojpeg.a HINTS /opt/libjpeg-turbo/lib64/ /opt/libjpeg-turbo/lib/)
 endif()
 
-set(TurboJPEG_LIBRARY ${DEFAULT_TurboJPEG_LIBRARY} CACHE PATH
-  "TurboJPEG library path (default: ${DEFAULT_TurboJPEG_LIBRARY})")
+set(TurboJPEG_LIBRARY ${DEFAULT_TurboJPEG_LIBRARY} CACHE PATH "TurboJPEG library path (default: ${DEFAULT_TurboJPEG_LIBRARY})")
 
 if(WIN32)
   set(CMAKE_REQUIRED_DEFINITIONS -MT)
