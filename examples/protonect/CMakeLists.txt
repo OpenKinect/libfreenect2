@@ -1,20 +1,13 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
 
 macro(auto_detect_lib LIBNAME)
-    if(NOT DEFINED ${${LIBNAME}_FOUND})
-        if ( PKG_CONFIG_FOUND )
-            string(TOLOWER ${LIBNAME} PKGCONFIGNAME)
-            pkg_check_modules(${LIBNAME} ${PKGCONFIGNAME} ${ARGN})
-            if(${${LIBNAME}_FOUND})
-                MESSAGE(STATUS "LIB ${LIBNAME} found and include is in ${${LIBNAME}_INCLUDE_DIRS}")
-            endif()
-        else(PKG_CONFIG_FOUND)
-            #MESSAGE("Fallback to non-pkg-config")
-            FIND_PACKAGE(${LIBNAME} ${ARGN})
-        endif(PKG_CONFIG_FOUND)
-    else()
-        MESSAGE(STATUS "LIB was already known ${LIBNAME} becasue of ${${LIBNAME}_FOUND}")
-    endif()
+  if ( PKG_CONFIG_FOUND )
+    string(TOLOWER ${LIBNAME} PKGCONFIGNAME)
+    pkg_check_modules(${LIBNAME} ${PKGCONFIGNAME} ${ARGN})
+  else(PKG_CONFIG_FOUND)
+    #MESSAGE("Fallback to non-pkg-config")
+    FIND_PACKAGE(${LIBNAME} ${ARGN})
+  endif(PKG_CONFIG_FOUND)
 endmacro()
 
 PROJECT(libfreenect2)
@@ -31,9 +24,9 @@ IF(ENABLE_CXX11)
   CHECK_CXX_COMPILER_FLAG("-std=c++11" COMPILER_SUPPORTS_CXX11)
   CHECK_CXX_COMPILER_FLAG("-std=c++0x" COMPILER_SUPPORTS_CXX0X)
   IF(COMPILER_SUPPORTS_CXX11)
-	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
   ELSEIF(COMPILER_SUPPORTS_CXX0X)
-	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
+    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
   ELSE()
     MESSAGE(STATUS "The compiler ${CMAKE_CXX_COMPILER} has no C++11 support. Please use a different C++ compiler.")
   ENDIF()
@@ -54,17 +47,14 @@ SET(EXECUTABLE_OUTPUT_PATH ${MY_DIR}/bin)
 SET(LIBRARY_OUTPUT_PATH ${MY_DIR}/lib)
 
 # dependencies
-find_package(PkgConfig)	# try find PKGConfig as it will be used if found
+find_package(PkgConfig)    # try find PKGConfig as it will be used if found
 auto_detect_lib(LibUSB REQUIRED)
 auto_detect_lib(OpenCV REQUIRED)
 FIND_PACKAGE(TurboJPEG REQUIRED) #does not provide a package-config file
 
 #hack for buggy libusb pkgconfig file
 if(NOT LibUSB_INCLUDE_DIR)
-    find_path(LibUSB_INCLUDE_DIR
-        NAMES libusb.h
-        PATHS /usr/include/libusb-1.0 
-    )
+  find_path(LibUSB_INCLUDE_DIR NAMES libusb.h PATHS /usr/include/libusb-1.0 )
 endif()
 
 # Add includes
@@ -138,14 +128,13 @@ SET(RESOURCES
   zTable.bin
 )
 
-
 IF(ENABLE_OPENGL)
   auto_detect_lib(GLFW3)
   
   #Assuming local build witout global deps, ugly to to this automatic but to keep backward compatibiliy
   if(${GLFW3_FOUND} STREQUAL "FALSE")
     
-	MESSAGE(STATUS "Building local GLFW")
+    MESSAGE(STATUS "Building local GLFW")
     # GLFW
     SET(BUILD_SHARED_LIBS ON CACHE BOOL "Build shared libraries")
     SET(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "Build the GLFW example programs")
@@ -154,11 +143,11 @@ IF(ENABLE_OPENGL)
 
     ADD_SUBDIRECTORY(${MY_DIR}/../../depends/glfw_src/ ${MY_DIR}/../../depends/glfw)
     INCLUDE_DIRECTORIES(${MY_DIR}/../../depends/glfw_src/include/)
-	
-	LIST(APPEND LIBRARIES
-    glfw
-	)
-	
+    
+    LIST(APPEND LIBRARIES
+      glfw
+    )
+    
   else()
     INCLUDE_DIRECTORIES(${GLFW3_INCLUDE_DIRS})
 
@@ -187,21 +176,21 @@ ENDIF(ENABLE_OPENGL)
 IF(ENABLE_OPENCL)
   FIND_PACKAGE(OpenCL)
 
-  IF(OPENCL_FOUND)	  
-	  SET(LIBFREENECT2_WITH_OPENCL_SUPPORT 1)
-	  INCLUDE_DIRECTORIES(${OPENCL_INCLUDE_DIRS})
-	  
-	  LIST(APPEND SOURCES
-		src/opencl_depth_packet_processor.cpp
-	  )
+  IF(OPENCL_FOUND)      
+    SET(LIBFREENECT2_WITH_OPENCL_SUPPORT 1)
+    INCLUDE_DIRECTORIES(${OPENCL_INCLUDE_DIRS})
+    
+    LIST(APPEND SOURCES
+      src/opencl_depth_packet_processor.cpp
+    )
 
-	  LIST(APPEND LIBRARIES
-		${OPENCL_LIBRARIES}
-	  )
-	  
-	  LIST(APPEND RESOURCES
-		src/opencl_depth_packet_processor.cl
-	  )
+    LIST(APPEND LIBRARIES
+      ${OPENCL_LIBRARIES}
+    )
+      
+    LIST(APPEND RESOURCES
+      src/opencl_depth_packet_processor.cl
+    )
   ENDIF(OPENCL_FOUND)
 ENDIF(ENABLE_OPENCL)
 
