@@ -6,7 +6,8 @@ using namespace Freenect2Driver;
 
 DepthStream::DepthStream(libfreenect2::Freenect2Device* pDevice, Freenect2Driver::Registration *reg) : VideoStream(pDevice, reg)
 {
-  video_mode = makeOniVideoMode(ONI_PIXEL_FORMAT_DEPTH_1_MM, 512, 424, 30);
+  //video_mode = makeOniVideoMode(ONI_PIXEL_FORMAT_DEPTH_1_MM, 512, 424, 30);
+  video_mode = makeOniVideoMode(ONI_PIXEL_FORMAT_DEPTH_1_MM, 640, 480, 30);
   image_registration_mode = ONI_IMAGE_REGISTRATION_OFF;
   setVideoMode(video_mode);
   pDevice->start();
@@ -19,7 +20,8 @@ DepthStream::FreenectDepthModeMap DepthStream::getSupportedVideoModes()
 {
   FreenectDepthModeMap modes;
   //                      pixelFormat, resolutionX, resolutionY, fps
-  modes[makeOniVideoMode(ONI_PIXEL_FORMAT_DEPTH_1_MM, 512, 424, 30)] = std::pair<freenect2_depth_format, freenect2_resolution>(FREENECT2_DEPTH_MM, FREENECT2_RESOLUTION_512x424);
+  //modes[makeOniVideoMode(ONI_PIXEL_FORMAT_DEPTH_1_MM, 512, 424, 30)] = std::pair<freenect2_depth_format, freenect2_resolution>(FREENECT2_DEPTH_MM, FREENECT2_RESOLUTION_512x424);
+  modes[makeOniVideoMode(ONI_PIXEL_FORMAT_DEPTH_1_MM, 640, 480, 30)] = std::pair<freenect2_depth_format, freenect2_resolution>(FREENECT2_DEPTH_MM, FREENECT2_RESOLUTION_512x424);
 
 
   return modes;
@@ -55,81 +57,18 @@ OniStatus DepthStream::setVideoMode(OniVideoMode requested_mode)
   return ONI_STATUS_OK;
 }
 
-void DepthStream::populateFrame(void* data, OniFrame* frame) const
+void DepthStream::populateFrame(libfreenect2::Frame* srcFrame, int srcX, int srcY, OniFrame* dstFrame, int dstX, int dstY, int width, int height) const
 {
-  frame->sensorType = sensor_type;
-  frame->stride = video_mode.resolutionX * sizeof(uint16_t);
+  dstFrame->sensorType = sensor_type;
+  dstFrame->stride = dstFrame->width * sizeof(uint16_t);
 
-  if (cropping.enabled)
-  {
-    frame->height = cropping.height;
-    frame->width = cropping.width;
-    frame->cropOriginX = cropping.originX;
-    frame->cropOriginY = cropping.originY;
-    frame->croppingEnabled = true;
-  }
-  else
-  {
-    frame->cropOriginX = 0;
-    frame->cropOriginY = 0;
-    frame->croppingEnabled = false;
-  }
-
+  // XXX, save depth map for registration
+  reg->depthFrame(srcFrame);
 
   // copy stream buffer from freenect
-
-  float* source = static_cast<float*>(data) + frame->cropOriginX + frame->cropOriginY * video_mode.resolutionX;
-  uint16_t* target = static_cast<uint16_t*>(frame->data);
-  const unsigned int skipWidth = video_mode.resolutionX - frame->width;
-
-  if (mirroring)
-  {
-    target += frame->width;
-
-    for (int y = 0; y < frame->height; y++)
-    {
-      for (int x = 0; x < frame->width; x++)
-      {
-        *target-- = *source++;
-      }
-
-      source += skipWidth;
-      target += 2 * frame->width;
-    }
-  }
-  else
-  {
-    for (int y = 0; y < frame->height; y++)
-    {
-      for (int x = 0; x < frame->width; x++)
-      {
-        *target++ = *source++;
-      }
-
-      source += skipWidth;
-    }
-  }
-
-  reg->depthFrame(frame);
-
-  /*
-  uint16_t* data_ptr = static_cast<uint16_t*>(data);
-  uint16_t* frame_data = static_cast<uint16_t*>(frame->data);
-  if (mirroring)
-  {
-    for (unsigned int i = 0; i < frame->dataSize / 2; i++)
-    {
-      // find corresponding mirrored pixel
-      unsigned int row = i / video_mode.resolutionX;
-      unsigned int col = video_mode.resolutionX - (i % video_mode.resolutionX);
-      unsigned int target = (row * video_mode.resolutionX) + col;
-      // copy it to this pixel
-      frame_data[i] = data_ptr[target];
-    }
-  }
-  else
-    std::copy(data_ptr, data_ptr+frame->dataSize / 2, frame_data);
-  */
+  copyFrame(static_cast<float*>((void*)srcFrame->data), srcX, srcY, srcFrame->width,
+            static_cast<uint16_t*>(dstFrame->data), dstX, dstY, dstFrame->width,
+            width, height, mirroring);
 }
 
 

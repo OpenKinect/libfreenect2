@@ -16,7 +16,7 @@ namespace Freenect2Driver
     unsigned int frame_id; // number each frame
 
     virtual OniStatus setVideoMode(OniVideoMode requested_mode) = 0;
-    virtual void populateFrame(void* data, OniFrame* frame) const = 0;
+    virtual void populateFrame(libfreenect2::Frame* lf2Frame, int srcX, int srcY, OniFrame* oniFrame, int tgtX, int tgtY, int width, int height) const = 0;
 
   protected:
     static const OniSensorType sensor_type;
@@ -26,6 +26,24 @@ namespace Freenect2Driver
     OniCropping cropping;
     bool mirroring;
     Freenect2Driver::Registration* reg;
+    static void copyFrame(float* srcPix, int srcX, int srcY, int srcStride, uint16_t* dstPix, int dstX, int dstY, int dstStride, int width, int height, bool mirroring)
+    {
+      srcPix += srcX + srcY * srcStride;
+      dstPix += dstX + dstY * dstStride;
+
+      for (int y = 0; y < height; y++) {
+        uint16_t* dst = dstPix + y * dstStride;
+        float* src = srcPix + y * srcStride;
+        if (mirroring) {
+          dst += width;
+          for (int x = 0; x < width; x++)
+            *dst-- = *src++;
+        } else {
+          for (int x = 0; x < width; x++)
+            *dst++ = *src++;
+        }
+      }
+    }
 
   public:
     VideoStream(libfreenect2::Freenect2Device* device, Freenect2Driver::Registration* reg) :
@@ -40,21 +58,38 @@ namespace Freenect2Driver
       }
     //~VideoStream() { stop();  }
 
-    void buildFrame(void* data, uint32_t timestamp)
+    void buildFrame(libfreenect2::Frame* lf2Frame, uint32_t timestamp)
     {
       if (!running)
         return;
 
-      OniFrame* frame = getServices().acquireFrame();
-      frame->frameIndex = frame_id++;
-      frame->timestamp = timestamp;
-      frame->videoMode = video_mode;
-      frame->width = video_mode.resolutionX;
-      frame->height = video_mode.resolutionY;
+      OniFrame* oniFrame = getServices().acquireFrame();
+      oniFrame->frameIndex = frame_id++;
+      oniFrame->timestamp = timestamp;
+      oniFrame->videoMode = video_mode;
+      oniFrame->width = video_mode.resolutionX;
+      oniFrame->height = video_mode.resolutionY;
 
-      populateFrame(data, frame);
-      raiseNewFrame(frame);
-      getServices().releaseFrame(frame);
+      if (cropping.enabled)
+      {
+        oniFrame->height = cropping.height;
+        oniFrame->width = cropping.width;
+        oniFrame->cropOriginX = cropping.originX;
+        oniFrame->cropOriginY = cropping.originY;
+        oniFrame->croppingEnabled = true;
+      }
+      else
+      {
+        oniFrame->cropOriginX = 0;
+        oniFrame->cropOriginY = 0;
+        oniFrame->croppingEnabled = false;
+      }
+      int width = std::min(oniFrame->width, (int)lf2Frame->width);
+      int height = std::min(oniFrame->height, (int)lf2Frame->height);
+
+      populateFrame(lf2Frame, oniFrame->cropOriginX, oniFrame->cropOriginY, oniFrame, 0, 0, width, height);
+      raiseNewFrame(oniFrame);
+      getServices().releaseFrame(oniFrame);
     }
 
     // from StreamBase

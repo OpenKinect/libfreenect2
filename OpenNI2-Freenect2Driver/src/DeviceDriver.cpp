@@ -51,15 +51,15 @@ namespace Freenect2Driver
     bool onNewFrame(libfreenect2::Frame::Type type, libfreenect2::Frame *frame) {
       if (type == libfreenect2::Frame::Color) {
         if (color)
-          color->buildFrame(frame->data, getTimestamp());
+          color->buildFrame(frame, getTimestamp());
       } else 
       if (type == libfreenect2::Frame::Ir) {
         if (ir)
-          ir->buildFrame(frame->data, getTimestamp());
+          ir->buildFrame(frame, getTimestamp());
       } else 
       if (type == libfreenect2::Frame::Depth) {
         if (depth)
-          depth->buildFrame(frame->data, getTimestamp());
+          depth->buildFrame(frame, getTimestamp());
       }
     }
 

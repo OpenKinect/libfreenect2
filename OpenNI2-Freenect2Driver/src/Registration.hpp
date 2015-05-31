@@ -14,7 +14,7 @@ namespace Freenect2Driver {
     Registration(libfreenect2::Freenect2Device* dev);
     ~Registration();
 
-    void depthFrame(OniFrame* frame);
-    void colorFrameRGB888(uint8_t* data, OniFrame* frame);
+    void depthFrame(libfreenect2::Frame* frame);
+    void colorFrameRGB888(libfreenect2::Frame* srcFrame, OniFrame* dstFrame);
   };
 }
