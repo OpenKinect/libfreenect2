@@ -36,58 +36,13 @@ OniStatus IrStream::setVideoMode(OniVideoMode requested_mode)
   return ONI_STATUS_OK;
 }
 
-void IrStream::populateFrame(void* data, OniFrame* frame) const
+void IrStream::populateFrame(libfreenect2::Frame* srcFrame, int srcX, int srcY, OniFrame* dstFrame, int dstX, int dstY, int width, int height) const
 {
-  frame->sensorType = sensor_type;
-  frame->stride = video_mode.resolutionX * sizeof(uint16_t);
-
-  if (cropping.enabled)
-  {
-    frame->height = cropping.height;
-    frame->width = cropping.width;
-    frame->cropOriginX = cropping.originX;
-    frame->cropOriginY = cropping.originY;
-    frame->croppingEnabled = true;
-  }
-  else
-  {
-    frame->cropOriginX = 0;
-    frame->cropOriginY = 0;
-    frame->croppingEnabled = false;
-  }
-
+  dstFrame->sensorType = sensor_type;
+  dstFrame->stride = dstFrame->width * sizeof(uint16_t);
 
   // copy stream buffer from freenect
-
-  float* source = static_cast<float*>(data) + frame->cropOriginX + frame->cropOriginY * video_mode.resolutionX;
-  uint16_t* target = static_cast<uint16_t*>(frame->data);
-  const unsigned int skipWidth = video_mode.resolutionX - frame->width;
-
-  if (mirroring)
-  {
-    target += frame->width;
-
-    for (int y = 0; y < frame->height; y++)
-    {
-      for (int x = 0; x < frame->width; x++)
-      {
-        *target-- = *source++;
-      }
-
-      source += skipWidth;
-      target += 2 * frame->width;
-    }
-  }
-  else
-  {
-    for (int y = 0; y < frame->height; y++)
-    {
-      for (int x = 0; x < frame->width; x++)
-      {
-        *target++ = *source++;
-      }
-
-      source += skipWidth;
-    }
-  }
+  copyFrame(static_cast<float*>((void*)srcFrame->data), srcX, srcY, srcFrame->width,
+            static_cast<uint16_t*>(dstFrame->data), dstX, dstY, dstFrame->width,
+            width, height, mirroring);
 }

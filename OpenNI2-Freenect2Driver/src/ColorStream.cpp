@@ -16,8 +16,8 @@ ColorStream::FreenectVideoModeMap ColorStream::getSupportedVideoModes()
 {
   FreenectVideoModeMap modes;
   //                    pixelFormat, resolutionX, resolutionY, fps    freenect_video_format, freenect_resolution
+  modes[makeOniVideoMode(ONI_PIXEL_FORMAT_RGB888, 512, 424, 30)] = std::pair<freenect2_video_format, freenect2_resolution>(FREENECT2_VIDEO_RGB, FREENECT2_RESOLUTION_1920x1080);
   modes[makeOniVideoMode(ONI_PIXEL_FORMAT_RGB888, 1920, 1080, 30)] = std::pair<freenect2_video_format, freenect2_resolution>(FREENECT2_VIDEO_RGB, FREENECT2_RESOLUTION_1920x1080);
-
 
   return modes;
 
@@ -50,13 +50,10 @@ OniStatus ColorStream::setVideoMode(OniVideoMode requested_mode)
   return ONI_STATUS_OK;
 }
 
-void ColorStream::populateFrame(void* data, OniFrame* frame) const
+void ColorStream::populateFrame(libfreenect2::Frame* srcFrame, int srcX, int srcY, OniFrame* dstFrame, int dstX, int dstY, int width, int height) const
 {
-  frame->sensorType = sensor_type;
-  frame->stride = video_mode.resolutionX * 3;
-  frame->cropOriginX = 0;
-  frame->cropOriginY = 0;
-  frame->croppingEnabled = false;
+  dstFrame->sensorType = sensor_type;
+  dstFrame->stride = dstFrame->width * 3;
 
   // copy stream buffer from freenect
   switch (video_mode.pixelFormat)
@@ -66,13 +63,7 @@ void ColorStream::populateFrame(void* data, OniFrame* frame) const
       return;
 
     case ONI_PIXEL_FORMAT_RGB888:
-      uint8_t* source = static_cast<uint8_t*>(data);
-      uint8_t* target = static_cast<uint8_t*>(frame->data);
-      for (uint8_t* p = source; p < source + frame->dataSize; p+=3) {
-          *target++ = p[2];
-          *target++ = p[1];
-          *target++ = p[0];
-      }
+      reg->colorFrameRGB888(srcFrame, dstFrame);
       return;
   }
 }

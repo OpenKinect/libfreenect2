@@ -25,7 +25,7 @@ namespace Freenect2Driver
 
     static FreenectVideoModeMap getSupportedVideoModes();
     OniStatus setVideoMode(OniVideoMode requested_mode);
-    void populateFrame(void* data, OniFrame* frame) const;
+    void populateFrame(libfreenect2::Frame* srcFrame, int srcX, int srcY, OniFrame* dstFrame, int dstX, int dstY, int width, int height) const;
     
     bool auto_white_balance;
     bool auto_exposure;
@@ -41,6 +41,16 @@ namespace Freenect2Driver
       std::transform(supported_modes.begin(), supported_modes.end(), modes, ExtractKey());
       OniSensorInfo sensors = { sensor_type, static_cast<int>(supported_modes.size()), modes };
       return sensors;
+    }
+
+    OniStatus setImageRegistrationMode(OniImageRegistrationMode mode)
+    {
+      if (mode == ONI_IMAGE_REGISTRATION_DEPTH_TO_COLOR) {
+        // XXX, switch color resolution to 512x424 for registrarion here
+        OniVideoMode video_mode = makeOniVideoMode(ONI_PIXEL_FORMAT_RGB888, 512, 424, 30);
+        setProperty(ONI_STREAM_PROPERTY_VIDEO_MODE, &video_mode, sizeof(video_mode));
+      }
+      return ONI_STATUS_OK;
     }
 
     // from StreamBase
