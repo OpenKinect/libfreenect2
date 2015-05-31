@@ -26,6 +26,8 @@ namespace Freenect2Driver
     OniCropping cropping;
     bool mirroring;
     Freenect2Driver::Registration* reg;
+    bool callPropertyChangedCallback;
+
     static void copyFrame(float* srcPix, int srcX, int srcY, int srcStride, uint16_t* dstPix, int dstX, int dstY, int dstStride, int width, int height, bool mirroring)
     {
       srcPix += srcX + srcY * srcStride;
@@ -44,12 +46,17 @@ namespace Freenect2Driver
         }
       }
     }
+    void raisePropertyChanged(int propertyId, const void* data, int dataSize) {
+      if (callPropertyChangedCallback)
+        StreamBase::raisePropertyChanged(propertyId, data, dataSize);
+    }
 
   public:
     VideoStream(libfreenect2::Freenect2Device* device, Freenect2Driver::Registration* reg) :
       frame_id(1),
       device(device),
       reg(reg),
+      callPropertyChangedCallback(false),
       mirroring(false)
       {
         // joy of structs
@@ -57,6 +64,11 @@ namespace Freenect2Driver
         memset(&video_mode, 0, sizeof(video_mode));
       }
     //~VideoStream() { stop();  }
+
+    void setPropertyChangedCallback(oni::driver::PropertyChangedCallback handler, void* pCookie) {
+      callPropertyChangedCallback = true;
+      StreamBase::setPropertyChangedCallback(handler, pCookie);
+    }
 
     void buildFrame(libfreenect2::Frame* lf2Frame, uint32_t timestamp)
     {
