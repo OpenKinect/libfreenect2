@@ -14,9 +14,9 @@ namespace Freenect2Driver
   {
   public:
     // from NUI library & converted to radians
-    static const float DIAGONAL_FOV = 73.9 * (M_PI / 180);
-    static const float HORIZONTAL_FOV = 62 * (M_PI / 180);
-    static const float VERTICAL_FOV = 48.6 * (M_PI / 180);
+    static const float DIAGONAL_FOV;
+    static const float HORIZONTAL_FOV;
+    static const float VERTICAL_FOV;
 
   private:
     typedef std::map< OniVideoMode, int > FreenectVideoModeMap;
@@ -24,13 +24,15 @@ namespace Freenect2Driver
 
     static FreenectVideoModeMap getSupportedVideoModes();
     OniStatus setVideoMode(OniVideoMode requested_mode);
-    void populateFrame(void* data, OniFrame* frame) const;
+    void populateFrame(libfreenect2::Frame* srcFrame, int srcX, int srcY, OniFrame* dstFrame, int dstX, int dstY, int width, int height) const;
     
+    static void copyFrame(uint8_t* srcPix, int srcX, int srcY, int srcStride, uint8_t* dstPix, int dstX, int dstY, int dstStride, int width, int height, bool mirroring);
+
     bool auto_white_balance;
     bool auto_exposure;
 
   public:
-    ColorStream(libfreenect2::Freenect2Device* pDevice);
+    ColorStream(libfreenect2::Freenect2Device* pDevice, Freenect2Driver::Registration *reg);
     //~ColorStream() { }
 
     static OniSensorInfo getSensorInfo()
@@ -40,6 +42,16 @@ namespace Freenect2Driver
       std::transform(supported_modes.begin(), supported_modes.end(), modes, ExtractKey());
       OniSensorInfo sensors = { sensor_type, static_cast<int>(supported_modes.size()), modes };
       return sensors;
+    }
+
+    OniStatus setImageRegistrationMode(OniImageRegistrationMode mode)
+    {
+      if (mode == ONI_IMAGE_REGISTRATION_DEPTH_TO_COLOR) {
+        // XXX, switch color resolution to 512x424 for registrarion here
+        OniVideoMode video_mode = makeOniVideoMode(ONI_PIXEL_FORMAT_RGB888, 512, 424, 30);
+        setProperty(ONI_STREAM_PROPERTY_VIDEO_MODE, &video_mode, sizeof(video_mode));
+      }
+      return ONI_STATUS_OK;
     }
 
     // from StreamBase

@@ -14,20 +14,19 @@ namespace Freenect2Driver
   {
   public:
     // from NUI library and converted to radians
-    static const float HORIZONTAL_FOV = 58.5 * (M_PI / 180);
-    static const float VERTICAL_FOV = 45.6 * (M_PI / 180);
+    static const float HORIZONTAL_FOV;
+    static const float VERTICAL_FOV;
 
   private:
     typedef std::map< OniVideoMode, int > FreenectIrModeMap;
     static const OniSensorType sensor_type = ONI_SENSOR_IR;
-    OniImageRegistrationMode image_registration_mode;
 
     static FreenectIrModeMap getSupportedVideoModes();
     OniStatus setVideoMode(OniVideoMode requested_mode);
-    void populateFrame(void* data, OniFrame* frame) const;
+    void populateFrame(libfreenect2::Frame* srcFrame, int srcX, int srcY, OniFrame* dstFrame, int dstX, int dstY, int width, int height) const;
 
   public:
-    IrStream(libfreenect2::Freenect2Device* pDevice);
+    IrStream(libfreenect2::Freenect2Device* pDevice, Freenect2Driver::Registration *reg);
     //~IrStream() { }
 
     static OniSensorInfo getSensorInfo()
@@ -39,18 +38,7 @@ namespace Freenect2Driver
       return sensors;
     }
 
-    OniImageRegistrationMode getImageRegistrationMode() const { return image_registration_mode; }
-    OniStatus setImageRegistrationMode(OniImageRegistrationMode mode)
-    {
-      if (!isImageRegistrationModeSupported(mode))
-        return ONI_STATUS_NOT_SUPPORTED;
-      image_registration_mode = mode;
-      return setVideoMode(video_mode);
-    }
-
     // from StreamBase
-    OniBool isImageRegistrationModeSupported(OniImageRegistrationMode mode) { return (mode == ONI_IMAGE_REGISTRATION_OFF || mode == ONI_IMAGE_REGISTRATION_DEPTH_TO_COLOR); }
-
     OniBool isPropertySupported(int propertyId)
     {
       switch(propertyId)
