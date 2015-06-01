@@ -22,7 +22,9 @@ include_directories(${PROJECT_SOURCE_DIR}/../examples/protonect/include)
 include_directories(${PROJECT_SOURCE_DIR}/src)
 include_directories(${PROJECT_SOURCE_DIR}/wrappers/cpp)
 
-target_link_libraries(Freenect2Driver freenect2 ${MATH_LIB})
+FIND_LIBRARY(FREENECT2_LIB freenect2 ${PROJECT_SOURCE_DIR}/../examples/protonect/lib)
+
+target_link_libraries(Freenect2Driver ${FREENECT2_LIB} ${MATH_LIB})
 
 install (TARGETS Freenect2Driver
   DESTINATION "${PROJECT_LIBRARY_INSTALL_DIR}/OpenNI2-Freenect2Driver")

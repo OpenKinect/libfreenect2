@@ -43,7 +43,7 @@ void Registration::colorFrameRGB888(libfreenect2::Frame* srcFrame, OniFrame* dst
 			",k1=" << ip.k1 << ",k2=" << ip.k2 << ",k3=" << ip.k3 <<
 			",p1=" << ip.p1 << ",p2=" << ip.p2 << std::endl;
 	}
-    reg = new libfreenect2::Registration(&irCamParams, &colCamParams);
+    reg = new libfreenect2::Registration(irCamParams, colCamParams);
   }
   
   float cx, cy;
