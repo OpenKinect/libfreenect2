@@ -73,7 +73,7 @@ void Registration::depth_to_color(float mx, float my, float& rx, float& ry)
     (mx * color.my_x1y0) + (my * color.my_x0y1) + (color.my_x0y0);
 
   rx = (wx / (color.fx * color_q)) - (color.shift_m / color.shift_d);
-  ry = (wy / (color.fx * color_q)) * color.fy + color.cy;
+  ry = (wy / color_q) + color.cy;
 }
 
 void Registration::apply( int dx, int dy, float dz, float& cx, float &cy) const
