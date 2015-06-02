@@ -72,60 +72,62 @@ void Registration::depth_to_color(float mx, float my, float& rx, float& ry)
     (mx * mx * color.my_x2y0) + (my * my * color.my_x0y2) + (mx * my * color.my_x1y1) +
     (mx * color.my_x1y0) + (my * color.my_x0y1) + (color.my_x0y0);
 
-  rx = wx / (color.fx * color_q);
-  ry = wy / (color.fx * color_q);
+  rx = (wx / (color.fx * color_q)) - (color.shift_m / color.shift_d);
+  ry = (wy / (color.fx * color_q)) * color.fy + color.cy;
 }
 
-void Registration::apply( int dx, int dy, float dz, float& cx, float &cy)
+void Registration::apply( int dx, int dy, float dz, float& cx, float &cy) const
 {
-  float rx = depth_to_color_map[dx][dy][0];
-  float ry = depth_to_color_map[dx][dy][1];
+  const int index = dx + dy * 512;
+  float rx = depth_to_color_map_x[index];
+  cy = depth_to_color_map_y[index];
 
-  rx += (color.shift_m / dz) - (color.shift_m / color.shift_d);
-
+  rx += (color.shift_m / dz);
   cx = rx * color.fx + color.cx;
-  cy = ry * color.fy + color.cy;
 }
 
-void Registration::apply(Frame* rgb, Frame* depth, unsigned char* registered)
+void Registration::apply(const Frame* rgb, const Frame* depth, Frame* registered) const
 {
-  if (!depth || !rgb || !registered)
+  if (!depth || !rgb || !registered ||
+      depth->width != 512 || depth->height != 424 || depth->bytes_per_pixel != 4 ||
+      rgb->width != 1920 || rgb->height != 1080 || rgb->bytes_per_pixel != 3 ||
+      registered->width != 512 || registered->height != 424 || registered->bytes_per_pixel != 3)
     return;
 
-  float* depth_raw = (float*)depth->data;
-  float cx, cy;
-  int c_off, d_off, r_off;
+  const float *depth_raw = (float*)depth->data;
+  const float *map_x = depth_to_color_map_x;
+  const int *map_i = depth_to_color_map_i;
+  unsigned char *registered_raw = registered->data;
+  const int size_depth = 512 * 424;
+  const int size_color = 1920 * 1080 * 3;
 
-  for (int x = 0; x < depth->width; x++) {
-    for (int y = 0; y < depth->height; y++) {
+  for (int i = 0; i < size_depth; ++i, ++registered_raw, ++map_x, ++map_i, ++depth_raw) {
+    const float z_raw = *depth_raw;
 
-      d_off = y*depth->width + x;
-      r_off = d_off*rgb->bytes_per_pixel;
-
-      float z_raw = depth_raw[d_off];
-      if (z_raw == 0.0) {
-        registered[r_off+0] = 0;
-        registered[r_off+1] = 0;
-        registered[r_off+2] = 0;
-        continue;
-      }
-
-      apply(x,y,z_raw,cx,cy);
-
-      c_off = (round(cx) + round(cy) * rgb->width) * rgb->bytes_per_pixel;
-      if ((c_off < 0) || (c_off > rgb->width*rgb->height*rgb->bytes_per_pixel)) {
-        registered[r_off+0] = 0;
-        registered[r_off+1] = 0;
-        registered[r_off+2] = 0;
-        continue;
-      }
-
-      registered[r_off+0] = rgb->data[c_off+0];
-      registered[r_off+1] = rgb->data[c_off+1];
-      registered[r_off+2] = rgb->data[c_off+2];
+    if (z_raw == 0.0) {
+      *registered_raw = 0;
+      *++registered_raw = 0;
+      *++registered_raw = 0;
+      continue;
     }
-  }
 
+    const float rx = (*map_x + (color.shift_m / z_raw)) * color.fx + color.cx;
+    const int cx = rx + 0.5f; // same as round for positive numbers
+    const int cy = *map_i;
+    const int c_off = cx * 3 + cy;
+
+    if (c_off < 0 || c_off > size_color || rx < -0.5f) {
+      *registered_raw = 0;
+      *++registered_raw = 0;
+      *++registered_raw = 0;
+      continue;
+    }
+
+    const unsigned char *rgb_data = rgb->data + c_off;
+    *registered_raw = *rgb_data;
+    *++registered_raw = *++rgb_data;
+    *++registered_raw = *++rgb_data;
+  }
 }
 
 Registration::Registration(Freenect2Device::IrCameraParams depth_p, Freenect2Device::ColorCameraParams rgb_p):
@@ -133,17 +135,23 @@ Registration::Registration(Freenect2Device::IrCameraParams depth_p, Freenect2Dev
 {
   float mx, my;
   float rx, ry;
+  float *it_undist = undistort_map;
+  float *map_x = depth_to_color_map_x;
+  float *map_y = depth_to_color_map_y;
+  int *map_i = depth_to_color_map_i;
 
-  for (int x = 0; x < 512; x++)
-    for (int y = 0; y < 424; y++) {
+  for (int y = 0; y < 424; y++) {
+    for (int x = 0; x < 512; x++) {
 
       undistort_depth(x,y,mx,my);
-      undistort_map[x][y][0] = mx;
-      undistort_map[x][y][1] = my;
+      *it_undist++ = mx;
+      *it_undist++ = my;
 
       depth_to_color(mx,my,rx,ry);
-      depth_to_color_map[x][y][0] = rx;
-      depth_to_color_map[x][y][1] = ry;
+      *map_x++ = rx;
+      *map_y++ = ry;
+      *map_i++ = round(ry) * 1920 * 3;
+    }
   }
 }
 
