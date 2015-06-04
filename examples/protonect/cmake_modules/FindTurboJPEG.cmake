@@ -1,18 +1,6 @@
 include(CheckCSourceCompiles)
 
-if(NOT TurboJPEG_INCLUDE_DIR)
-  if(WIN32)
-    set(DEFAULT_TurboJPEG_INCLUDE_DIR $ENV{TurboJPEG_ROOT}/include)
-  else()
-    set(DEFAULT_TurboJPEG_INCLUDE_DIR /opt/libjpeg-turbo/include)
-  endif()
-else()
-  set(DEFAULT_TurboJPEG_INCLUDE_DIR ${TurboJPEG_INCLUDE_DIR})
-  unset(TurboJPEG_INCLUDE_DIR)
-  unset(TurboJPEG_INCLUDE_DIR CACHE)
-endif()
-
-find_path(TurboJPEG_INCLUDE_DIR turbojpeg.h DOC "TurboJPEG include directory (default: ${DEFAULT_TurboJPEG_INCLUDE_DIR})" HINTS ${DEFAULT_TurboJPEG_INCLUDE_DIR})
+find_path(TurboJPEG_INCLUDE_DIR turbojpeg.h DOC "Found TurboJPEG include directory)" PATHS "${CMAKE_SOURCE_DIR}/../../depends/libjpeg_turbo" "C:/libjpeg-turbo64" "/opt/libjpeg-turbo/include" "$ENV{TurboJPEG_ROOT}/include")
 
 if(TurboJPEG_INCLUDE_DIR STREQUAL "TurboJPEG_INCLUDE_DIR-NOTFOUND")
   message(FATAL_ERROR "Could not find turbojpeg.h - Try define TurboJPEG_ROOT as a system variable.")
@@ -20,14 +8,7 @@ else()
   message(STATUS "TurboJPEG_INCLUDE_DIR = ${TurboJPEG_INCLUDE_DIR}")
 endif()
 
-
-if(WIN32)
-  set(DEFAULT_TurboJPEG_LIBRARY $ENV{TurboJPEG_ROOT}/lib/turbojpeg.lib)
-else()
-  find_library(DEFAULT_TurboJPEG_LIBRARY NAMES libturbojpeg.so libturbojpeg.a HINTS /opt/libjpeg-turbo/lib64/ /opt/libjpeg-turbo/lib/)
-endif()
-
-set(TurboJPEG_LIBRARY ${DEFAULT_TurboJPEG_LIBRARY} CACHE PATH "TurboJPEG library path (default: ${DEFAULT_TurboJPEG_LIBRARY})")
+find_library(TurboJPEG_LIBRARY NAMES turbojpeg.lib libturbojpeg.so libturbojpeg.a DOC "Found TurboJPEG library path" PATHS "${CMAKE_SOURCE_DIR}/../../depends/libjpeg_turbo" "C:/libjpeg-turbo64/" "$ENV{TurboJPEG_ROOT}/lib" "/opt/libjpeg-turbo/lib64" "/opt/libjpeg-turbo/lib")
 
 if(WIN32)
   set(CMAKE_REQUIRED_DEFINITIONS -MT)
