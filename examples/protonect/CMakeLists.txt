@@ -132,7 +132,7 @@ IF(ENABLE_OPENGL)
   auto_detect_lib(GLFW3)
   
   #Assuming local build witout global deps, ugly to to this automatic but to keep backward compatibiliy
-  if(${GLFW3_FOUND} STREQUAL "FALSE")
+  if(NOT GLFW3_FOUND)
     
     MESSAGE(STATUS "Building local GLFW")
     # GLFW
