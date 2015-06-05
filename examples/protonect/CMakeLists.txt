@@ -48,7 +48,7 @@ SET(LIBRARY_OUTPUT_PATH ${MY_DIR}/lib)
 
 # dependencies
 find_package(PkgConfig)    # try find PKGConfig as it will be used if found
-auto_detect_lib(LibUSB REQUIRED)
+auto_detect_lib(LibUSB-1.0 REQUIRED)
 auto_detect_lib(OpenCV REQUIRED)
 FIND_PACKAGE(TurboJPEG REQUIRED) #does not provide a package-config file
 
