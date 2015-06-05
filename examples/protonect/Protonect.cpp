@@ -124,7 +124,7 @@ int main(int argc, char *argv[])
 
   libfreenect2::SyncMultiFrameListener listener(libfreenect2::Frame::Color | libfreenect2::Frame::Ir | libfreenect2::Frame::Depth);
   libfreenect2::FrameMap frames;
-  libfreenect2::Frame registered(512, 424, 3);
+  libfreenect2::Frame undistorted(512, 424, 4), registered(512, 424, 3);
 
   dev->setColorFrameListener(&listener);
   dev->setIrAndDepthFrameListener(&listener);
@@ -146,7 +146,9 @@ int main(int argc, char *argv[])
     cv::imshow("ir", cv::Mat(ir->height, ir->width, CV_32FC1, ir->data) / 20000.0f);
     cv::imshow("depth", cv::Mat(depth->height, depth->width, CV_32FC1, depth->data) / 4500.0f);
 
-    registration->apply(rgb,depth,&registered);
+    registration->apply(rgb,depth,&undistorted,&registered);
+
+    cv::imshow("undistorted", cv::Mat(undistorted.height, undistorted.width, CV_32FC1, undistorted.data) / 4500.0f);
     cv::imshow("registered", cv::Mat(registered.height, registered.width, CV_8UC3, registered.data));
 
     int key = cv::waitKey(1);
