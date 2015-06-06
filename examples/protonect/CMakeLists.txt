@@ -201,6 +201,10 @@ ADD_DEFINITIONS(-DRESOURCES_INC)
 ADD_LIBRARY(freenect2 SHARED ${SOURCES})
 MESSAGE("Linking with these libraries: ${LIBRARIES}")
 TARGET_LINK_LIBRARIES(freenect2 ${LIBRARIES})
+
+ADD_LIBRARY(freenect2static STATIC ${SOURCES})
+set_target_properties(freenect2static PROPERTIES OUTPUT_NAME freenect2)
+TARGET_LINK_LIBRARIES(freenect2static STATIC ${LIBRARIES})
   
 ADD_EXECUTABLE(Protonect
   Protonect.cpp
@@ -213,6 +217,7 @@ TARGET_LINK_LIBRARIES(Protonect
 CONFIGURE_FILE(freenect2.cmake.in "${PROJECT_BINARY_DIR}/freenect2Config.cmake" @ONLY)
 
 INSTALL(TARGETS freenect2 DESTINATION lib)
+INSTALL(TARGETS freenect2static DESTINATION lib)
 INSTALL(DIRECTORY "${MY_DIR}/include/" DESTINATION include PATTERN "*.in" EXCLUDE)
 IF(LIBFREENECT2_THREADING_TINYTHREAD)
   INSTALL(FILES  "${MY_DIR}/src/tinythread/tinythread.h" DESTINATION include/${PROJECT_NAME}/tinythread/)
