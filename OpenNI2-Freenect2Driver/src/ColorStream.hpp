@@ -15,9 +15,9 @@ namespace Freenect2Driver
   {
   public:
     // from NUI library & converted to radians
-    static const float DIAGONAL_FOV = 73.9 * (M_PI / 180);
-    static const float HORIZONTAL_FOV = 62 * (M_PI / 180);
-    static const float VERTICAL_FOV = 48.6 * (M_PI / 180);
+    static const float DIAGONAL_FOV;
+    static const float HORIZONTAL_FOV;
+    static const float VERTICAL_FOV;
 
   private:
     typedef std::map< OniVideoMode, std::pair<freenect2_video_format, freenect2_resolution> > FreenectVideoModeMap;
