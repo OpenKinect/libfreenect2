@@ -6,6 +6,7 @@ using namespace Freenect2Driver;
     
 const int Registration::depthWidth;
 const int Registration::depthHeight;
+const float Registration::invalidDepth = 0.0;
 
 Registration::Registration(libfreenect2::Freenect2Device* dev) :
   dev(dev),

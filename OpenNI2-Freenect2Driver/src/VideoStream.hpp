@@ -70,10 +70,10 @@ namespace Freenect2Driver
       StreamBase::setPropertyChangedCallback(handler, pCookie);
     }
 
-    void buildFrame(libfreenect2::Frame* lf2Frame, uint32_t timestamp)
+    bool buildFrame(libfreenect2::Frame* lf2Frame, uint32_t timestamp)
     {
       if (!running)
-        return;
+        return false;
 
       OniFrame* oniFrame = getServices().acquireFrame();
       oniFrame->frameIndex = frame_id++;
@@ -102,6 +102,8 @@ namespace Freenect2Driver
       populateFrame(lf2Frame, oniFrame->cropOriginX, oniFrame->cropOriginY, oniFrame, 0, 0, width, height);
       raiseNewFrame(oniFrame);
       getServices().releaseFrame(oniFrame);
+
+      return false;
     }
 
     // from StreamBase

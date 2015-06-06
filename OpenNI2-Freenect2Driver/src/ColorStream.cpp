@@ -3,6 +3,10 @@
 
 using namespace Freenect2Driver;
 
+// from NUI library & converted to radians
+const float ColorStream::DIAGONAL_FOV = 73.9 * (M_PI / 180);
+const float ColorStream::HORIZONTAL_FOV = 62 * (M_PI / 180);
+const float ColorStream::VERTICAL_FOV = 48.6 * (M_PI / 180);
 
 ColorStream::ColorStream(libfreenect2::Freenect2Device* pDevice, Freenect2Driver::Registration *reg) : VideoStream(pDevice, reg)
 {

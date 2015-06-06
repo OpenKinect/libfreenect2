@@ -55,16 +55,18 @@ namespace Freenect2Driver
     bool onNewFrame(libfreenect2::Frame::Type type, libfreenect2::Frame *frame) {
       if (type == libfreenect2::Frame::Color) {
         if (color)
-          color->buildFrame(frame, getTimestamp());
+          return color->buildFrame(frame, getTimestamp());
       } else 
       if (type == libfreenect2::Frame::Ir) {
         if (ir)
-          ir->buildFrame(frame, getTimestamp());
+          return ir->buildFrame(frame, getTimestamp());
       } else 
       if (type == libfreenect2::Frame::Depth) {
         if (depth)
-          depth->buildFrame(frame, getTimestamp());
+          return depth->buildFrame(frame, getTimestamp());
       }
+
+      return false;
     }
 
     OniStatus setStreamProperties(VideoStream* stream, std::string pfx)
@@ -80,6 +82,8 @@ namespace Freenect2Driver
         if (tmp_res != ONI_STATUS_OK)
           res = tmp_res;
       }
+
+      return res;
     }
 
   public:

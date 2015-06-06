@@ -3,6 +3,20 @@
 
 using namespace Freenect2Driver;
 
+// from NUI library and converted to radians
+const float DepthStream::DIAGONAL_FOV = 70 * (M_PI / 180);
+const float DepthStream::HORIZONTAL_FOV = 58.5 * (M_PI / 180);
+const float DepthStream::VERTICAL_FOV = 45.6 * (M_PI / 180);
+// from DepthKinectStream.cpp
+const int DepthStream::MAX_VALUE;
+const unsigned long long DepthStream::GAIN_VAL;
+const unsigned long long DepthStream::CONST_SHIFT_VAL;
+const unsigned long long DepthStream::MAX_SHIFT_VAL;
+const unsigned long long DepthStream::PARAM_COEFF_VAL;
+const unsigned long long DepthStream::SHIFT_SCALE_VAL;
+const unsigned long long DepthStream::ZERO_PLANE_DISTANCE_VAL;
+const double DepthStream::ZERO_PLANE_PIXEL_SIZE_VAL = 0.10520000010728836;
+const double DepthStream::EMITTER_DCMOS_DISTANCE_VAL = 7.5;
 
 DepthStream::DepthStream(libfreenect2::Freenect2Device* pDevice, Freenect2Driver::Registration *reg) : VideoStream(pDevice, reg)
 {
