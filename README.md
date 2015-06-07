@@ -24,7 +24,9 @@ No. It's a pure USB3 device due to the high bandwidth requirements.
 
 ### Protonect complains about "no device connected" or "failure opening device".
 
-Either your device is connected to an USB2-only port (see above), or you don't have permissions to access the device. On Linux, try running Protonect as root (e.g. using `sudo`). If that fixes things, place `contrib/90-kinect2.rules` into `/etc/udev/rules.d/` and re-plug the device.
+Either your device is connected to an USB2-only port (see above), or you don't have permissions to access the device. On Linux, try running Protonect as root (e.g. using `sudo`). If that fixes things, place `rules/90-kinect2.rules` into `/etc/udev/rules.d/` and re-plug the device.
+
+On Mac OS X, open "System Information" from Spotlight, go to the USB section, and verify "Xbox NUI Sensor" is under "USB 3.0 SuperSpeed Bus" not "High-Speed Bus". If this is not the case, try unplugging the Kinect from power source with the USB cable connected, and plug the power again, then verify.
 
 ### I'm getting lots of USB transfer errors, and/or only blank windows.
 
@@ -36,7 +38,7 @@ USB3 as a whole is a flaky thing. If you're running Linux, try upgrading to a re
 Probably not working:
 * ASMedia Technology Inc. Device 1142
 
-Finally, it's also possible that your executable is not actually using the patched libusb from the depends/ folder which is required at the moment. Check this using `ldd`, and adjust your `LD_LIBRARY_PATH` if necessary.
+Finally, it's also possible that your executable is not actually using the patched libusb from the depends/ folder which is required at the moment. Check this using `ldd | grep libusb` (shows libusb-1.0 under `depends/`), and adjust your `LD_LIBRARY_PATH` if necessary.
 
 ### I'm seeing the color camera stream, but no depth/IR (black windows).
 
