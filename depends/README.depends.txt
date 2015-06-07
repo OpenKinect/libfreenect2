@@ -4,16 +4,34 @@ Dependencies:
 ---
 
 = Windows
-libusbx-winiso 
-libusbx post-1.0.17 + winiso
-winiso = Windows isochronous modifications by Joshua Blake <joshblake@gmail.com>
 
-1. Download pre-built binaries libusbx-winiso.zip from https://www.dropbox.com/s/madoye1ayaoajet/libusbx-winiso.zip
-2. Unzip into the depends folder such that the resulting folder structure ends up looking like:
-./depends/libusbx/
-./depends/libusbx/include/
-./depends/libusbx/MS64/
-3. Done
+This guide is x64 only.
+
+1. Install libusb as one of the two following ways:
+    a.Download libusbx with patch from https://www.dropbox.com/s/madoye1ayaoajet/libusbx-winiso.zip
+    and install it in /depends/libusbx (this only has x64 release version)
+    
+    b.Or clone master libusb from https://github.com/libusb/libusb.git
+        i. Add joshblakes ISO patch. 
+            Add jblake https://github.com/JoshBlake/libusbx.git 
+            merge his winiso branch
+            
+        ii. Build the solution with the shared dll.
+            Add an environment variable with name LibUSB_ROOT and set it to the root of libusb build folder.
+
+2. Install turboJPEG:
+    a. Download and install turboJPEG http://sourceforge.net/projects/libjpeg-turbo/files
+    b. If not installed in default path - Add an environment variable with name TurboJPEG_ROOT and set it to the root of the installed folder.
+
+3. Install GLFW3:
+    a. Get latest source release or clone GLFW from here https://github.com/glfw/glfw.git.
+    b. Cmake a solution and run the install project
+    c. If not installed in default path - Add an environment variable with name GLFW_ROOT and set it to the root of the installed folder.
+
+4. Install opencv
+    a. Download opencv 
+    b. Cmake a solution
+    c. Build & run install project.
 
 = Ubuntu
 kernel 3.10+
