@@ -87,7 +87,7 @@ You can go back and forth between the SDK driver and the libusbK driver very qui
     ```
 brew update
 brew tap homebrew/science
-brew install opencv git nasm wget
+brew install opencv git nasm wget jpeg-turbo
 ```
 
 1. Download the libfreenect2 repository
@@ -100,6 +100,7 @@ git clone git@github.com:OpenKinect/libfreenect2.git
 
     ```
 cd ./libfreenect2
+ln -s /usr/local/opt/jpeg-turbo depends/libjpeg_turbo
 sh ./depends/install_mac.sh
 ```
 
