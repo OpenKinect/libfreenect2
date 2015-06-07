@@ -17,7 +17,7 @@ cat <<-EOT
 	Execute the following commands to install the remaining dependencies (if you have not already done so):
 
 	sudo dpkg -i libglfw3*_3.0.4-1_*.deb
-	sudo apt-get install -y build-essential libjpeg-turbo8-dev libtool autoconf libudev-dev cmake mesa-common-dev freeglut3-dev libxrandr-dev doxygen libxi-dev libopencv-dev automake
+	sudo apt-get install build-essential libjpeg-turbo8-dev libtool autoconf libudev-dev cmake mesa-common-dev freeglut3-dev libxrandr-dev doxygen libxi-dev libopencv-dev automake
 
 EOT
 
