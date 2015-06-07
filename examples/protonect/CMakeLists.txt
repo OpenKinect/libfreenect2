@@ -14,7 +14,7 @@ PROJECT(libfreenect2)
 SET(CMAKE_BUILD_TYPE RelWithDebInfo)
 
 SET(MY_DIR ${libfreenect2_SOURCE_DIR})
-SET(ENV{PKG_CONFIG_PATH} "$ENV{PKG_CONFIG_PATH}:${MY_DIR}../../depends/libusb/lib/:${MY_DIR}../../depends/glfw/lib/" )
+SET(ENV{PKG_CONFIG_PATH} "$ENV{PKG_CONFIG_PATH}:${MY_DIR}/../../depends/libusb/lib/pkgconfig/:${MY_DIR}/../../depends/glfw/lib/pkgconfig/" )
 
 OPTION(ENABLE_CXX11 "Enable C++11 support" OFF)
 OPTION(ENABLE_OPENCL "Enable OpenCL support" ON)
