@@ -131,16 +131,11 @@ git clone https://github.com/OpenKinect/libfreenect2.git
 1. Install a bunch of dependencies
 
     ```
-sudo apt-get install -y build-essential libturbojpeg libtool autoconf libudev-dev cmake mesa-common-dev freeglut3-dev libxrandr-dev doxygen libxi-dev libopencv-dev automake
+sudo apt-get install build-essential libjpeg-turbo8-dev libtool autoconf libudev-dev cmake mesa-common-dev freeglut3-dev libxrandr-dev doxygen libxi-dev libopencv-dev automake
 
 cd libfreenect2/depends
 sh install_ubuntu.sh
-```
-
-1. Fix libturbojpeg if needed:
-
-    ```
-sudo ln -s /usr/lib/x86_64-linux-gnu/libturbojpeg.so.0.0.0 /usr/lib/x86_64-linux-gnu/libturbojpeg.so
+sudo dpkg -i libglfw3*_3.0.4-1_*.deb
 ```
 
 1. Build the actual protonect executable
