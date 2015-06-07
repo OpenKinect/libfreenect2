@@ -1,15 +1,11 @@
 # - Find libusb for portable USB support
-# This module will find libusb as published by
-#  http://libusb.sf.net and
-#  http://libusb-win32.sf.net
 # 
-# It will use PkgConfig if present and supported, else search
-# it on its own. If the LibUSB_ROOT environment variable
+# If the LibUSB_ROOT environment variable
 # is defined, it will be used as base path.
 # The following standard variables get defined:
 #  LibUSB_FOUND:    true if LibUSB was found
 #  LibUSB_INCLUDE_DIR: the directory that contains the include file
-#  LibUSB_LIBRARIES:  the library
+#  LibUSB_LIBRARIES:  the libraries
 
 include ( CheckLibraryExists )
 include ( CheckIncludeFile )
@@ -18,7 +14,7 @@ find_path ( LibUSB_INCLUDE_DIR
   NAMES
     libusb.h
   PATHS
-    $ENV{ProgramFiles}/LibUSB-Win32
+    ${CMAKE_SOURCE_DIR}/../../depends/libusbx/include
     $ENV{LibUSB_ROOT}
   PATH_SUFFIXES
     libusb
@@ -27,7 +23,7 @@ find_path ( LibUSB_INCLUDE_DIR
 mark_as_advanced ( LibUSB_INCLUDE_DIR )
 
 if ( ${CMAKE_SYSTEM_NAME} STREQUAL "Windows" )
-  # LibUSB-Win32 binary distribution contains several libs.
+  # LibUSB binary distribution contains several libs.
   # Use the lib that got compiled with the same compiler.
   if ( MSVC )
   if ( ${CMAKE_SIZEOF_VOID_P} EQUAL 8 )
@@ -44,7 +40,7 @@ find_library ( LibUSB_LIBRARY_RELEASE
   NAMES
     libusb libusb-1.0 usb
   PATHS
-    $ENV{ProgramFiles}/LibUSB-Win32
+    ${CMAKE_SOURCE_DIR}/../../depends/libusbx/MS64
     $ENV{LibUSB_ROOT}
   PATH_SUFFIXES
     ${LibUSB_LIBRARY_PATH_SUFFIX_RELEASE}
@@ -54,11 +50,16 @@ find_library ( LibUSB_LIBRARY_DEBUG
   NAMES
     libusb libusb-1.0 libusb-1.0d usb
   PATHS
-    $ENV{ProgramFiles}/LibUSB-Win32
     $ENV{LibUSB_ROOT}
   PATH_SUFFIXES
     ${LibUSB_LIBRARY_PATH_SUFFIX_DEBUG}
   )  
+  
+  if( ${LibUSB_LIBRARY_DEBUG} STREQUAL "LibUSB_LIBRARY_DEBUG-NOTFOUND" AND NOT ${LibUSB_LIBRARY_RELEASE} STREQUAL "LibUSB_LIBRARY_RELEASE-NOTFOUND")
+	  message(STATUS "Debug version not found - setting debug to release.")
+	  unset(LibUSB_LIBRARY_DEBUG CACHE)
+	  set(LibUSB_LIBRARY_DEBUG ${LibUSB_LIBRARY_RELEASE} CACHE STRING "LibUSB_LIBRARY_DEBUG")
+  endif()
   
 set (LibUSB_LIBRARIES
   debug ${LibUSB_LIBRARY_DEBUG}
