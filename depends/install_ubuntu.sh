@@ -14,8 +14,4 @@ sudo dpkg -i libglfw3*_3.0.4-1_*.deb
 
 sudo apt-get install -y build-essential libjpeg-turbo8-dev libtool autoconf libudev-dev cmake mesa-common-dev freeglut3-dev libxrandr-dev doxygen libxi-dev libopencv-dev automake
 
-# bugfix for broken libjpeg-turbo8-dev package
-TURBOLIB="/usr/lib/$(uname -m)-linux-gnu/libturbojpeg.so"
-[ -e $TURBOLIB ] || sudo ln -s ${TURBOLIB}.0.0.0 ${TURBOLIB}
-
 sh ./install_libusb.sh
