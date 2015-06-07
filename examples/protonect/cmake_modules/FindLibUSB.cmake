@@ -7,10 +7,16 @@
 #  LibUSB_INCLUDE_DIR: the directory that contains the include file
 #  LibUSB_LIBRARIES:  the libraries
 
+IF(PKG_CONFIG_FOUND)
+  SET(ENV{PKG_CONFIG_PATH} "${CMAKE_SOURCE_DIR}/../../depends/libusb/lib/pkgconfig")
+  PKG_CHECK_MODULES(LibUSB libusb-1.0)
+  RETURN()
+ENDIF()
+
 include ( CheckLibraryExists )
 include ( CheckIncludeFile )
 
-find_path ( LibUSB_INCLUDE_DIR
+find_path ( LibUSB_INCLUDE_DIRS
   NAMES
     libusb.h
   PATHS
@@ -20,7 +26,7 @@ find_path ( LibUSB_INCLUDE_DIR
     libusb
   )
 
-mark_as_advanced ( LibUSB_INCLUDE_DIR )
+mark_as_advanced ( LibUSB_INCLUDE_DIRS )
 
 if ( ${CMAKE_SYSTEM_NAME} STREQUAL "Windows" )
   # LibUSB binary distribution contains several libs.
@@ -66,12 +72,12 @@ set (LibUSB_LIBRARIES
   optimized ${LibUSB_LIBRARY_RELEASE}
   )
 
-if ( LibUSB_INCLUDE_DIR AND LibUSB_LIBRARIES )
+if ( LibUSB_INCLUDE_DIRS AND LibUSB_LIBRARIES )
   set ( LibUSB_FOUND 1 )
-endif ( LibUSB_INCLUDE_DIR AND LibUSB_LIBRARIES )
+endif ( LibUSB_INCLUDE_DIRS AND LibUSB_LIBRARIES )
 
 if ( LibUSB_FOUND )
-  set ( CMAKE_REQUIRED_INCLUDES "${LibUSB_INCLUDE_DIR}" )
+  set ( CMAKE_REQUIRED_INCLUDES "${LibUSB_INCLUDE_DIRS}" )
   check_include_file ( usb.h LibUSB_FOUND )
 endif ( LibUSB_FOUND )
 

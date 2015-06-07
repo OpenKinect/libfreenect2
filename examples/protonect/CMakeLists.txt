@@ -14,7 +14,6 @@ PROJECT(libfreenect2)
 SET(CMAKE_BUILD_TYPE RelWithDebInfo)
 
 SET(MY_DIR ${libfreenect2_SOURCE_DIR})
-SET(ENV{PKG_CONFIG_PATH} "$ENV{PKG_CONFIG_PATH}:${MY_DIR}/../../depends/libusb/lib/pkgconfig/")
 
 OPTION(ENABLE_CXX11 "Enable C++11 support" OFF)
 OPTION(ENABLE_OPENCL "Enable OpenCL support" ON)
@@ -49,17 +48,20 @@ SET(LIBRARY_OUTPUT_PATH ${MY_DIR}/lib)
 
 # dependencies
 find_package(PkgConfig)    # try find PKGConfig as it will be used if found
-auto_detect_lib(LibUSB-1.0 REQUIRED)
-auto_detect_lib(OpenCV REQUIRED)
+FIND_PACKAGE(LibUSB REQUIRED)
+FIND_PACKAGE(OpenCV REQUIRED)
 FIND_PACKAGE(TurboJPEG REQUIRED) #does not provide a package-config file
 
-#hack for buggy libusb pkgconfig file
-if(NOT LibUSB_INCLUDE_DIR)
-  find_path(LibUSB_INCLUDE_DIR NAMES libusb.h PATHS /usr/include/libusb-1.0 )
-endif()
-
 # Add includes
-INCLUDE_DIRECTORIES("${MY_DIR}/include" ${LIBFREENECT2_THREADING_INCLUDE_DIR} ${OpenCV_INCLUDE_DIRS} ${LibUSB_INCLUDE_DIR} ${TurboJPEG_INCLUDE_DIR})
+INCLUDE_DIRECTORIES(
+  "${MY_DIR}/include"
+  ${LIBFREENECT2_THREADING_INCLUDE_DIR}
+  ${OpenCV_INCLUDE_DIRS}
+  ${LibUSB_INCLUDE_DIRS}
+  ${TurboJPEG_INCLUDE_DIR}
+)
+
+LINK_DIRECTORIES(${LibUSB_LIBRARY_DIRS})
 
 if(APPLE AND NOT ${TurboJPEG_FOUND})
   # libjpeg-turbo
@@ -178,7 +180,7 @@ IF(ENABLE_OPENCL)
   ENDIF(OPENCL_FOUND)
 ENDIF(ENABLE_OPENCL)
 
-SET(CMAKE_INSTALL_RPATH ${LibUSB-1.0_LIBDIR})
+SET(CMAKE_INSTALL_RPATH ${LibUSB_LIBDIR})
 
 CONFIGURE_FILE("${MY_DIR}/include/libfreenect2/config.h.in" "${MY_DIR}/include/libfreenect2/config.h" @ONLY)
 GENERATE_RESOURCES(${RESOURCES_INC_FILE} ${MY_DIR} ${RESOURCES})
