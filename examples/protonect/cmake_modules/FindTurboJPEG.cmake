@@ -8,7 +8,7 @@ else()
   message(STATUS "TurboJPEG_INCLUDE_DIR = ${TurboJPEG_INCLUDE_DIR}")
 endif()
 
-find_library(TurboJPEG_LIBRARY NAMES turbojpeg.lib libturbojpeg.so libturbojpeg.a DOC "Found TurboJPEG library path" PATHS "${CMAKE_SOURCE_DIR}/../../depends/libjpeg_turbo/lib" "C:/libjpeg-turbo64/lib" "$ENV{TurboJPEG_ROOT}/lib" "/opt/libjpeg-turbo/lib64" "/opt/libjpeg-turbo/lib")
+find_library(TurboJPEG_LIBRARY NAMES turbojpeg.lib libturbojpeg.so libturbojpeg.so.0 libturbojpeg.a DOC "Found TurboJPEG library path" PATHS "${CMAKE_SOURCE_DIR}/../../depends/libjpeg_turbo/lib" "C:/libjpeg-turbo64/lib" "$ENV{TurboJPEG_ROOT}/lib" "/opt/libjpeg-turbo/lib64" "/opt/libjpeg-turbo/lib")
 
 if(WIN32)
   set(CMAKE_REQUIRED_DEFINITIONS -MT)

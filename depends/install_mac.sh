@@ -3,7 +3,8 @@
 cd `dirname $0`
 DEPENDS_DIR=`pwd`
 
-sh ./install_deps.sh
+sh ./install_libusb.sh
+sh ./install_glfw.sh
 
 #get the missing cl.hpp from Khronos.org
 cd /System/Library/Frameworks/OpenCL.framework/Versions/A/Headers/ 
