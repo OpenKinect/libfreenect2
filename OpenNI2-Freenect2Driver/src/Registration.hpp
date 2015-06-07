@@ -7,8 +7,12 @@ namespace Freenect2Driver {
     libfreenect2::Registration* reg;
     static const int depthWidth = 512;
     static const int depthHeight = 424;
+    static const int colorWidth = 1920;
+    static const int colorHeight = 1080;
     static const float invalidDepth;
+    static const float infiniteDepth;
     float depth[depthWidth * depthHeight];
+    float colorDepth[colorWidth * colorHeight];
 
   public:
     Registration(libfreenect2::Freenect2Device* dev);

@@ -7,6 +7,7 @@ using namespace Freenect2Driver;
 const int Registration::depthWidth;
 const int Registration::depthHeight;
 const float Registration::invalidDepth = 0.0;
+const float Registration::infiniteDepth = 65536.0;
 
 Registration::Registration(libfreenect2::Freenect2Device* dev) :
   dev(dev),
@@ -50,10 +51,41 @@ void Registration::colorFrameRGB888(libfreenect2::Frame* srcFrame, OniFrame* dst
   float cx, cy;
   uint8_t* dst = static_cast<uint8_t*>(dstFrame->data);
   uint8_t* data = static_cast<uint8_t*>(srcFrame->data);
+
+  for (int i = 0; i < colorWidth * colorHeight; i++) {
+    colorDepth[i] = infiniteDepth;
+  }
+#if 1
+  const int delta = 0;
+  const int scaleX = 4;
+  const int scaleY = 4;
+#else
+  const int delta = 2;
+  const int scaleX = 1;
+  const int scaleY = 1;
+#endif
   for (int y = 0; y < depthHeight; y++) {
     for (int x = 0; x < depthWidth; x++) {
-      reg->apply(x, y, depth[y * depthWidth + x], cx, cy);
-      if (cx < 0.0 || srcFrame->width <= cx || cy < 0.0 || srcFrame->height <= cy) {
+      float &z = depth[y * depthWidth + x];
+      reg->apply(x, y, z, cx, cy);
+      for (int dy = -delta; dy <= delta; dy ++) {
+        for (int dx = -delta; dx <= delta; dx ++) {
+          if (cx < delta || colorWidth-delta <= cx || cy < delta || colorHeight-delta <= cy)
+            continue;
+          float &cz = colorDepth[(int(cy) + dy)/scaleY * colorWidth/scaleX + (int(cx) + dx)/scaleX];
+          if (z < cz)
+            cz = z;
+        }
+      }
+    }
+  }
+
+  for (int y = 0; y < depthHeight; y++) {
+    for (int x = 0; x < depthWidth; x++) {
+      float &z = depth[y * depthWidth + x];
+      reg->apply(x, y, z, cx, cy);
+      float &cz = colorDepth[int(cy)/scaleY * colorWidth/scaleX + int(cx)/scaleX];
+      if (cx < 0.0 || srcFrame->width <= cx || cy < 0.0 || srcFrame->height <= cy || 0.2 < (z - cz)/z) {
 #if 0
         // dark green
         *dst++ = 0x00;
