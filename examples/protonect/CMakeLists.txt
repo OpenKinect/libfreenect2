@@ -14,7 +14,7 @@ PROJECT(libfreenect2)
 SET(CMAKE_BUILD_TYPE RelWithDebInfo)
 
 SET(MY_DIR ${libfreenect2_SOURCE_DIR})
-SET(ENV{PKG_CONFIG_PATH} "$ENV{PKG_CONFIG_PATH}:${MY_DIR}/../../depends/libusb/lib/pkgconfig/:${MY_DIR}/../../depends/glfw/lib/pkgconfig/" )
+SET(ENV{PKG_CONFIG_PATH} "$ENV{PKG_CONFIG_PATH}:${MY_DIR}/../../depends/libusb/lib/pkgconfig/")
 
 OPTION(ENABLE_CXX11 "Enable C++11 support" OFF)
 OPTION(ENABLE_OPENCL "Enable OpenCL support" ON)
@@ -130,34 +130,16 @@ SET(RESOURCES
 )
 
 IF(ENABLE_OPENGL)
-  auto_detect_lib(GLFW3)
-  
-  #Assuming local build witout global deps, ugly to to this automatic but to keep backward compatibiliy
-  if(NOT GLFW3_FOUND)
-    
-    MESSAGE(STATUS "Building local GLFW")
-    # GLFW
-    SET(BUILD_SHARED_LIBS ON CACHE BOOL "Build shared libraries")
-    SET(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "Build the GLFW example programs")
-    SET(GLFW_BUILD_TESTS OFF CACHE BOOL "Build the GLFW test programs")
-    SET(GLFW_BUILD_DOCS OFF CACHE BOOL "Build the GLFW documentation")
-
-    ADD_SUBDIRECTORY(${MY_DIR}/../../depends/glfw_src/ ${MY_DIR}/../../depends/glfw)
-    INCLUDE_DIRECTORIES(${MY_DIR}/../../depends/glfw_src/include/)
-    
-    LIST(APPEND LIBRARIES
-      glfw
-    )
-    
-  else()
+  FIND_PACKAGE(GLFW3)
+  FIND_PACKAGE(OpenGL)
+  IF(GLFW3_FOUND)
     INCLUDE_DIRECTORIES(${GLFW3_INCLUDE_DIRS})
 
     LINK_DIRECTORIES(${GLFW3_LIBRARY_DIRS})
     LIST(APPEND LIBRARIES
       ${GLFW3_LIBRARIES}
+      ${OPENGL_gl_LIBRARY}
     )
-  endif()
-  
   SET(LIBFREENECT2_WITH_OPENGL_SUPPORT 1)
   LIST(APPEND SOURCES
     src/flextGL.c
@@ -172,6 +154,7 @@ IF(ENABLE_OPENGL)
     src/shader/stage1.fs
     src/shader/stage2.fs
   )
+  ENDIF()
 ENDIF(ENABLE_OPENGL)
 
 IF(ENABLE_OPENCL)
