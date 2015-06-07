@@ -10,8 +10,14 @@ wget -N http://mirrors.kernel.org/ubuntu/pool/universe/g/glfw3/libglfw3_3.0.4-1_
 wget -N http://mirrors.kernel.org/ubuntu/pool/universe/g/glfw3/libglfw3-dev_3.0.4-1_${ARCH}.deb
 wget -N http://mirrors.kernel.org/ubuntu/pool/universe/g/glfw3/libglfw3-doc_3.0.4-1_all.deb
 
-sudo dpkg -i libglfw3*_3.0.4-1_*.deb
-
-sudo apt-get install -y build-essential libjpeg-turbo8-dev libtool autoconf libudev-dev cmake mesa-common-dev freeglut3-dev libxrandr-dev doxygen libxi-dev libopencv-dev automake
-
 sh ./install_libusb.sh
+
+cat <<-EOT
+
+	Execute the following commands to install the remaining dependencies (if you have not already done so):
+
+	sudo dpkg -i libglfw3*_3.0.4-1_*.deb
+	sudo apt-get install -y build-essential libjpeg-turbo8-dev libtool autoconf libudev-dev cmake mesa-common-dev freeglut3-dev libxrandr-dev doxygen libxi-dev libopencv-dev automake
+
+EOT
+
