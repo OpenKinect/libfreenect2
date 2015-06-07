@@ -6,9 +6,9 @@ DEPENDS_DIR=`pwd`
 ARCH="$(uname -m | grep -q 64 && echo 'amd64' || echo 'i386')"
 
 # download standalone packages for 14.04 LTS
-wget http://mirrors.kernel.org/ubuntu/pool/universe/g/glfw3/libglfw3_3.0.4-1_${ARCH}.deb
-wget http://mirrors.kernel.org/ubuntu/pool/universe/g/glfw3/libglfw3-dev_3.0.4-1_${ARCH}.deb
-wget http://mirrors.kernel.org/ubuntu/pool/universe/g/glfw3/libglfw3-doc_3.0.4-1_all.deb
+wget -N http://mirrors.kernel.org/ubuntu/pool/universe/g/glfw3/libglfw3_3.0.4-1_${ARCH}.deb
+wget -N http://mirrors.kernel.org/ubuntu/pool/universe/g/glfw3/libglfw3-dev_3.0.4-1_${ARCH}.deb
+wget -N http://mirrors.kernel.org/ubuntu/pool/universe/g/glfw3/libglfw3-doc_3.0.4-1_all.deb
 
 sudo dpkg -i libglfw3*_3.0.4-1_*.deb
 
