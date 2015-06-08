@@ -566,10 +566,6 @@ void Freenect2DeviceImpl::stop()
   rgb_transfer_pool_.cancel();
   ir_transfer_pool_.cancel();
 
-  // wait for completion of transfer cancelation
-  // TODO: better implementation
-  libfreenect2::this_thread::sleep_for(libfreenect2::chrono::milliseconds(1500));
-
   usb_control_.setIrInterfaceState(UsbControl::Disabled);
 
   CommandTransaction::Result result;
