@@ -54,7 +54,7 @@ INCLUDE_DIRECTORIES(
 
 LINK_DIRECTORIES(${LibUSB_LIBRARY_DIRS})
 
-SET(RESOURCES_INC_FILE "${MY_DIR}/src/resources.inc")
+SET(RESOURCES_INC_FILE "${MY_DIR}/src/resources.inc.h")
 
 SET(SOURCES
   include/libfreenect2/protocol/command.h
