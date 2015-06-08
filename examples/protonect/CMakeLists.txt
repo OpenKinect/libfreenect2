@@ -1,20 +1,10 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
 
-macro(auto_detect_lib LIBNAME)
-  if ( PKG_CONFIG_FOUND )
-    string(TOLOWER ${LIBNAME} PKGCONFIGNAME)
-    pkg_check_modules(${LIBNAME} ${PKGCONFIGNAME} ${ARGN})
-  else(PKG_CONFIG_FOUND)
-    #MESSAGE("Fallback to non-pkg-config")
-    FIND_PACKAGE(${LIBNAME} ${ARGN})
-  endif(PKG_CONFIG_FOUND)
-endmacro()
-
 PROJECT(libfreenect2)
 SET(CMAKE_BUILD_TYPE RelWithDebInfo)
 
 SET(MY_DIR ${libfreenect2_SOURCE_DIR})
-SET(ENV{PKG_CONFIG_PATH} "$ENV{PKG_CONFIG_PATH}:${MY_DIR}/../../depends/libusb/lib/pkgconfig/:${MY_DIR}/../../depends/glfw/lib/pkgconfig/" )
+SET(DEPENDS_DIR "${MY_DIR}/../../depends" CACHE STRING "dependency directory")
 
 OPTION(ENABLE_CXX11 "Enable C++11 support" OFF)
 OPTION(ENABLE_OPENCL "Enable OpenCL support" ON)
@@ -48,24 +38,21 @@ SET(EXECUTABLE_OUTPUT_PATH ${MY_DIR}/bin)
 SET(LIBRARY_OUTPUT_PATH ${MY_DIR}/lib)
 
 # dependencies
-find_package(PkgConfig)    # try find PKGConfig as it will be used if found
-auto_detect_lib(LibUSB-1.0 REQUIRED)
-auto_detect_lib(OpenCV REQUIRED)
+FIND_PACKAGE(PkgConfig)    # try find PKGConfig as it will be used if found
+FIND_PACKAGE(LibUSB REQUIRED)
+FIND_PACKAGE(OpenCV REQUIRED)
 FIND_PACKAGE(TurboJPEG REQUIRED) #does not provide a package-config file
 
-#hack for buggy libusb pkgconfig file
-if(NOT LibUSB_INCLUDE_DIR)
-  find_path(LibUSB_INCLUDE_DIR NAMES libusb.h PATHS /usr/include/libusb-1.0 )
-endif()
-
 # Add includes
-INCLUDE_DIRECTORIES("${MY_DIR}/include" ${LIBFREENECT2_THREADING_INCLUDE_DIR} ${OpenCV_INCLUDE_DIRS} ${LibUSB_INCLUDE_DIR} ${TurboJPEG_INCLUDE_DIR})
+INCLUDE_DIRECTORIES(
+  "${MY_DIR}/include"
+  ${LIBFREENECT2_THREADING_INCLUDE_DIR}
+  ${OpenCV_INCLUDE_DIRS}
+  ${LibUSB_INCLUDE_DIRS}
+  ${TurboJPEG_INCLUDE_DIRS}
+)
 
-if(APPLE AND NOT ${TurboJPEG_FOUND})
-  # libjpeg-turbo
-  INCLUDE_DIRECTORIES("${MY_DIR}/../../depends/libjpeg_turbo/include/")
-  LINK_DIRECTORIES("${MY_DIR}/../../depends/libjpeg_turbo/lib/")
-endif()
+LINK_DIRECTORIES(${LibUSB_LIBRARY_DIRS})
 
 SET(RESOURCES_INC_FILE "${MY_DIR}/src/resources.inc")
 
@@ -119,7 +106,7 @@ SET(LIBRARIES
   ${OpenCV_LIBS}
   ${OpenCV_LIBRARIES}
   ${LibUSB_LIBRARIES}
-  ${TurboJPEG_LIBRARY}
+  ${TurboJPEG_LIBRARIES}
   ${LIBFREENECT2_THREADING_LIBRARIES}
 )
 
@@ -130,34 +117,16 @@ SET(RESOURCES
 )
 
 IF(ENABLE_OPENGL)
-  auto_detect_lib(GLFW3)
-  
-  #Assuming local build witout global deps, ugly to to this automatic but to keep backward compatibiliy
-  if(NOT GLFW3_FOUND)
-    
-    MESSAGE(STATUS "Building local GLFW")
-    # GLFW
-    SET(BUILD_SHARED_LIBS ON CACHE BOOL "Build shared libraries")
-    SET(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "Build the GLFW example programs")
-    SET(GLFW_BUILD_TESTS OFF CACHE BOOL "Build the GLFW test programs")
-    SET(GLFW_BUILD_DOCS OFF CACHE BOOL "Build the GLFW documentation")
-
-    ADD_SUBDIRECTORY(${MY_DIR}/../../depends/glfw_src/ ${MY_DIR}/../../depends/glfw)
-    INCLUDE_DIRECTORIES(${MY_DIR}/../../depends/glfw_src/include/)
-    
-    LIST(APPEND LIBRARIES
-      glfw
-    )
-    
-  else()
+  FIND_PACKAGE(GLFW3)
+  FIND_PACKAGE(OpenGL)
+  IF(GLFW3_FOUND)
     INCLUDE_DIRECTORIES(${GLFW3_INCLUDE_DIRS})
 
     LINK_DIRECTORIES(${GLFW3_LIBRARY_DIRS})
     LIST(APPEND LIBRARIES
       ${GLFW3_LIBRARIES}
+      ${OPENGL_gl_LIBRARY}
     )
-  endif()
-  
   SET(LIBFREENECT2_WITH_OPENGL_SUPPORT 1)
   LIST(APPEND SOURCES
     src/flextGL.c
@@ -172,6 +141,7 @@ IF(ENABLE_OPENGL)
     src/shader/stage1.fs
     src/shader/stage2.fs
   )
+  ENDIF()
 ENDIF(ENABLE_OPENGL)
 
 IF(ENABLE_OPENCL)
@@ -195,7 +165,7 @@ IF(ENABLE_OPENCL)
   ENDIF(OPENCL_FOUND)
 ENDIF(ENABLE_OPENCL)
 
-SET(CMAKE_INSTALL_RPATH ${LibUSB-1.0_LIBDIR})
+SET(CMAKE_INSTALL_RPATH ${LibUSB_LIBDIR})
 
 CONFIGURE_FILE("${MY_DIR}/include/libfreenect2/config.h.in" "${MY_DIR}/include/libfreenect2/config.h" @ONLY)
 GENERATE_RESOURCES(${RESOURCES_INC_FILE} ${MY_DIR} ${RESOURCES})
