@@ -60,10 +60,13 @@ void TransferPool::disableSubmission()
 
 void TransferPool::deallocate()
 {
+  idle_transfers_lock_.lock();
   for(TransferQueue::iterator it = idle_transfers_.begin(); it != idle_transfers_.end(); ++it)
   {
     libusb_free_transfer(*it);
   }
+  idle_transfers_lock_.unlock();
+
   idle_transfers_.clear();
 
   if(buffer_ != 0)
@@ -86,6 +89,7 @@ void TransferPool::submit(size_t num_parallel_transfers)
   {
     std::cerr << "[TransferPool::submit] too few idle transfers!" << std::endl;
   }
+  pending_transfers_lock_.lock();
 
   for(size_t i = 0; i < num_parallel_transfers; ++i)
   {
@@ -105,10 +109,14 @@ void TransferPool::submit(size_t num_parallel_transfers)
       std::cerr << "[TransferPool::submit] failed to submit transfer" << std::endl;
     }
   }
+
+  pending_transfers_lock_.unlock();
 }
 
 void TransferPool::cancel()
 {
+  pending_transfers_lock_.lock();
+  
   for(TransferQueue::iterator it = pending_transfers_.begin(); it != pending_transfers_.end(); ++it)
   {
     int r = libusb_cancel_transfer(*it);
@@ -118,6 +126,8 @@ void TransferPool::cancel()
       // TODO: error reporting
     }
   }
+
+  pending_transfers_lock_.unlock();
 
   //idle_transfers_.insert(idle_transfers_.end(), pending_transfers_.begin(), pending_transfers_.end());
 }
@@ -160,6 +170,7 @@ void TransferPool::onTransferCompleteStatic(libusb_transfer* transfer)
 
 void TransferPool::onTransferComplete(libusb_transfer* transfer)
 {
+  pending_transfers_lock_.lock();
   // remove transfer from pending queue - should be fast as it is somewhere at the front
   TransferQueue::iterator it = std::find(pending_transfers_.begin(), pending_transfers_.end(), transfer);
 
@@ -169,6 +180,8 @@ void TransferPool::onTransferComplete(libusb_transfer* transfer)
   }
 
   pending_transfers_.erase(it);
+
+  pending_transfers_lock_.unlock();
 
   // process data
   processTransfer(transfer);
