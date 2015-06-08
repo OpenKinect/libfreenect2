@@ -63,12 +63,6 @@ INCLUDE_DIRECTORIES(
 
 LINK_DIRECTORIES(${LibUSB_LIBRARY_DIRS})
 
-if(APPLE AND NOT ${TurboJPEG_FOUND})
-  # libjpeg-turbo
-  INCLUDE_DIRECTORIES("${MY_DIR}/../../depends/libjpeg_turbo/include/")
-  LINK_DIRECTORIES("${MY_DIR}/../../depends/libjpeg_turbo/lib/")
-endif()
-
 SET(RESOURCES_INC_FILE "${MY_DIR}/src/resources.inc")
 
 SET(SOURCES

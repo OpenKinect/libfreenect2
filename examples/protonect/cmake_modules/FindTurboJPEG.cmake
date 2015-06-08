@@ -1,31 +1,41 @@
 # FindTurboJPEG.cmake
+# Uses environment variable TurboJPEG_ROOT as backup
 # - TurboJPEG_FOUND
 # - TurboJPEG_INCLUDE_DIRS
 # - TurboJPEG_LIBRARIES
-
-INCLUDE(CheckCSourceCompiles)
 
 FIND_PATH(TurboJPEG_INCLUDE_DIRS
   turbojpeg.h
   DOC "Found TurboJPEG include directory"
   PATHS
-    "${CMAKE_SOURCE_DIR}/../../depends/libjpeg_turbo/include"
-    "C:/libjpeg-turbo64/include"
-    "/opt/libjpeg-turbo/include"
-    "$ENV{TurboJPEG_ROOT}/include"
+    "${CMAKE_SOURCE_DIR}/../../depends/libjpeg_turbo"
+    "${CMAKE_SOURCE_DIR}/../../depends/libjpeg-turbo64"
+    "/usr/local/opt/jpeg-turbo" # homebrew
+    "/opt/local" # macports
+    "C:/libjpeg-turbo64"
+    "/opt/libjpeg-turbo"
+    ENV TurboJPEG_ROOT
+  PATH_SUFFIXES
+    include
 )
 
 FIND_LIBRARY(TurboJPEG_LIBRARIES
-  NAMES turbojpeg.lib libturbojpeg.so libturbojpeg.so.0 libturbojpeg.a
+  NAMES libturbojpeg.so.0 turbojpeg
   DOC "Found TurboJPEG library path"
   PATHS
-    "${CMAKE_SOURCE_DIR}/../../depends/libjpeg_turbo/lib"
-    "C:/libjpeg-turbo64/lib"
-    "$ENV{TurboJPEG_ROOT}/lib"
-    "/opt/libjpeg-turbo/lib64"
-    "/opt/libjpeg-turbo/lib"
+    "${CMAKE_SOURCE_DIR}/../../depends/libjpeg_turbo"
+    "${CMAKE_SOURCE_DIR}/../../depends/libjpeg-turbo64"
+    "/usr/local/opt/jpeg-turbo" # homebrew
+    "/opt/local" # macports
+    "C:/libjpeg-turbo64"
+    "/opt/libjpeg-turbo"
+    ENV TurboJPEG_ROOT
+  PATH_SUFFIXES
+    lib
+    lib64
 )
 
+INCLUDE(CheckCSourceCompiles)
 if(MSVC)
   set(CMAKE_REQUIRED_DEFINITIONS -MT)
 endif()
