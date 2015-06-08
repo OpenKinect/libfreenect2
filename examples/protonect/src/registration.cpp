@@ -41,6 +41,7 @@ static const float color_q = 0.002199;
 
 void Registration::distort(int mx, int my, float& x, float& y) const
 {
+  // see http://en.wikipedia.org/wiki/Distortion_(optics) for description
   float dx = ((float)mx - depth.cx) / depth.fx;
   float dy = ((float)my - depth.cy) / depth.fy;
   float dx2 = dx * dx;
@@ -85,6 +86,7 @@ void Registration::apply( int dx, int dy, float dz, float& cx, float &cy) const
 
 void Registration::apply(const Frame *rgb, const Frame *depth, Frame *undistorted, Frame *registered) const
 {
+  // Check if all frames are valid and have the correct size
   if (!undistorted || !rgb || !registered ||
       rgb->width != 1920 || rgb->height != 1080 || rgb->bytes_per_pixel != 3 ||
       depth->width != 512 || depth->height != 424 || depth->bytes_per_pixel != 4 ||
@@ -100,10 +102,15 @@ void Registration::apply(const Frame *rgb, const Frame *depth, Frame *undistorte
   const int *map_yi = depth_to_color_map_yi;
   const int size_depth = 512 * 424;
   const int size_color = 1920 * 1080 * 3;
+  const float color_cx = color.cx + 0.5f; // 0.5f added for later rounding
 
+  // iterating over all pixels from undistorted depth and registered color image
+  // the three maps have the same structure as the images, so their pointers are increased each iteration as well
   for (int i = 0; i < size_depth; ++i, ++registered_data, ++undistorted_data, ++map_dist, ++map_x, ++map_yi) {
+    // getting index of distorted depth pixel
     const int index = *map_dist;
 
+    // check if distorted depth pixel is outside of the depth image
     if(index < 0){
       *undistorted_data = 0;
       *registered_data = 0;
@@ -112,9 +119,11 @@ void Registration::apply(const Frame *rgb, const Frame *depth, Frame *undistorte
       continue;
     }
 
+    // getting depth value for current pixel
     const float z_raw = depth_data[index];
     *undistorted_data = z_raw;
 
+    // checking for invalid depth value
     if (z_raw <= 0.0f) {
       *registered_data = 0;
       *++registered_data = 0;
@@ -122,18 +131,24 @@ void Registration::apply(const Frame *rgb, const Frame *depth, Frame *undistorte
       continue;
     }
 
-    const float rx = (*map_x + (color.shift_m / z_raw)) * color.fx + color.cx;
-    const int cx = rx + 0.5f; // same as round for positive numbers
+    // calculating x offset for rgb image based on depth value
+    const float rx = (*map_x + (color.shift_m / z_raw)) * color.fx + color_cx;
+    const int cx = rx; // same as round for positive numbers (0.5f was already added to color_cx)
+    // getting y offset for depth image
     const int cy = *map_yi;
+    // combining offsets
     const int c_off = cx * 3 + cy;
 
-    if (c_off < 0 || c_off > size_color || rx < -0.5f) {
+    // check if c_off is outside of rgb image
+    // checking rx/cx is not needed because the color image is much wider then the depth image
+    if (c_off < 0 || c_off >= size_color) {
       *registered_data = 0;
       *++registered_data = 0;
       *++registered_data = 0;
       continue;
     }
 
+    // Setting RGB or registered image
     const unsigned char *rgb_data = rgb->data + c_off;
     *registered_data = *rgb_data;
     *++registered_data = *++rgb_data;
@@ -154,18 +169,23 @@ Registration::Registration(Freenect2Device::IrCameraParams depth_p, Freenect2Dev
 
   for (int y = 0; y < 424; y++) {
     for (int x = 0; x < 512; x++) {
+      // compute the dirstored coordinate for current pixel
       distort(x,y,mx,my);
+      // rounding the values and check if the pixel is inside the image
       ix = roundf(mx);
       iy = roundf(my);
       if(ix < 0 || ix >= 512 || iy < 0 || iy >= 424)
         index = -1;
       else
+        // computing the index from the coordianted for faster access to the data
         index = iy * 512 + ix;
       *map_dist++ = index;
 
+      // compute the depth to color mapping entries for the current pixel
       depth_to_color(x,y,rx,ry);
       *map_x++ = rx;
       *map_y++ = ry;
+      // compute the y offset to minimize later computations
       *map_yi++ = roundf(ry) * 1920 * 3;
     }
   }
