@@ -1,19 +1,10 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
 
-macro(auto_detect_lib LIBNAME)
-  if ( PKG_CONFIG_FOUND )
-    string(TOLOWER ${LIBNAME} PKGCONFIGNAME)
-    pkg_check_modules(${LIBNAME} ${PKGCONFIGNAME} ${ARGN})
-  else(PKG_CONFIG_FOUND)
-    #MESSAGE("Fallback to non-pkg-config")
-    FIND_PACKAGE(${LIBNAME} ${ARGN})
-  endif(PKG_CONFIG_FOUND)
-endmacro()
-
 PROJECT(libfreenect2)
 SET(CMAKE_BUILD_TYPE RelWithDebInfo)
 
 SET(MY_DIR ${libfreenect2_SOURCE_DIR})
+SET(DEPENDS_DIR "${MY_DIR}/../../depends" CACHE STRING "dependency directory")
 
 OPTION(ENABLE_CXX11 "Enable C++11 support" OFF)
 OPTION(ENABLE_OPENCL "Enable OpenCL support" ON)
@@ -47,7 +38,7 @@ SET(EXECUTABLE_OUTPUT_PATH ${MY_DIR}/bin)
 SET(LIBRARY_OUTPUT_PATH ${MY_DIR}/lib)
 
 # dependencies
-find_package(PkgConfig)    # try find PKGConfig as it will be used if found
+FIND_PACKAGE(PkgConfig)    # try find PKGConfig as it will be used if found
 FIND_PACKAGE(LibUSB REQUIRED)
 FIND_PACKAGE(OpenCV REQUIRED)
 FIND_PACKAGE(TurboJPEG REQUIRED) #does not provide a package-config file

@@ -8,7 +8,7 @@
 #  LibUSB_LIBRARIES:  the libraries
 
 IF(PKG_CONFIG_FOUND)
-  SET(ENV{PKG_CONFIG_PATH} "${CMAKE_SOURCE_DIR}/../../depends/libusb/lib/pkgconfig")
+  SET(ENV{PKG_CONFIG_PATH} "${DEPENDS_DIR}/libusb/lib/pkgconfig")
   PKG_CHECK_MODULES(LibUSB libusb-1.0)
   RETURN()
 ENDIF()
@@ -16,8 +16,8 @@ ENDIF()
 FIND_PATH(LibUSB_INCLUDE_DIRS
   NAMES libusb.h
   PATHS
-    ${CMAKE_SOURCE_DIR}/../../depends/libusb
-    ${CMAKE_SOURCE_DIR}/../../depends/libusbx
+    "${DEPENDS_DIR}/libusb"
+    "${DEPENDS_DIR}/libusbx"
     ENV LibUSB_ROOT
   PATH_SUFFIXES
     include

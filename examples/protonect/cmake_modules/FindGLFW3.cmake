@@ -11,7 +11,7 @@ IF(PKG_CONFIG_FOUND)
     # homebrew or macports pkgconfig locations
     SET(ENV{PKG_CONFIG_PATH} "/usr/local/opt/glfw3/lib/pkgconfig:/opt/local/lib/pkgconfig")
   ENDIF()
-  SET(ENV{PKG_CONFIG_PATH} "${CMAKE_SOURCE_DIR}/../../depends/glfw/lib/pkgconfig:$ENV{PKG_CONFIG_PATH}")
+  SET(ENV{PKG_CONFIG_PATH} "${DEPENDS_DIR}/glfw/lib/pkgconfig:$ENV{PKG_CONFIG_PATH}")
   PKG_CHECK_MODULES(GLFW3 glfw3)
 
   RETURN()
@@ -21,7 +21,7 @@ FIND_PATH(GLFW3_INCLUDE_DIRS
   GLFW/glfw3.h
   DOC "GLFW include directory "
   PATHS
-    "${CMAKE_SOURCE_DIR}/../../depends/glfw"
+    "${DEPENDS_DIR}/glfw"
     "$ENV{ProgramW6432}/glfw"
     ENV GLFW_ROOT
   PATH_SUFFIXES
@@ -40,7 +40,7 @@ ENDIF()
 FIND_LIBRARY(GLFW3_LIBRARIES
   NAMES glfw3dll glfw3
   PATHS
-    "${CMAKE_SOURCE_DIR}/../../depends/glfw"
+    "${DEPENDS_DIR}/glfw"
     "$ENV{ProgramW6432}/glfw"
     ENV GLFW_ROOT
   PATH_SUFFIXES

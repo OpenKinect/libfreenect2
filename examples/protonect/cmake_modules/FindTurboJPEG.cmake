@@ -8,8 +8,8 @@ FIND_PATH(TurboJPEG_INCLUDE_DIRS
   turbojpeg.h
   DOC "Found TurboJPEG include directory"
   PATHS
-    "${CMAKE_SOURCE_DIR}/../../depends/libjpeg_turbo"
-    "${CMAKE_SOURCE_DIR}/../../depends/libjpeg-turbo64"
+    "${DEPENDS_DIR}/libjpeg_turbo"
+    "${DEPENDS_DIR}/libjpeg-turbo64"
     "/usr/local/opt/jpeg-turbo" # homebrew
     "/opt/local" # macports
     "C:/libjpeg-turbo64"
@@ -23,8 +23,8 @@ FIND_LIBRARY(TurboJPEG_LIBRARIES
   NAMES libturbojpeg.so.0 turbojpeg
   DOC "Found TurboJPEG library path"
   PATHS
-    "${CMAKE_SOURCE_DIR}/../../depends/libjpeg_turbo"
-    "${CMAKE_SOURCE_DIR}/../../depends/libjpeg-turbo64"
+    "${DEPENDS_DIR}/libjpeg_turbo"
+    "${DEPENDS_DIR}/libjpeg-turbo64"
     "/usr/local/opt/jpeg-turbo" # homebrew
     "/opt/local" # macports
     "C:/libjpeg-turbo64"
