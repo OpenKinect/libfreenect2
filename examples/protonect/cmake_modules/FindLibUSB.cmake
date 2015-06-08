@@ -16,11 +16,12 @@ ENDIF()
 FIND_PATH(LibUSB_INCLUDE_DIRS
   NAMES libusb.h
   PATHS
-    "${DEPENDS_DIR}/libusb/libusb" # libusb git tree
+    "${DEPENDS_DIR}/libusb"
     "${DEPENDS_DIR}/libusbx"
     ENV LibUSB_ROOT
   PATH_SUFFIXES
     include
+    libusb
 )
 
 FIND_LIBRARY(LibUSB_LIBRARIES
