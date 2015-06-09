@@ -38,6 +38,7 @@ public:
 
   virtual bool ready() { return true; }
   virtual void process(const PacketT &packet) = 0;
+  virtual unsigned char *getPacketBuffer(size_t size) { return NULL; }
 };
 
 template<typename PacketT>

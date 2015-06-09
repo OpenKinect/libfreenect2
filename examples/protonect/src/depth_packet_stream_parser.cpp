@@ -54,6 +54,12 @@ DepthPacketStreamParser::~DepthPacketStreamParser()
 void DepthPacketStreamParser::setPacketProcessor(libfreenect2::BaseDepthPacketProcessor *processor)
 {
   processor_ = (processor != 0) ? processor : noopProcessor<DepthPacket>();
+  size_t single_image = 512*424*11/8;
+  unsigned char *processor_buf = processor_->getPacketBuffer(single_image * 10 * 2);
+  if (processor_buf)
+  {
+    buffer_.setbuffer(processor_buf, single_image * 10 * 2);
+  }
 }
 
 void DepthPacketStreamParser::onDataReceived(unsigned char* buffer, size_t in_length)

@@ -94,6 +94,15 @@ int main(int argc, char *argv[])
       std::cout << "OpenCL pipeline is not supported!" << std::endl;
 #endif
     }
+    else if(arg == "cuda")
+    {
+#ifdef LIBFREENECT2_WITH_CUDA_SUPPORT
+      if(!pipeline)
+        pipeline = new libfreenect2::CudaPacketPipeline();
+#else
+      std::cout << "CUDA pipeline is not supported!" << std::endl;
+#endif
+    }
     else if(arg.find_first_not_of("0123456789") == std::string::npos) //check if parameter could be a serial number
     {
       serial = arg;

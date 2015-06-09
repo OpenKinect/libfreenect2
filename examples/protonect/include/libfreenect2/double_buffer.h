@@ -49,6 +49,8 @@ public:
 
   void allocate(size_t buffer_size);
 
+  void setbuffer(unsigned char *buf, size_t size);
+
   void swap();
 
   Buffer& front();
@@ -59,6 +61,7 @@ private:
   unsigned char front_buffer_index_;
 
   unsigned char* buffer_data_;
+  bool external_buffer_;
 };
 
 } /* namespace libfreenect2 */

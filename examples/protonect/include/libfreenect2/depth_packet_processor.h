@@ -196,5 +196,58 @@ private:
   OpenCLDepthPacketProcessorImpl *impl_;
 };
 #endif // LIBFREENECT2_WITH_OPENCL_SUPPORT
+
+#ifdef LIBFREENECT2_WITH_CUDA_SUPPORT
+#ifdef _MSC_VER
+struct __declspec(align(16)) Float4
+#else
+struct __attribute__((aligned(16))) Float4
+#endif
+{
+    float x, y, z, w;
+};
+
+class CudaDepthPacketProcessorImpl;
+
+class LIBFREENECT2_API CudaDepthPacketProcessor : public DepthPacketProcessor
+{
+public:
+  CudaDepthPacketProcessor(const int deviceId = -1);
+  virtual ~CudaDepthPacketProcessor();
+  virtual unsigned char *getPacketBuffer(size_t size);
+  virtual void setConfiguration(const libfreenect2::DepthPacketProcessor::Config &config);
+
+  virtual void loadP0TablesFromCommandResponse(unsigned char* buffer, size_t buffer_length);
+
+  /**
+   * GUESS: the x and z table follow some polynomial, until we know the exact polynom formula and its coefficients
+   * just load them from a memory dump - although they probably vary per camera
+   */
+  void loadXTableFromFile(const char* filename);
+
+  void loadZTableFromFile(const char* filename);
+
+  void load11To16LutFromFile(const char* filename);
+
+  virtual void process(const DepthPacket &packet);
+private:
+  CudaDepthPacketProcessorImpl *impl_;
+};
+
+class CudaDepthPacketProcessorKernelImpl;
+
+class CudaDepthPacketProcessorKernel
+{
+public:
+  CudaDepthPacketProcessorKernel();
+  virtual ~CudaDepthPacketProcessorKernel();
+  void initDevice(const int deviceId, size_t image_size_, size_t block);
+  void generateOptions(const DepthPacketProcessor::Parameters &params, const DepthPacketProcessor::Config &config);
+  void loadTables(const short *lut11to16, const Float4 *p0_table, const float *x_table, const float *z_table);
+  void run(const DepthPacket &packet, Frame *ir_frame, Frame *depth_frame, const DepthPacketProcessor::Config &config);
+private:
+  CudaDepthPacketProcessorKernelImpl *impl_;
+};
+#endif // LIBFREENECT2_WITH_CUDA_SUPPORT
 } /* namespace libfreenect2 */
 #endif /* DEPTH_PACKET_PROCESSOR_H_ */

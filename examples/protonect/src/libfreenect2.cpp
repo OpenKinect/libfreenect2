@@ -623,6 +623,9 @@ void Freenect2DeviceImpl::close()
 
 PacketPipeline *createDefaultPacketPipeline()
 {
+#ifdef LIBFREENECT2_WITH_CUDA_SUPPORT
+  return new CudaPacketPipeline();
+#endif
 #ifdef LIBFREENECT2_WITH_OPENGL_SUPPORT
   return new OpenGLPacketPipeline();
 #else
