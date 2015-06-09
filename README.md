@@ -130,7 +130,7 @@ make && make install
 ./bin/Protonect
 ```
 
-### Ubuntu 14.04 (perhaps earlier)
+### Debian/Ubuntu 14.04 (perhaps earlier)
 
 1. Install libfreenect2
 
@@ -140,12 +140,14 @@ git clone https://github.com/OpenKinect/libfreenect2.git
 
 1. Install a bunch of dependencies
 
-    ```
+    ```bash
 sudo apt-get install build-essential libjpeg-turbo8-dev libtool autoconf libudev-dev cmake mesa-common-dev freeglut3-dev libxrandr-dev doxygen libxi-dev libopencv-dev automake
+# sudo apt-get install libturbojpeg0-dev (Debian)
 
 cd libfreenect2/depends
 sh install_ubuntu.sh
-sudo dpkg -i libglfw3*_3.0.4-1_*.deb
+sudo dpkg -i libglfw3*_3.0.4-1_*.deb  # Ubuntu 14.04 only
+# sudo apt-get install libglfw3-dev (Debian/Ubuntu 14.10+:)
 ```
 
 1. Build the actual protonect executable
