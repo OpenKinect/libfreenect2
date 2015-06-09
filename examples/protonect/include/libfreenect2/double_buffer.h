@@ -47,14 +47,14 @@ public:
   DoubleBuffer();
   virtual ~DoubleBuffer();
 
-  void allocate(size_t buffer_size);
+  virtual void allocate(size_t buffer_size);
 
   void swap();
 
   Buffer& front();
 
   Buffer& back();
-private:
+protected:
   Buffer buffer_[2];
   unsigned char front_buffer_index_;
 

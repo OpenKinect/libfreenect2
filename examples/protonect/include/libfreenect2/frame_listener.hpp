@@ -48,15 +48,18 @@ struct LIBFREENECT2_API Frame
   size_t width, height, bytes_per_pixel;
   unsigned char* data;
 
-  Frame(size_t width, size_t height, size_t bytes_per_pixel) :
+  Frame(size_t width, size_t height, size_t bytes_per_pixel, bool alloc = true) :
     width(width),
     height(height),
-    bytes_per_pixel(bytes_per_pixel)
+    bytes_per_pixel(bytes_per_pixel),
+    data(NULL)
   {
+    if (!alloc)
+      return;
     data = new unsigned char[width * height * bytes_per_pixel];
   }
 
-  ~Frame()
+  virtual ~Frame()
   {
     delete[] data;
   }

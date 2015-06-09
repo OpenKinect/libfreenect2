@@ -26,6 +26,7 @@
 
 #ifndef PACKET_PROCESSOR_H_
 #define PACKET_PROCESSOR_H_
+#include <libfreenect2/double_buffer.h>
 
 namespace libfreenect2
 {
@@ -38,6 +39,10 @@ public:
 
   virtual bool ready() { return true; }
   virtual void process(const PacketT &packet) = 0;
+  virtual libfreenect2::DoubleBuffer *getPacketBuffer() { return &default_buffer_; }
+
+protected:
+  libfreenect2::DoubleBuffer default_buffer_;
 };
 
 template<typename PacketT>

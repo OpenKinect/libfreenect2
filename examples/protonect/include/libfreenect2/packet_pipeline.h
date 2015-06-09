@@ -63,6 +63,7 @@ protected:
 
   virtual void initialize();
   virtual DepthPacketProcessor *createDepthPacketProcessor() = 0;
+  virtual RgbPacketProcessor *createRgbPacketProcessor();
 public:
   virtual ~BasePacketPipeline();
 

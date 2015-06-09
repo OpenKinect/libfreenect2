@@ -34,12 +34,20 @@ PacketPipeline::~PacketPipeline()
 {
 }
 
+RgbPacketProcessor *BasePacketPipeline::createRgbPacketProcessor()
+{
+#ifdef LIBFREENECT2_WITH_VAAPI_SUPPORT
+  return new VaapiJpegRgbPacketProcessor();
+#endif
+  return new TurboJpegRgbPacketProcessor();
+}
+
 void BasePacketPipeline::initialize()
 {
   rgb_parser_ = new RgbPacketStreamParser();
   depth_parser_ = new DepthPacketStreamParser();
 
-  rgb_processor_ = new TurboJpegRgbPacketProcessor();
+  rgb_processor_ = createRgbPacketProcessor();
   depth_processor_ = createDepthPacketProcessor();
 
   async_rgb_processor_ = new AsyncPacketProcessor<RgbPacket>(rgb_processor_);

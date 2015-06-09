@@ -142,13 +142,18 @@ int main(int argc, char *argv[])
     libfreenect2::Frame *ir = frames[libfreenect2::Frame::Ir];
     libfreenect2::Frame *depth = frames[libfreenect2::Frame::Depth];
 
-    cv::imshow("rgb", cv::Mat(rgb->height, rgb->width, CV_8UC3, rgb->data));
+    int rgb_type = CV_8UC3;
+    if (rgb->bytes_per_pixel == 4)
+    {
+      rgb_type = CV_8UC4;
+    }
+    cv::imshow("rgb", cv::Mat(rgb->height, rgb->width, rgb_type, rgb->data));
     cv::imshow("ir", cv::Mat(ir->height, ir->width, CV_32FC1, ir->data) / 20000.0f);
     cv::imshow("depth", cv::Mat(depth->height, depth->width, CV_32FC1, depth->data) / 4500.0f);
 
     if (!registered) registered = new unsigned char[depth->height*depth->width*rgb->bytes_per_pixel];
     registration->apply(rgb,depth,registered);
-    cv::imshow("registered", cv::Mat(depth->height, depth->width, CV_8UC3, registered));
+    cv::imshow("registered", cv::Mat(depth->height, depth->width, rgb_type, registered));
 
     int key = cv::waitKey(1);
     protonect_shutdown = protonect_shutdown || (key > 0 && ((key & 0xFF) == 27)); // shutdown on escape

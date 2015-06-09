@@ -76,6 +76,11 @@ public:
     }
     packet_condition_.notify_one();
   }
+
+  virtual libfreenect2::DoubleBuffer *getPacketBuffer()
+  {
+    return processor_->getPacketBuffer();
+  }
 private:
   PacketProcessorPtr processor_;
   bool current_packet_available_;
