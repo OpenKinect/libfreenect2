@@ -63,7 +63,9 @@ The depth packet processor runs on OpenGL by default. You can try alternatives, 
 
 This project uses the libusbx drivers and API. Setting things up varies by platform.
 
-### Windows
+### Windows / Visual Studio
+
+#### libusbK driver
 
 If you have the Kinect for Windows v2 SDK, install it first. You don't need to uninstall the SDK or the driver before doing this procedure.
 
@@ -89,6 +91,54 @@ If you already had the official SDK driver installed and you want to use it:
 This will enumerate the Kinect sensor again and it will pick up the K4W2 SDK driver, and you should be ready to run KinectService.exe again immediately.
 
 You can go back and forth between the SDK driver and the libusbK driver very quickly and easily with these steps.
+
+#### libusb
+
+* Build from source (recommended)
+```bash
+cd depends/
+git clone https://github.com/libusb/libusb.git
+cd libusb
+git remote add joshblake https://github.com/JoshBlake/libusbx.git
+git fetch joshblake
+git merge joshblake/winiso  # patches for libusbK backend
+```
+Open `libusb/msvc/libusb_2013.sln` with Visual Studio 2013 (or older version, accordingly), set configurations to "Release x64", and build "libusb-1.0 (dll)". You can clone the libusb repo to somewhere else, but you will need to set environment variable `LibUSB_ROOT` to that path. Building with "Win32" is not recommended as it results in lower performance.
+
+* Pre-built binary
+
+Joshua Blake provided a Debug version binary: https://www.dropbox.com/s/madoye1ayaoajet/libusbx-winiso.zip. Install it as `depends/libusbx`. This version was built in 2013.
+
+#### TurboJPEG
+
+* Download from http://sourceforge.net/projects/libjpeg-turbo/files
+* Extract it to the default path (`c:\libjpeg-turbo64`), or as `depends/libjpeg-turbo64`, or anywhere as long as the environment variable `TurboJPEG_ROOT` is set to installed path.
+
+#### GLFW
+
+* Download 64-bit Windows binaries from http://www.glfw.org/download.html
+* Extract it as `depends/glfw` (rename `glfw-3.x.x.bin.WIN64` to glfw), or anywhere as long as the environment variable `GLFW_ROOT` is set to the installed path.
+
+#### OpenCV
+
+* Download the installer from http://sourceforge.net/projects/opencvlibrary/files/opencv-win
+* Extract it anywhere (maybe also in `depends`)
+
+#### OpenCL
+
+* Intel GPU: Download `intel_sdk_for_ocl_applications_2014_x64_setup.msi` from http://www.softpedia.com/get/Programming/SDK-DDK/Intel-SDK-for-OpenCL-Applications.shtml (SDK official download is replaced by $$$ and no longer available) and install it. Then verify `INTELOCLSDKROOT` is set as an environment variable.
+
+#### Build
+
+You need to specify the location of OpenCV installation in `OpenCV_DIR`.
+```
+cd example\protonect
+mkdir build && cd build
+cmake .. -G "Visual Studio 12 2013 Win64" -DCMAKE_INSTALL_PREFIX=. -DOpenCV_DIR=%cd%\..\..\..\depends\opencv\build 
+cmake --build . --config Release --target install
+```
+
+Then you can run the program with `.\bin\Protonect.exe`. If DLLs are missing, you can copy them to the `bin` folder.
 
 ### Mac OSX
 
