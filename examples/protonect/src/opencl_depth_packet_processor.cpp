@@ -57,27 +57,6 @@
 namespace libfreenect2
 {
 
-bool loadBufferFromResources(const std::string &filename, unsigned char *buffer, const size_t n)
-{
-  size_t length = 0;
-  const unsigned char *data = NULL;
-
-  if(!loadResource(filename, &data, &length))
-  {
-    std::cerr << OUT_NAME("loadBufferFromResources") "failed to load resource: " << filename << std::endl;
-    return false;
-  }
-
-  if(length != n)
-  {
-    std::cerr << OUT_NAME("loadBufferFromResources") "wrong size of resource: " << filename << std::endl;
-    return false;
-  }
-
-  memcpy(buffer, data, length);
-  return true;
-}
-
 std::string loadCLSource(const std::string &filename)
 {
   const unsigned char *data;
