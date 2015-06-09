@@ -176,13 +176,20 @@ IF(ENABLE_CUDA)
       "${CUDA_TOOLKIT_ROOT_DIR}/samples/common/inc"
       "$ENV{NVCUDASAMPLES_ROOT}/common/inc"
     )
+    SET(CUDA_FLAGS -use_fast_math)
     IF(NOT MSVC)
-      SET(CUDA_PIC_FLAGS "-Xcompiler -fPIC")
+      SET(CUDA_FLAGS "${CUDA_FLAGS} -Xcompiler -fPIC")
     ENDIF()
-    CUDA_COMPILE(CUDA_OBJECTS
-      src/cuda_depth_packet_processor.cu
-      OPTIONS -use_fast_math ${CUDA_PIC_FLAGS}
+    CUDA_COMPILE(CUDA_SHARED_OBJECTS
+     src/cuda_depth_packet_processor.cu SHARED
+     OPTIONS ${CUDA_FLAGS}
     )
+    LIST(APPEND OTHER_SHARED_OBJECTS ${CUDA_SHARED_OBJECTS})
+    CUDA_COMPILE(CUDA_STATIC_OBJECTS
+     src/cuda_depth_packet_processor.cu STATIC
+     OPTIONS ${CUDA_FLAGS}
+    )
+    LIST(APPEND OTHER_STATIC_OBJECTS ${CUDA_STATIC_OBJECTS})
 
     INCLUDE_DIRECTORIES(${CUDA_INCLUDE_DIRS})
 
@@ -205,8 +212,8 @@ GENERATE_RESOURCES(${RESOURCES_INC_FILE} ${MY_DIR} ${RESOURCES})
 ADD_DEFINITIONS(-DRESOURCES_INC)
 ADD_LIBRARY(freenect2 OBJECT ${SOURCES})
 set_target_properties(freenect2 PROPERTIES POSITION_INDEPENDENT_CODE 1)
-ADD_LIBRARY(freenect2shared SHARED $<TARGET_OBJECTS:freenect2>)
-ADD_LIBRARY(freenect2static STATIC $<TARGET_OBJECTS:freenect2>)
+ADD_LIBRARY(freenect2shared SHARED $<TARGET_OBJECTS:freenect2> ${OTHER_SHARED_OBJECTS})
+ADD_LIBRARY(freenect2static STATIC $<TARGET_OBJECTS:freenect2> ${OTHER_STATIC_OBJECTS})
 set_target_properties(freenect2shared PROPERTIES OUTPUT_NAME freenect2)
 set_target_properties(freenect2static PROPERTIES OUTPUT_NAME freenect2)
 MESSAGE("Linking with these libraries: ${LIBRARIES}")
