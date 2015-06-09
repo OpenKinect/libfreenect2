@@ -36,15 +36,33 @@
 #include <stdexcept>
 #include <cstring>
 #include <cmath>
+#include <cuda_runtime.h>
 
 #if defined(WIN32)
 #define _USE_MATH_DEFINES
 #include <math.h>
 #endif
 
+#define cudaSafeCall(expr) do { cudaError_t err = (expr); if (err != cudaSuccess) throw std::runtime_error(cudaGetErrorString(err)); } while(0)
+
 #define OUT_NAME(FUNCTION) "[CudaDepthPacketProcessor::" FUNCTION "] "
 namespace libfreenect2
 {
+
+struct PinnedFrame: Frame
+{
+  PinnedFrame(size_t width, size_t height, size_t bytes_per_pixel):
+    Frame(width, height, bytes_per_pixel, false)
+  {
+    cudaSafeCall(cudaHostAlloc(&data, width*height*bytes_per_pixel, cudaHostAllocPortable));
+  }
+
+  ~PinnedFrame()
+  {
+    cudaFreeHost(data);
+    data = NULL;
+  }
+};
 
 class CudaDepthPacketProcessorImpl
 {
@@ -67,20 +85,24 @@ public:
 
   size_t image_size;
 
+  size_t packet_buffer_size;
+  unsigned char *packet_buffer;
+
   bool deviceInitialized;
   bool programInitialized;
 
   CudaDepthPacketProcessorImpl(const int deviceId = -1) : deviceInitialized(false), programInitialized(false)
   {
-    newIrFrame();
-    newDepthFrame();
-
     timing_acc = 0.0;
     timing_acc_n = 0.0;
     timing_current_start = 0.0;
     image_size = 512 * 424;
 
     deviceInitialized = initDevice(deviceId);
+    newIrFrame();
+    newDepthFrame();
+    packet_buffer_size = 0;
+    packet_buffer = NULL;
   }
 
   bool initDevice(const int deviceId)
@@ -145,12 +167,12 @@ public:
 
   void newIrFrame()
   {
-    ir_frame = new Frame(512, 424, 4);
+    ir_frame = new PinnedFrame(512, 424, 4);
   }
 
   void newDepthFrame()
   {
-    depth_frame = new Frame(512, 424, 4);
+    depth_frame = new PinnedFrame(512, 424, 4);
   }
 
   void fill_trig_table(const libfreenect2::protocol::P0TablesResponse *p0table)
@@ -180,6 +202,22 @@ CudaDepthPacketProcessor::CudaDepthPacketProcessor(const int deviceId) :
 CudaDepthPacketProcessor::~CudaDepthPacketProcessor()
 {
   delete impl_;
+}
+
+unsigned char *CudaDepthPacketProcessor::getPacketBuffer(size_t size)
+{
+  if (impl_->packet_buffer != NULL)
+  {
+    if (size == impl_->packet_buffer_size)
+      return impl_->packet_buffer;
+    cudaSafeCall(cudaFreeHost(impl_->packet_buffer));
+    impl_->packet_buffer = NULL;
+    impl_->packet_buffer_size = 0;
+  }
+
+  cudaSafeCall(cudaHostAlloc(&impl_->packet_buffer, size, cudaHostAllocWriteCombined | cudaHostAllocPortable));
+  impl_->packet_buffer_size = size;
+  return impl_->packet_buffer;
 }
 
 void CudaDepthPacketProcessor::setConfiguration(const libfreenect2::DepthPacketProcessor::Config &config)

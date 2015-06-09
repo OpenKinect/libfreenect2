@@ -214,6 +214,7 @@ class LIBFREENECT2_API CudaDepthPacketProcessor : public DepthPacketProcessor
 public:
   CudaDepthPacketProcessor(const int deviceId = -1);
   virtual ~CudaDepthPacketProcessor();
+  virtual unsigned char *getPacketBuffer(size_t size);
   virtual void setConfiguration(const libfreenect2::DepthPacketProcessor::Config &config);
 
   virtual void loadP0TablesFromCommandResponse(unsigned char* buffer, size_t buffer_length);
