@@ -150,6 +150,11 @@ sudo dpkg -i libglfw3*_3.0.4-1_*.deb  # Ubuntu 14.04 only
 # sudo apt-get install libglfw3-dev (Debian/Ubuntu 14.10+:)
 ```
 
+1. OpenCL dependency
+  * AMD GPU: Install the latest version of the AMD Catalyst drivers from https://support.amd.com and `apt-get install opencl-headers`.
+  * Nvidia GPU: Install the latest version of the Nvidia drivers, for example nvidia-346 from `ppa:xorg-edgers` and `apt-get install opencl-headers`.
+  * Intel GPU (kernel 3.16+ recommended): Install beignet-dev 1.0+, `apt-get install beignet-dev`. If not available, use this ppa `sudo apt-add-repository ppa:pmjdebruijn/beignet-testing`.
+
 1. Build the actual protonect executable
 
     ```
