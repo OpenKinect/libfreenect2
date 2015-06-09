@@ -80,8 +80,7 @@ __constant__ static float MIN_DEPTH;
 __constant__ static float MAX_DEPTH;
 
 #define sqrt(x) sqrtf(x)
-#define sin(x) sinf(x)
-#define cos(x) cosf(x)
+#define sincos(x, a, b) sincosf(x, a, b)
 #define atan2(a, b) atan2f(a, b)
 #define log(x) logf(x)
 #define exp(x) expf(x)
@@ -107,13 +106,11 @@ static inline __device__ float3 sqrtf(float3 v)
 {
   return make_float3(sqrtf(v.x), sqrtf(v.y), sqrtf(v.z));
 }
-static inline __device__ float3 sinf(float3 v)
+static inline __device__ void sincosf(float3 v, float3 *a, float3 *b)
 {
-  return make_float3(sinf(v.x), sinf(v.y), sinf(v.z));
-}
-static inline __device__ float3 cosf(float3 v)
-{
-  return make_float3(cosf(v.x), cosf(v.y), cosf(v.z));
+  sincosf(v.x, &a->x, &b->x);
+  sincosf(v.y, &a->y, &b->y);
+  sincosf(v.z, &a->z, &b->z);
 }
 static inline __device__ float3 atan2f(float3 a, float3 b)
 {
@@ -168,12 +165,12 @@ static __device__
 float2 processMeasurementTriple(const float ab_multiplier_per_frq, const float p0, const float3 v, int *invalid)
 {
   float3 p0vec = make_float3(p0 + PHASE_IN_RAD0, p0 + PHASE_IN_RAD1, p0 + PHASE_IN_RAD2);
-  float3 p0cos = cos(p0vec);
-  float3 p0sin = sin(-p0vec);
+  float3 p0sin, p0cos;
+  sincos(p0vec, &p0sin, &p0cos);
 
   *invalid = *invalid && any(isequal(v, make_float3(32767.0f)));
 
-  return make_float2(dot(v, p0cos), dot(v, p0sin)) * ab_multiplier_per_frq;
+  return make_float2(dot(v, p0cos), -dot(v, p0sin)) * ab_multiplier_per_frq;
 }
 
 static __global__
@@ -249,7 +246,7 @@ void filterPixelStage1(const float4* __restrict__ a, const float4* __restrict__ 
   }
   else
   {
-    float3 threshold = make_float3(JOINT_BILATERAL_THRESHOLD);
+    float3 threshold = make_float3(sqrt(JOINT_BILATERAL_THRESHOLD));
     float3 joint_bilateral_exp = make_float3(JOINT_BILATERAL_EXP);
 
     const float3 self_norm = make_float3(n[i]);
@@ -261,7 +258,7 @@ void filterPixelStage1(const float4* __restrict__ a, const float4* __restrict__ 
     float3 weighted_b_acc = make_float3(0.0f);
     float3 dist_acc = make_float3(0.0f);
 
-    const int3 c0 = isless(self_norm * self_norm, threshold);
+    const int3 c0 = isless(self_norm, threshold);
 
     threshold = select(threshold, make_float3(0.0f), c0);
     joint_bilateral_exp = select(joint_bilateral_exp, make_float3(0.0f), c0);
@@ -278,7 +275,7 @@ void filterPixelStage1(const float4* __restrict__ a, const float4* __restrict__ 
         const float3 other_normalized_a = other_a / other_norm;
         const float3 other_normalized_b = other_b / other_norm;
 
-        const int3 c1 = isless(other_norm * other_norm, threshold);
+        const int3 c1 = isless(other_norm, threshold);
 
         const float3 dist = 0.5f * (1.0f - (self_normalized_a * other_normalized_a + self_normalized_b * other_normalized_b));
         const float3 weight = select(gaussian[j] * exp(-1.442695f * joint_bilateral_exp * dist), make_float3(0.0f), c1);
