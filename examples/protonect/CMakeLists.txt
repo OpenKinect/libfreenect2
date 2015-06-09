@@ -8,6 +8,7 @@ SET(DEPENDS_DIR "${MY_DIR}/../../depends" CACHE STRING "dependency directory")
 
 OPTION(ENABLE_CXX11 "Enable C++11 support" OFF)
 OPTION(ENABLE_OPENCL "Enable OpenCL support" ON)
+OPTION(ENABLE_CUDA "Enable CUDA support" ON)
 OPTION(ENABLE_OPENGL "Enable OpenGL support" ON)
 
 IF(ENABLE_CXX11)
@@ -164,6 +165,34 @@ IF(ENABLE_OPENCL)
     )
   ENDIF(OPENCL_FOUND)
 ENDIF(ENABLE_OPENCL)
+
+IF(ENABLE_CUDA)
+  FIND_PACKAGE(CUDA)
+  IF(CUDA_FOUND)
+    SET(LIBFREENECT2_WITH_CUDA_SUPPORT 1)
+
+    CUDA_INCLUDE_DIRECTORIES(
+      "${MY_DIR}/include/"
+      "${CUDA_TOOLKIT_ROOT_DIR}/samples/common/inc"
+      "$ENV{NVCUDASAMPLES_ROOT}/common/inc"
+    )
+    IF(NOT MSVC)
+      SET(CUDA_PIC_FLAGS "-Xcompiler -fPIC")
+    ENDIF()
+    CUDA_COMPILE(CUDA_OBJECTS src/cuda_depth_packet_processor.cu OPTIONS ${CUDA_PIC_FLAGS})
+
+    INCLUDE_DIRECTORIES(${CUDA_INCLUDE_DIRS})
+
+    LIST(APPEND SOURCES
+      src/cuda_depth_packet_processor.cpp
+      ${CUDA_OBJECTS}
+    )
+
+    LIST(APPEND LIBRARIES
+      ${CUDA_LIBRARIES}
+    )
+  ENDIF(CUDA_FOUND)
+ENDIF(ENABLE_CUDA)
 
 SET(CMAKE_INSTALL_RPATH ${LibUSB_LIBDIR})
 
