@@ -41,7 +41,7 @@ SET(LIBRARY_OUTPUT_PATH ${MY_DIR}/lib)
 # dependencies
 FIND_PACKAGE(PkgConfig)    # try find PKGConfig as it will be used if found
 FIND_PACKAGE(LibUSB REQUIRED)
-FIND_PACKAGE(OpenCV REQUIRED)
+FIND_PACKAGE(OpenCV REQUIRED core highgui)
 FIND_PACKAGE(TurboJPEG REQUIRED) #does not provide a package-config file
 
 # Add includes
@@ -55,7 +55,7 @@ INCLUDE_DIRECTORIES(
 
 LINK_DIRECTORIES(${LibUSB_LIBRARY_DIRS})
 
-SET(RESOURCES_INC_FILE "${MY_DIR}/src/resources.inc")
+SET(RESOURCES_INC_FILE "${MY_DIR}/src/resources.inc.h")
 
 SET(SOURCES
   include/libfreenect2/protocol/command.h
@@ -203,24 +203,52 @@ CONFIGURE_FILE("${MY_DIR}/include/libfreenect2/config.h.in" "${MY_DIR}/include/l
 GENERATE_RESOURCES(${RESOURCES_INC_FILE} ${MY_DIR} ${RESOURCES})
 
 ADD_DEFINITIONS(-DRESOURCES_INC)
-ADD_LIBRARY(freenect2 SHARED ${SOURCES})
+ADD_LIBRARY(freenect2 OBJECT ${SOURCES})
+set_target_properties(freenect2 PROPERTIES POSITION_INDEPENDENT_CODE 1)
+ADD_LIBRARY(freenect2shared SHARED $<TARGET_OBJECTS:freenect2>)
+ADD_LIBRARY(freenect2static STATIC $<TARGET_OBJECTS:freenect2>)
+set_target_properties(freenect2shared PROPERTIES OUTPUT_NAME freenect2)
+set_target_properties(freenect2static PROPERTIES OUTPUT_NAME freenect2)
 MESSAGE("Linking with these libraries: ${LIBRARIES}")
-TARGET_LINK_LIBRARIES(freenect2 ${LIBRARIES})
+TARGET_LINK_LIBRARIES(freenect2shared ${LIBRARIES})
   
 ADD_EXECUTABLE(Protonect
   Protonect.cpp
 )
   
 TARGET_LINK_LIBRARIES(Protonect
-  freenect2
+  freenect2shared
 )
 
 CONFIGURE_FILE(freenect2.cmake.in "${PROJECT_BINARY_DIR}/freenect2Config.cmake" @ONLY)
 
-INSTALL(TARGETS freenect2 DESTINATION lib)
+INSTALL(TARGETS Protonect DESTINATION bin)
+INSTALL(TARGETS freenect2shared DESTINATION lib)
+INSTALL(TARGETS freenect2static DESTINATION lib)
 INSTALL(DIRECTORY "${MY_DIR}/include/" DESTINATION include PATTERN "*.in" EXCLUDE)
 IF(LIBFREENECT2_THREADING_TINYTHREAD)
   INSTALL(FILES  "${MY_DIR}/src/tinythread/tinythread.h" DESTINATION include/${PROJECT_NAME}/tinythread/)
 ENDIF(LIBFREENECT2_THREADING_TINYTHREAD)
 INSTALL(FILES "${PROJECT_BINARY_DIR}/freenect2Config.cmake" DESTINATION lib/cmake/freenect2/)
   
+IF(WIN32)
+  INSTALL(TARGETS freenect2shared RUNTIME DESTINATION bin)
+
+  FOREACH(LIB ${OpenCV_LIBS})
+    INSTALL(FILES $<TARGET_PROPERTY:${LIB},IMPORTED_LOCATION_RELEASE> DESTINATION bin)
+  ENDFOREACH()
+
+  get_filename_component(LibUSB_LIBDIR ${LibUSB_LIBRARIES} DIRECTORY)
+  FIND_FILE(LibUSB_DLL libusb-1.0.dll PATHS ${LibUSB_LIBDIR} NO_DEFAULT_PATH)
+  INSTALL(FILES ${LibUSB_DLL} DESTINATION bin)
+
+  get_filename_component(TurboJPEG_LIBDIR ${TurboJPEG_LIBRARIES} DIRECTORY)
+  FIND_FILE(TurboJPEG_DLL turbojpeg.dll PATHS "${TurboJPEG_LIBDIR}/../bin" NO_DEFAULT_PATH)
+  INSTALL(FILES ${TurboJPEG_DLL} DESTINATION bin)
+
+  IF(GLFW3_FOUND)
+    get_filename_component(GLFW3_LIBDIR ${GLFW3_LIBRARIES} DIRECTORY)
+    FIND_FILE(GLFW3_DLL glfw3.dll PATHS ${GLFW3_LIBDIR} NO_DEFAULT_PATH)
+    INSTALL(FILES ${GLFW3_DLL} DESTINATION bin)
+  ENDIF()
+ENDIF()

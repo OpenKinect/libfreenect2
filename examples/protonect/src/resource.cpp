@@ -40,7 +40,7 @@ struct ResourceDescriptor
 };
 
 #ifdef RESOURCES_INC
-#include "resources.inc"
+#include "resources.inc.h"
 #else
 ResourceDescriptor resource_descriptors[] = {};
 #endif
