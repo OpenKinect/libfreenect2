@@ -26,6 +26,8 @@ No. It's a pure USB3 device due to the high bandwidth requirements.
 
 Either your device is connected to an USB2-only port (see above), or you don't have permissions to access the device. On Linux, try running Protonect as root (e.g. using `sudo`). If that fixes things, place `rules/90-kinect2.rules` into `/etc/udev/rules.d/` and re-plug the device.
 
+On Linux, also check `dmesg`. If there are warnings like `usb 4-1.1: Not enough bandwidth for new device state.` it means the hardware does not have the capacity for USB3 even if it claims so, or its capacity is not well supported.
+
 On Mac OS X, open "System Information" from Spotlight, go to the USB section, and verify "Xbox NUI Sensor" is under "USB 3.0 SuperSpeed Bus" not "High-Speed Bus". If this is not the case, try unplugging the Kinect from power source with the USB cable connected, and plug the power again, then verify.
 
 ### I'm getting lots of USB transfer errors, and/or only blank windows.
@@ -37,6 +39,13 @@ USB3 as a whole is a flaky thing. If you're running Linux, try upgrading to a re
 
 Probably not working:
 * ASMedia Technology Inc. Device 1142
+* ASMedia Technology Inc. ASM1042
+
+Messages in `dmesg` like this means bugs in the USB driver. Updating kernel might help.
+```
+[  509.238571] xhci_hcd 0000:03:00.0: xHCI host not responding to stop endpoint command.
+[  509.238580] xhci_hcd 0000:03:00.0: Assuming host is dying, halting host.
+```
 
 Finally, it's also possible that your executable is not actually using the patched libusb from the depends/ folder which is required at the moment. Check this using `ldd | grep libusb` (shows libusb-1.0 under `depends/`), and adjust your `LD_LIBRARY_PATH` if necessary.
 
@@ -54,7 +63,9 @@ The depth packet processor runs on OpenGL by default. You can try alternatives, 
 
 This project uses the libusbx drivers and API. Setting things up varies by platform.
 
-### Windows
+### Windows / Visual Studio
+
+#### libusbK driver
 
 If you have the Kinect for Windows v2 SDK, install it first. You don't need to uninstall the SDK or the driver before doing this procedure.
 
@@ -81,6 +92,54 @@ This will enumerate the Kinect sensor again and it will pick up the K4W2 SDK dri
 
 You can go back and forth between the SDK driver and the libusbK driver very quickly and easily with these steps.
 
+#### libusb
+
+* Build from source (recommended)
+```bash
+cd depends/
+git clone https://github.com/libusb/libusb.git
+cd libusb
+git remote add joshblake https://github.com/JoshBlake/libusbx.git
+git fetch joshblake
+git merge joshblake/winiso  # patches for libusbK backend
+```
+Open `libusb/msvc/libusb_2013.sln` with Visual Studio 2013 (or older version, accordingly), set configurations to "Release x64", and build "libusb-1.0 (dll)". You can clone the libusb repo to somewhere else, but you will need to set environment variable `LibUSB_ROOT` to that path. Building with "Win32" is not recommended as it results in lower performance.
+
+* Pre-built binary
+
+Joshua Blake provided a Debug version binary: https://www.dropbox.com/s/madoye1ayaoajet/libusbx-winiso.zip. Install it as `depends/libusbx`. This version was built in 2013.
+
+#### TurboJPEG
+
+* Download from http://sourceforge.net/projects/libjpeg-turbo/files
+* Extract it to the default path (`c:\libjpeg-turbo64`), or as `depends/libjpeg-turbo64`, or anywhere as long as the environment variable `TurboJPEG_ROOT` is set to installed path.
+
+#### GLFW
+
+* Download 64-bit Windows binaries from http://www.glfw.org/download.html
+* Extract it as `depends/glfw` (rename `glfw-3.x.x.bin.WIN64` to glfw), or anywhere as long as the environment variable `GLFW_ROOT` is set to the installed path.
+
+#### OpenCV
+
+* Download the installer from http://sourceforge.net/projects/opencvlibrary/files/opencv-win
+* Extract it anywhere (maybe also in `depends`)
+
+#### OpenCL
+
+* Intel GPU: Download `intel_sdk_for_ocl_applications_2014_x64_setup.msi` from http://www.softpedia.com/get/Programming/SDK-DDK/Intel-SDK-for-OpenCL-Applications.shtml (SDK official download is replaced by $$$ and no longer available) and install it. Then verify `INTELOCLSDKROOT` is set as an environment variable.
+
+#### Build
+
+You need to specify the location of OpenCV installation in `OpenCV_DIR`.
+```
+cd example\protonect
+mkdir build && cd build
+cmake .. -G "Visual Studio 12 2013 Win64" -DCMAKE_INSTALL_PREFIX=. -DOpenCV_DIR=%cd%\..\..\..\depends\opencv\build 
+cmake --build . --config Release --target install
+```
+
+Then you can run the program with `.\bin\Protonect.exe`. If DLLs are missing, you can copy them to the `bin` folder.
+
 ### Mac OSX
 
 1. ``cd`` into a directory where you want to keep libfreenect2 stuff in
@@ -90,6 +149,8 @@ You can go back and forth between the SDK driver and the libusbK driver very qui
 brew update
 brew tap homebrew/science
 brew install opencv git nasm wget jpeg-turbo
+brew tap homebrew/versions
+brew install glfw3
 ```
 
 1. Download the libfreenect2 repository
@@ -102,7 +163,6 @@ git clone git@github.com:OpenKinect/libfreenect2.git
 
     ```
 cd ./libfreenect2
-ln -s /usr/local/opt/jpeg-turbo depends/libjpeg_turbo
 sh ./depends/install_mac.sh
 ```
 
@@ -120,7 +180,7 @@ make && make install
 ./bin/Protonect
 ```
 
-### Ubuntu 14.04 (perhaps earlier)
+### Debian/Ubuntu 14.04 (perhaps earlier)
 
 1. Install libfreenect2
 
@@ -130,13 +190,20 @@ git clone https://github.com/OpenKinect/libfreenect2.git
 
 1. Install a bunch of dependencies
 
-    ```
+    ```bash
 sudo apt-get install build-essential libjpeg-turbo8-dev libtool autoconf libudev-dev cmake mesa-common-dev freeglut3-dev libxrandr-dev doxygen libxi-dev libopencv-dev automake
+# sudo apt-get install libturbojpeg0-dev (Debian)
 
 cd libfreenect2/depends
 sh install_ubuntu.sh
-sudo dpkg -i libglfw3*_3.0.4-1_*.deb
+sudo dpkg -i libglfw3*_3.0.4-1_*.deb  # Ubuntu 14.04 only
+# sudo apt-get install libglfw3-dev (Debian/Ubuntu 14.10+:)
 ```
+
+1. OpenCL dependency
+  * AMD GPU: Install the latest version of the AMD Catalyst drivers from https://support.amd.com and `apt-get install opencl-headers`.
+  * Nvidia GPU: Install the latest version of the Nvidia drivers, for example nvidia-346 from `ppa:xorg-edgers` and `apt-get install opencl-headers`.
+  * Intel GPU (kernel 3.16+ recommended): Install beignet-dev 1.0+, `apt-get install beignet-dev`. If not available, use this ppa `sudo apt-add-repository ppa:pmjdebruijn/beignet-testing`.
 
 1. Build the actual protonect executable
 
