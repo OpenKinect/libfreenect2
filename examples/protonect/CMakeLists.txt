@@ -23,6 +23,15 @@ IF(ENABLE_CXX11)
   ENDIF()
 ENDIF(ENABLE_CXX11)
 
+INCLUDE(CheckCXXCompilerFlag)
+SET(CMAKE_REQUIRED_FLAGS "-Wl,--exclude-libs,ALL")
+CHECK_CXX_COMPILER_FLAG("" _EXCLUDE_LIBS)
+SET(LINKER_EXCLUDE_LIBS ${_EXCLUDE_LIBS} CACHE BOOL "Linker supports --exclude-libs")
+SET(CMAKE_REQUIRED_FLAGS "-Wl,-exported_symbols_list,/dev/null")
+CHECK_CXX_COMPILER_FLAG("" _EXPORTED_SYMBOLS_LIST)
+SET(LINKER_EXPORTED_SYMBOLS_LIST ${_EXPORTED_SYMBOLS_LIST} CACHE BOOL "Linker supports -exported_symbols_list")
+SET(CMAKE_REQUIRED_FLAGS)
+
 # additional cmake modules
 LIST(APPEND CMAKE_MODULE_PATH ${MY_DIR}/cmake_modules)
 
@@ -173,6 +182,23 @@ set_target_properties(freenect2 PROPERTIES POSITION_INDEPENDENT_CODE 1)
 ADD_LIBRARY(freenect2shared SHARED $<TARGET_OBJECTS:freenect2>)
 ADD_LIBRARY(freenect2static STATIC $<TARGET_OBJECTS:freenect2>)
 set_target_properties(freenect2shared PROPERTIES OUTPUT_NAME freenect2)
+
+IF(LINKER_EXCLUDE_LIBS)
+  get_filename_component(LibUSB_STATIC_ARCHIVE_NAME ${LibUSB_STATIC_ARCHIVE} NAME)
+  SET_TARGET_PROPERTIES(freenect2shared PROPERTIES LINK_FLAGS "-Wl,--exclude-libs,${LibUSB_STATIC_ARCHIVE_NAME}")
+ELSEIF(LINKER_EXPORTED_SYMBOLS_LIST)
+  ADD_LIBRARY(testsym SHARED $<TARGET_OBJECTS:freenect2>)
+  TARGET_LINK_LIBRARIES(testsym ${LIBRARIES})
+  ADD_CUSTOM_TARGET(gensym
+    COMMAND nm -gj $<TARGET_FILE:testsym> | grep -v ^_libusb >${CMAKE_BINARY_DIR}/nolibusb.sym
+    DEPENDS testsym
+  )
+  ADD_DEPENDENCIES(freenect2shared gensym)
+  SET_TARGET_PROPERTIES(freenect2shared PROPERTIES LINK_FLAGS "-Wl,-exported_symbols_list,${CMAKE_BINARY_DIR}/nolibusb.sym")
+ELSE()
+  MESSAGE(FATAL_ERROR "Linker has no symbol hiding support")
+ENDIF()
+
 set_target_properties(freenect2static PROPERTIES OUTPUT_NAME freenect2)
 IF(MSVC)
   set_target_properties(freenect2static PROPERTIES OUTPUT_NAME freenect2static)
