@@ -15,7 +15,7 @@ git clone https://github.com/libusb/libusb.git $LIBUSB_SOURCE_DIR
 cd $LIBUSB_SOURCE_DIR
 git checkout 51b10191033ca3a3819dcf46e1da2465b99497c2
 ./bootstrap.sh
-./configure --prefix=$LIBUSB_INSTALL_DIR
+CFLAGS=-fPIC ./configure --prefix=$LIBUSB_INSTALL_DIR
 make && make install
 
 cd $DEPENDS_DIR
