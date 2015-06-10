@@ -439,10 +439,12 @@ namespace Freenect2Driver
         {
           WriteMessage("Closing device " + std::string(iter->first.uri));
           int id = uri_to_devid(iter->first.uri);
-          devices.erase(iter);
+
           Device* device = (Device*)iter->second;
           device->stop();
           device->close();
+
+          devices.erase(iter);
           return;
         }
       }
