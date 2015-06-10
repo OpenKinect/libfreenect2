@@ -37,8 +37,13 @@ ELSEIF(MSVC)
   SET(_SUFFIX lib-vc2013)
 ENDIF()
 
+SET(LIB_NAME glfw3dll)
+IF(USE_STATIC_LIBS)
+  SET(LIB_NAME glfw3)
+ENDIF()
+
 FIND_LIBRARY(GLFW3_LIBRARIES
-  NAMES glfw3dll glfw3
+  NAMES ${LIB_NAME}
   PATHS
     "${DEPENDS_DIR}/glfw"
     "$ENV{ProgramW6432}/glfw"
