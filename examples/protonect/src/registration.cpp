@@ -100,48 +100,107 @@ void Registration::apply(const Frame *rgb, const Frame *depth, Frame *undistorte
   const int *map_dist = distort_map;
   const float *map_x = depth_to_color_map_x;
   const int *map_yi = depth_to_color_map_yi;
+
   const int size_depth = 512 * 424;
-  const int size_color = 1920 * 1080 * 3;
+  const int size_color = 1920 * 1080;
   const float color_cx = color.cx + 0.5f; // 0.5f added for later rounding
 
+  // size of filter map with a border of filter_height_half on top and bottom so that no check for borders is needed.
+  // since the color image is wide angle no border to the sides is needed.
+  const int size_filter_map = size_color + 1920 * filter_height_half * 2;
+  // offset to the important data
+  const int offset_filter_map = 1920 * filter_height_half;
+
+  // map for storing the min z values used for each color pixel
+  float *filter_map = new float[size_filter_map];
+  // pointer to the beginning of the important data
+  float *p_filter_map = filter_map + offset_filter_map;
+
+  // map for storing the color offest for each depth pixel
+  int *depth_to_c_off = new int[size_depth];
+  int *map_c_off = depth_to_c_off;
+
+  // initializing the depth_map with values outside of the Kinect2 range
+  for(float *it = filter_map, *end = filter_map + size_filter_map; it != end; ++it){
+    *it = 65536.0f;
+  }
+
   // iterating over all pixels from undistorted depth and registered color image
-  // the three maps have the same structure as the images, so their pointers are increased each iteration as well
-  for (int i = 0; i < size_depth; ++i, ++registered_data, ++undistorted_data, ++map_dist, ++map_x, ++map_yi) {
+  // the four maps have the same structure as the images, so their pointers are increased each iteration as well
+  for(int i = 0; i < size_depth; ++i, ++undistorted_data, ++map_dist, ++map_x, ++map_yi, ++map_c_off){
     // getting index of distorted depth pixel
     const int index = *map_dist;
 
     // check if distorted depth pixel is outside of the depth image
     if(index < 0){
+      *map_c_off = -1;
       *undistorted_data = 0;
-      *registered_data = 0;
-      *++registered_data = 0;
-      *++registered_data = 0;
       continue;
     }
 
     // getting depth value for current pixel
-    const float z_raw = depth_data[index];
-    *undistorted_data = z_raw;
+    const float z = depth_data[index];
+    *undistorted_data = z;
 
     // checking for invalid depth value
-    if (z_raw <= 0.0f) {
+    if(z <= 0.0f){
+      *map_c_off = -1;
+      continue;
+    }
+
+    // calculating x offset for rgb image based on depth value
+    const float rx = (*map_x + (color.shift_m / z)) * color.fx + color_cx;
+    const int cx = rx; // same as round for positive numbers (0.5f was already added to color_cx)
+    // getting y offset for depth image
+    const int cy = *map_yi;
+    // combining offsets
+    const int c_off = cx + cy * 1920;
+
+    // check if c_off is outside of rgb image
+    // checking rx/cx is not needed because the color image is much wider then the depth image
+    if(c_off < 0 || c_off >= size_color){
+      *map_c_off = -1;
+      continue;
+    }
+
+    // setting a window around the filter map pixel corresponding to the color pixel with the current z value
+    int yi = (cy - filter_height_half) * 1920 + cx - filter_width_half; // index of first pixel to set
+    for(int r = -filter_height_half; r <= filter_height_half; ++r, yi += 1920) // index increased by a full row each iteration
+    {
+      float *it = p_filter_map + yi;
+      for(int c = -filter_width_half; c <= filter_width_half; ++c, ++it)
+      {
+        // only set if the current z is smaller
+        if(z < *it)
+          *it = z;
+      }
+    }
+
+    // saving the offset for later
+    *map_c_off = c_off;
+  }
+
+  // reseting the pointers to the beginning
+  undistorted_data = (float*)undistorted->data;
+  map_c_off = depth_to_c_off;
+
+  // run through all registered color pixels and set them based on filter results
+  for(int i = 0; i < size_depth; ++i, ++registered_data, ++map_c_off, ++undistorted_data){
+    const int c_off = *map_c_off;
+
+    // check if offset is out of image
+    if(c_off < 0){
       *registered_data = 0;
       *++registered_data = 0;
       *++registered_data = 0;
       continue;
     }
 
-    // calculating x offset for rgb image based on depth value
-    const float rx = (*map_x + (color.shift_m / z_raw)) * color.fx + color_cx;
-    const int cx = rx; // same as round for positive numbers (0.5f was already added to color_cx)
-    // getting y offset for depth image
-    const int cy = *map_yi;
-    // combining offsets
-    const int c_off = cx * 3 + cy;
+    const float min_z = p_filter_map[c_off];
+    const float z = *undistorted_data;
 
-    // check if c_off is outside of rgb image
-    // checking rx/cx is not needed because the color image is much wider then the depth image
-    if (c_off < 0 || c_off >= size_color) {
+    // check for allowed depth noise
+    if((z - min_z) / z > filter_tolerance) {
       *registered_data = 0;
       *++registered_data = 0;
       *++registered_data = 0;
@@ -149,15 +208,19 @@ void Registration::apply(const Frame *rgb, const Frame *depth, Frame *undistorte
     }
 
     // Setting RGB or registered image
-    const unsigned char *rgb_data = rgb->data + c_off;
+    const unsigned char *rgb_data = rgb->data + c_off * 3;
     *registered_data = *rgb_data;
     *++registered_data = *++rgb_data;
     *++registered_data = *++rgb_data;
   }
+
+  // delete the temporary maps
+  delete[] filter_map;
+  delete[] depth_to_c_off;
 }
 
 Registration::Registration(Freenect2Device::IrCameraParams depth_p, Freenect2Device::ColorCameraParams rgb_p):
-  depth(depth_p), color(rgb_p)
+  depth(depth_p), color(rgb_p), filter_width_half(2), filter_height_half(1), filter_tolerance(0.01f)
 {
   float mx, my;
   int ix, iy, index;
@@ -186,7 +249,7 @@ Registration::Registration(Freenect2Device::IrCameraParams depth_p, Freenect2Dev
       *map_x++ = rx;
       *map_y++ = ry;
       // compute the y offset to minimize later computations
-      *map_yi++ = roundf(ry) * 1920 * 3;
+      *map_yi++ = roundf(ry);
     }
   }
 }

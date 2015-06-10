@@ -57,6 +57,10 @@ private:
   float depth_to_color_map_x[512 * 424];
   float depth_to_color_map_y[512 * 424];
   int depth_to_color_map_yi[512 * 424];
+
+  const int filter_width_half;
+  const int filter_height_half;
+  const float filter_tolerance;
 };
 
 } /* namespace libfreenect2 */
