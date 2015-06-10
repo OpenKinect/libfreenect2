@@ -247,9 +247,11 @@ public:
       case CL_DEVICE_TYPE_ACCELERATOR:
         devType = "ACCELERATOR";
         break;
+#ifdef CL_DEVICE_TYPE_CUSTOM
       case CL_DEVICE_TYPE_CUSTOM:
         devType = "CUSTOM";
         break;
+#endif
       default:
         devType = "UNKNOWN";
       }
@@ -329,9 +331,11 @@ public:
         case CL_DEVICE_TYPE_ACCELERATOR:
           devType = "ACCELERATOR";
           break;
+#ifdef CL_DEVICE_TYPE_CUSTOM
         case CL_DEVICE_TYPE_CUSTOM:
           devType = "CUSTOM";
           break;
+#endif
         default:
           devType = "UNKNOWN";
         }
