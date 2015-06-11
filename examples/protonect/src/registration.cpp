@@ -91,7 +91,7 @@ void Registration::apply(const Frame *rgb, const Frame *depth, Frame *undistorte
       rgb->width != 1920 || rgb->height != 1080 || (rgb->bytes_per_pixel != 3 && rgb->bytes_per_pixel != 4) ||
       depth->width != 512 || depth->height != 424 || depth->bytes_per_pixel != 4 ||
       undistorted->width != 512 || undistorted->height != 424 || undistorted->bytes_per_pixel != 4 ||
-      registered->width != 512 || registered->height != 424 || (registered->bytes_per_pixel != 3 && registered->bytes_per_pixel != 5))
+      registered->width != 512 || registered->height != 424 || registered->bytes_per_pixel != 4)
     return;
 
   const float *depth_data = (float*)depth->data;
@@ -205,8 +205,8 @@ void Registration::apply(const Frame *rgb, const Frame *depth, Frame *undistorte
       const float min_z = p_filter_map[c_off];
       const float z = *undistorted_data;
 
-      // check for allowed depth noise
-      *(int*)registered_data = (z - min_z) / z > filter_tolerance ? 0 : *(int*)(rgb->data + c_off * rgb->bytes_per_pixel);
+      // check for allowed depth noise and make sure the alpha channel is not set because it could belong to the next pixel for 3 byte images.
+      *(unsigned int*)registered_data = (z - min_z) / z > filter_tolerance ? 0 : (*(unsigned int*)(rgb->data + c_off * rgb->bytes_per_pixel)) & 0x00FFFFFF;
     }
 
     // delete the temporary maps
@@ -217,8 +217,8 @@ void Registration::apply(const Frame *rgb, const Frame *depth, Frame *undistorte
     for(int i = 0; i < size_depth; ++i, ++map_c_off, registered_data += registered->bytes_per_pixel){
       const int c_off = *map_c_off;
 
-      // check if offset is out of image
-      *(int*)registered_data = c_off < 0 ? 0 : *(int*)(rgb->data + c_off * rgb->bytes_per_pixel);
+      // check if offset is out of image and make sure the alpha channel is not set because it could belong to the next pixel for 3 byte images.
+      *(unsigned int*)registered_data = c_off < 0 ? 0 : (*(unsigned int*)(rgb->data + c_off * rgb->bytes_per_pixel)) & 0x00FFFFFF;
     }
   }
   delete[] depth_to_c_off;
