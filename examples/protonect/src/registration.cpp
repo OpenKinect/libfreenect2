@@ -84,7 +84,7 @@ void Registration::apply( int dx, int dy, float dz, float& cx, float &cy) const
   cx = rx * color.fx + color.cx;
 }
 
-void Registration::apply(const Frame *rgb, const Frame *depth, Frame *undistorted, Frame *registered) const
+void Registration::apply(const Frame *rgb, const Frame *depth, Frame *undistorted, Frame *registered, const bool enable_filter) const
 {
   // Check if all frames are valid and have the correct size
   if (!undistorted || !rgb || !registered ||
@@ -112,17 +112,22 @@ void Registration::apply(const Frame *rgb, const Frame *depth, Frame *undistorte
   const int offset_filter_map = 1920 * filter_height_half;
 
   // map for storing the min z values used for each color pixel
-  float *filter_map = new float[size_filter_map];
+  float *filter_map = NULL;
   // pointer to the beginning of the important data
-  float *p_filter_map = filter_map + offset_filter_map;
+  float *p_filter_map = NULL;
 
   // map for storing the color offest for each depth pixel
   int *depth_to_c_off = new int[size_depth];
   int *map_c_off = depth_to_c_off;
 
   // initializing the depth_map with values outside of the Kinect2 range
-  for(float *it = filter_map, *end = filter_map + size_filter_map; it != end; ++it){
-    *it = 65536.0f;
+  if(enable_filter){
+    filter_map = new float[size_filter_map];
+    p_filter_map = filter_map + offset_filter_map;
+
+    for(float *it = filter_map, *end = filter_map + size_filter_map; it != end; ++it){
+      *it = 65536.0f;
+    }
   }
 
   // iterating over all pixels from undistorted depth and registered color image
@@ -163,53 +168,59 @@ void Registration::apply(const Frame *rgb, const Frame *depth, Frame *undistorte
       continue;
     }
 
-    // setting a window around the filter map pixel corresponding to the color pixel with the current z value
-    int yi = (cy - filter_height_half) * 1920 + cx - filter_width_half; // index of first pixel to set
-    for(int r = -filter_height_half; r <= filter_height_half; ++r, yi += 1920) // index increased by a full row each iteration
-    {
-      float *it = p_filter_map + yi;
-      for(int c = -filter_width_half; c <= filter_width_half; ++c, ++it)
-      {
-        // only set if the current z is smaller
-        if(z < *it)
-          *it = z;
-      }
-    }
-
     // saving the offset for later
     *map_c_off = c_off;
+
+    if(enable_filter){
+      // setting a window around the filter map pixel corresponding to the color pixel with the current z value
+      int yi = (cy - filter_height_half) * 1920 + cx - filter_width_half; // index of first pixel to set
+      for(int r = -filter_height_half; r <= filter_height_half; ++r, yi += 1920) // index increased by a full row each iteration
+      {
+        float *it = p_filter_map + yi;
+        for(int c = -filter_width_half; c <= filter_width_half; ++c, ++it)
+        {
+          // only set if the current z is smaller
+          if(z < *it)
+            *it = z;
+        }
+      }
+    }
   }
 
   // reseting the pointers to the beginning
-  undistorted_data = (float*)undistorted->data;
   map_c_off = depth_to_c_off;
+  undistorted_data = (float*)undistorted->data;
 
-  // run through all registered color pixels and set them based on filter results
-  for(int i = 0; i < size_depth; ++i, registered_data += registered->bytes_per_pixel, ++map_c_off, ++undistorted_data){
-    const int c_off = *map_c_off;
+  if(enable_filter){
+    // run through all registered color pixels and set them based on filter results
+    for(int i = 0; i < size_depth; ++i, ++map_c_off, ++undistorted_data, registered_data += registered->bytes_per_pixel){
+      const int c_off = *map_c_off;
 
-    // check if offset is out of image
-    if(c_off < 0){
-      *(int*)registered_data = 0;
-      continue;
+      // check if offset is out of image
+      if(c_off < 0){
+        *(int*)registered_data = 0;
+        continue;
+      }
+
+      const float min_z = p_filter_map[c_off];
+      const float z = *undistorted_data;
+
+      // check for allowed depth noise
+      *(int*)registered_data = (z - min_z) / z > filter_tolerance ? 0 : *(int*)(rgb->data + c_off * rgb->bytes_per_pixel);
     }
 
-    const float min_z = p_filter_map[c_off];
-    const float z = *undistorted_data;
-
-    // check for allowed depth noise
-    if((z - min_z) / z > filter_tolerance) {
-      *(int*)registered_data = 0;
-      continue;
-    }
-
-    // Setting RGB or registered image
-    const int *rgb_data = (int*)(rgb->data + c_off * rgb->bytes_per_pixel);
-    *(int*)registered_data = *rgb_data;
+    // delete the temporary maps
+    delete[] filter_map;
   }
+  else
+  {
+    for(int i = 0; i < size_depth; ++i, ++map_c_off, registered_data += registered->bytes_per_pixel){
+      const int c_off = *map_c_off;
 
-  // delete the temporary maps
-  delete[] filter_map;
+      // check if offset is out of image
+      *(int*)registered_data = c_off < 0 ? 0 : *(int*)(rgb->data + c_off * rgb->bytes_per_pixel);
+    }
+  }
   delete[] depth_to_c_off;
 }
 
