@@ -124,7 +124,7 @@ int main(int argc, char *argv[])
 
   libfreenect2::SyncMultiFrameListener listener(libfreenect2::Frame::Color | libfreenect2::Frame::Ir | libfreenect2::Frame::Depth);
   libfreenect2::FrameMap frames;
-  libfreenect2::Frame undistorted(512, 424, 4), registered(512, 424, 3);
+  libfreenect2::Frame undistorted(512, 424, 4), registered(512, 424, 4);
 
   dev->setColorFrameListener(&listener);
   dev->setIrAndDepthFrameListener(&listener);
@@ -149,7 +149,7 @@ int main(int argc, char *argv[])
     registration->apply(rgb,depth,&undistorted,&registered);
 
     cv::imshow("undistorted", cv::Mat(undistorted.height, undistorted.width, CV_32FC1, undistorted.data) / 4500.0f);
-    cv::imshow("registered", cv::Mat(registered.height, registered.width, CV_8UC3, registered.data));
+    cv::imshow("registered", cv::Mat(registered.height, registered.width, CV_8UC4, registered.data));
 
     int key = cv::waitKey(1);
     protonect_shutdown = protonect_shutdown || (key > 0 && ((key & 0xFF) == 27)); // shutdown on escape
