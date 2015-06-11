@@ -86,6 +86,11 @@ public:
   virtual Freenect2Device::ColorCameraParams getColorCameraParams();
   virtual Freenect2Device::IrCameraParams getIrCameraParams();
 
+  virtual std::string QuerySerialNumber();
+
+  virtual ColorCameraParams QueryColorCameraParams();
+  virtual IrCameraParams QueryIrCameraParams();
+
   int nextCommandSeq();
 
   bool open();
@@ -376,11 +381,77 @@ Freenect2Device::ColorCameraParams Freenect2DeviceImpl::getColorCameraParams()
   return rgb_camera_params_;
 }
 
-
 Freenect2Device::IrCameraParams Freenect2DeviceImpl::getIrCameraParams()
 {
   return ir_camera_params_;
 }
+
+std::string Freenect2DeviceImpl::QuerySerialNumber()
+{
+  CommandTransaction::Result serial_result;
+  command_tx_.execute(ReadSerialNumberCommand(nextCommandSeq()), serial_result);
+  std::string new_serial = SerialNumberResponse(serial_result.data, serial_result.length).toString();
+  return new_serial;
+}
+
+Freenect2Device::ColorCameraParams Freenect2DeviceImpl::QueryColorCameraParams()
+{
+  CommandTransaction::Result result;
+  command_tx_.execute(ReadRgbCameraParametersCommand(nextCommandSeq()), result);
+  RgbCameraParamsResponse *rgb_p = reinterpret_cast<RgbCameraParamsResponse *>(result.data);
+
+  rgb_camera_params_.fx = rgb_p->color_f;
+  rgb_camera_params_.fy = rgb_p->color_f;
+  rgb_camera_params_.cx = rgb_p->color_cx;
+  rgb_camera_params_.cy = rgb_p->color_cy;
+
+  rgb_camera_params_.shift_d = rgb_p->shift_d;
+  rgb_camera_params_.shift_m = rgb_p->shift_m;
+
+  rgb_camera_params_.mx_x3y0 = rgb_p->mx_x3y0; // xxx
+  rgb_camera_params_.mx_x0y3 = rgb_p->mx_x0y3; // yyy
+  rgb_camera_params_.mx_x2y1 = rgb_p->mx_x2y1; // xxy
+  rgb_camera_params_.mx_x1y2 = rgb_p->mx_x1y2; // yyx
+  rgb_camera_params_.mx_x2y0 = rgb_p->mx_x2y0; // xx
+  rgb_camera_params_.mx_x0y2 = rgb_p->mx_x0y2; // yy
+  rgb_camera_params_.mx_x1y1 = rgb_p->mx_x1y1; // xy
+  rgb_camera_params_.mx_x1y0 = rgb_p->mx_x1y0; // x
+  rgb_camera_params_.mx_x0y1 = rgb_p->mx_x0y1; // y
+  rgb_camera_params_.mx_x0y0 = rgb_p->mx_x0y0; // 1
+
+  rgb_camera_params_.my_x3y0 = rgb_p->my_x3y0; // xxx
+  rgb_camera_params_.my_x0y3 = rgb_p->my_x0y3; // yyy
+  rgb_camera_params_.my_x2y1 = rgb_p->my_x2y1; // xxy
+  rgb_camera_params_.my_x1y2 = rgb_p->my_x1y2; // yyx
+  rgb_camera_params_.my_x2y0 = rgb_p->my_x2y0; // xx
+  rgb_camera_params_.my_x0y2 = rgb_p->my_x0y2; // yy
+  rgb_camera_params_.my_x1y1 = rgb_p->my_x1y1; // xy
+  rgb_camera_params_.my_x1y0 = rgb_p->my_x1y0; // x
+  rgb_camera_params_.my_x0y1 = rgb_p->my_x0y1; // y
+  rgb_camera_params_.my_x0y0 = rgb_p->my_x0y0; // 1
+
+  return rgb_camera_params_;
+}
+
+Freenect2Device::IrCameraParams Freenect2DeviceImpl::QueryIrCameraParams()
+{
+  CommandTransaction::Result result;
+  command_tx_.execute(ReadDepthCameraParametersCommand(nextCommandSeq()), result);
+  DepthCameraParamsResponse *ir_p = reinterpret_cast<DepthCameraParamsResponse *>(result.data);
+
+  ir_camera_params_.fx = ir_p->fx;
+  ir_camera_params_.fy = ir_p->fy;
+  ir_camera_params_.cx = ir_p->cx;
+  ir_camera_params_.cy = ir_p->cy;
+  ir_camera_params_.k1 = ir_p->k1;
+  ir_camera_params_.k2 = ir_p->k2;
+  ir_camera_params_.k3 = ir_p->k3;
+  ir_camera_params_.p1 = ir_p->p1;
+  ir_camera_params_.p2 = ir_p->p2;
+
+  return ir_camera_params_;
+}
+
 void Freenect2DeviceImpl::setColorFrameListener(libfreenect2::FrameListener* rgb_frame_listener)
 {
   // TODO: should only be possible, if not started
