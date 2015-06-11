@@ -25,6 +25,8 @@
 #include "Driver/OniDriverAPI.h"
 #include "libfreenect2/libfreenect2.hpp"
 #include <libfreenect2/frame_listener.hpp>
+#include <libfreenect2/frame_listener_impl.h>
+#include <libfreenect2/threading.h>
 #include "DepthStream.hpp"
 #include "ColorStream.hpp"
 #include "IrStream.hpp"
@@ -34,7 +36,7 @@ namespace Freenect2Driver
 {
   typedef std::map<std::string, std::string> ConfigStrings;
 
-  class Device : public oni::driver::DeviceBase,  public libfreenect2::FrameListener
+  class Device : public oni::driver::DeviceBase
   {
   private:
     libfreenect2::Freenect2Device *dev;
@@ -43,6 +45,9 @@ namespace Freenect2Driver
     IrStream* ir;
     Registration *reg;
     ConfigStrings config;
+    bool device_stop;
+    libfreenect2::SyncMultiFrameListener listener;
+    libfreenect2::thread* thread;
 
     struct timeval ts_epoc;
     long getTimestamp() {
@@ -51,22 +56,31 @@ namespace Freenect2Driver
       return (ts.tv_sec - ts_epoc.tv_sec) * 1000 + ts.tv_usec / 1000;  // XXX, ignoring nsec of the epoc.
     }
 
-    // for Freenect::FreenectDevice
-    bool onNewFrame(libfreenect2::Frame::Type type, libfreenect2::Frame *frame) {
-      if (type == libfreenect2::Frame::Color) {
-        if (color)
-          return color->buildFrame(frame, getTimestamp());
-      } else 
-      if (type == libfreenect2::Frame::Ir) {
-        if (ir)
-          return ir->buildFrame(frame, getTimestamp());
-      } else 
-      if (type == libfreenect2::Frame::Depth) {
-        if (depth)
-          return depth->buildFrame(frame, getTimestamp());
+    static void static_run(void* cookie)
+    {
+      static_cast<Device*>(cookie)->run();
       }
 
-      return false;
+    void run()
+    {
+      libfreenect2::FrameMap frames;
+      while(!device_stop)
+      {
+        listener.waitForNewFrame(frames);
+
+        libfreenect2::Frame *irFrame    = frames[libfreenect2::Frame::Ir];
+        libfreenect2::Frame *depthFrame = frames[libfreenect2::Frame::Depth];
+        libfreenect2::Frame *colorFrame = frames[libfreenect2::Frame::Color];
+        const long timeStamp = getTimestamp();
+        if (depth)
+          depth->buildFrame(depthFrame, timeStamp);
+        if (ir)
+          ir->buildFrame(irFrame, timeStamp);
+        if (color)
+          color->buildFrame(colorFrame, timeStamp);
+
+        listener.release(frames);
+    }
     }
 
     OniStatus setStreamProperties(VideoStream* stream, std::string pfx)
@@ -92,12 +106,17 @@ namespace Freenect2Driver
       reg(NULL),
       color(NULL),
       ir(NULL),
-      depth(NULL)
+      depth(NULL),
+      device_stop(false),
+      listener(libfreenect2::Frame::Depth | libfreenect2::Frame::Ir | libfreenect2::Frame::Color),
+      thread(NULL)
     {
       gettimeofday(&ts_epoc, NULL);
+      thread = new libfreenect2::thread(&Device::static_run, this);
     }
     ~Device()
     {
+      close();
       destroyStream(color);
       destroyStream(ir);
       destroyStream(depth);
@@ -110,16 +129,29 @@ namespace Freenect2Driver
     // for Freenect2Device
     void setFreenect2Device(libfreenect2::Freenect2Device *dev) {
       this->dev = dev;
-      dev->setColorFrameListener(this);
-      dev->setIrAndDepthFrameListener(this);
+      dev->setColorFrameListener(&listener);
+      dev->setIrAndDepthFrameListener(&listener);
       reg = new Registration(dev);
     }
     void setConfigStrings(ConfigStrings& config) {
       this->config = config;
     }
-    void start() { dev->start(); }
-    void stop() { dev->stop(); }
-    void close() { dev->close(); }
+    void start() { 
+      //TODO: start thread executing the run() method
+      //device_stop = false;
+      //thread = new libfreenect2::thread(&Device::static_run, this);
+      dev->start(); 
+    }
+    void stop() { 
+      device_stop = true;
+      thread->join();
+
+      dev->stop(); 
+    }
+    void close() { 
+      stop();
+      dev->close(); 
+    }
 
     // for DeviceBase
 
