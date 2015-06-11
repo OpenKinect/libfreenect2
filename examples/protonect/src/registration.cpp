@@ -88,10 +88,10 @@ void Registration::apply(const Frame *rgb, const Frame *depth, Frame *undistorte
 {
   // Check if all frames are valid and have the correct size
   if (!undistorted || !rgb || !registered ||
-      rgb->width != 1920 || rgb->height != 1080 || rgb->bytes_per_pixel != 3 ||
+      rgb->width != 1920 || rgb->height != 1080 || (rgb->bytes_per_pixel != 3 && rgb->bytes_per_pixel != 4) ||
       depth->width != 512 || depth->height != 424 || depth->bytes_per_pixel != 4 ||
       undistorted->width != 512 || undistorted->height != 424 || undistorted->bytes_per_pixel != 4 ||
-      registered->width != 512 || registered->height != 424 || registered->bytes_per_pixel != 3)
+      registered->width != 512 || registered->height != 424 || (registered->bytes_per_pixel != 3 && registered->bytes_per_pixel != 5))
     return;
 
   const float *depth_data = (float*)depth->data;
@@ -185,14 +185,12 @@ void Registration::apply(const Frame *rgb, const Frame *depth, Frame *undistorte
   map_c_off = depth_to_c_off;
 
   // run through all registered color pixels and set them based on filter results
-  for(int i = 0; i < size_depth; ++i, ++registered_data, ++map_c_off, ++undistorted_data){
+  for(int i = 0; i < size_depth; ++i, registered_data += registered->bytes_per_pixel, ++map_c_off, ++undistorted_data){
     const int c_off = *map_c_off;
 
     // check if offset is out of image
     if(c_off < 0){
-      *registered_data = 0;
-      *++registered_data = 0;
-      *++registered_data = 0;
+      *(int*)registered_data = 0;
       continue;
     }
 
@@ -201,17 +199,13 @@ void Registration::apply(const Frame *rgb, const Frame *depth, Frame *undistorte
 
     // check for allowed depth noise
     if((z - min_z) / z > filter_tolerance) {
-      *registered_data = 0;
-      *++registered_data = 0;
-      *++registered_data = 0;
+      *(int*)registered_data = 0;
       continue;
     }
 
     // Setting RGB or registered image
-    const unsigned char *rgb_data = rgb->data + c_off * 3;
-    *registered_data = *rgb_data;
-    *++registered_data = *++rgb_data;
-    *++registered_data = *++rgb_data;
+    const int *rgb_data = (int*)(rgb->data + c_off * rgb->bytes_per_pixel);
+    *(int*)registered_data = *rgb_data;
   }
 
   // delete the temporary maps
