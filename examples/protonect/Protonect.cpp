@@ -142,7 +142,7 @@ int main(int argc, char *argv[])
     libfreenect2::Frame *ir = frames[libfreenect2::Frame::Ir];
     libfreenect2::Frame *depth = frames[libfreenect2::Frame::Depth];
 
-    cv::imshow("rgb", cv::Mat(rgb->height, rgb->width, CV_8UC3, rgb->data));
+    cv::imshow("rgb", cv::Mat(rgb->height, rgb->width, CV_8UC4, rgb->data));
     cv::imshow("ir", cv::Mat(ir->height, ir->width, CV_32FC1, ir->data) / 20000.0f);
     cv::imshow("depth", cv::Mat(depth->height, depth->width, CV_32FC1, depth->data) / 4500.0f);
 

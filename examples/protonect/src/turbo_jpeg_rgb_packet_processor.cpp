@@ -73,7 +73,7 @@ public:
 
   void newFrame()
   {
-    frame = new Frame(1920, 1080, tjPixelSize[TJPF_BGR]);
+    frame = new Frame(1920, 1080, tjPixelSize[TJPF_BGRX]);
   }
 
   void startTiming()
@@ -115,7 +115,7 @@ void TurboJpegRgbPacketProcessor::process(const RgbPacket &packet)
     impl_->frame->timestamp = packet.timestamp;
     impl_->frame->sequence = packet.sequence;
 
-    int r = tjDecompress2(impl_->decompressor, packet.jpeg_buffer, packet.jpeg_buffer_length, impl_->frame->data, 1920, 1920 * tjPixelSize[TJPF_BGR], 1080, TJPF_BGR, 0);
+    int r = tjDecompress2(impl_->decompressor, packet.jpeg_buffer, packet.jpeg_buffer_length, impl_->frame->data, 1920, 1920 * tjPixelSize[TJPF_BGRX], 1080, TJPF_BGRX, 0);
 
     if(r == 0)
     {

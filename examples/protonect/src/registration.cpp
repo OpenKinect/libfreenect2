@@ -88,15 +88,16 @@ void Registration::apply(const Frame *rgb, const Frame *depth, Frame *undistorte
 {
   // Check if all frames are valid and have the correct size
   if (!undistorted || !rgb || !registered ||
-      rgb->width != 1920 || rgb->height != 1080 || (rgb->bytes_per_pixel != 3 && rgb->bytes_per_pixel != 4) ||
+      rgb->width != 1920 || rgb->height != 1080 || rgb->bytes_per_pixel != 4 ||
       depth->width != 512 || depth->height != 424 || depth->bytes_per_pixel != 4 ||
       undistorted->width != 512 || undistorted->height != 424 || undistorted->bytes_per_pixel != 4 ||
       registered->width != 512 || registered->height != 424 || registered->bytes_per_pixel != 4)
     return;
 
   const float *depth_data = (float*)depth->data;
+  const unsigned int *rgb_data = (unsigned int*)rgb->data;
   float *undistorted_data = (float*)undistorted->data;
-  unsigned char *registered_data = registered->data;
+  unsigned int *registered_data = (unsigned int*)registered->data;
   const int *map_dist = distort_map;
   const float *map_x = depth_to_color_map_x;
   const int *map_yi = depth_to_color_map_yi;
@@ -193,32 +194,32 @@ void Registration::apply(const Frame *rgb, const Frame *depth, Frame *undistorte
 
   if(enable_filter){
     // run through all registered color pixels and set them based on filter results
-    for(int i = 0; i < size_depth; ++i, ++map_c_off, ++undistorted_data, registered_data += registered->bytes_per_pixel){
+    for(int i = 0; i < size_depth; ++i, ++map_c_off, ++undistorted_data, ++registered_data){
       const int c_off = *map_c_off;
 
       // check if offset is out of image
       if(c_off < 0){
-        *(int*)registered_data = 0;
+        *registered_data = 0;
         continue;
       }
 
       const float min_z = p_filter_map[c_off];
       const float z = *undistorted_data;
 
-      // check for allowed depth noise and make sure the alpha channel is not set because it could belong to the next pixel for 3 byte images.
-      *(unsigned int*)registered_data = (z - min_z) / z > filter_tolerance ? 0 : (*(unsigned int*)(rgb->data + c_off * rgb->bytes_per_pixel)) & 0x00FFFFFF;
+      // check for allowed depth noise
+      *registered_data = (z - min_z) / z > filter_tolerance ? 0 : *(rgb_data + c_off);
     }
 
-    // delete the temporary maps
     delete[] filter_map;
   }
   else
   {
-    for(int i = 0; i < size_depth; ++i, ++map_c_off, registered_data += registered->bytes_per_pixel){
+    // run through all registered color pixels and set them based on c_off
+    for(int i = 0; i < size_depth; ++i, ++map_c_off, ++registered_data){
       const int c_off = *map_c_off;
 
-      // check if offset is out of image and make sure the alpha channel is not set because it could belong to the next pixel for 3 byte images.
-      *(unsigned int*)registered_data = c_off < 0 ? 0 : (*(unsigned int*)(rgb->data + c_off * rgb->bytes_per_pixel)) & 0x00FFFFFF;
+      // check if offset is out of image
+      *registered_data = c_off < 0 ? 0 : *(rgb_data + c_off);
     }
   }
   delete[] depth_to_c_off;
