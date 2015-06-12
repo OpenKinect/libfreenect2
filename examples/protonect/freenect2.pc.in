@@ -1,0 +1,12 @@
+prefix=@CMAKE_INSTALL_PREFIX@
+exec_prefix=@CMAKE_INSTALL_PREFIX@
+libdir=${prefix}/lib
+includedir=${prefix}/include
+
+Name: freenect2 
+Description: Driver for the Kinect v2 (aka K4W) 
+Version: 
+Requires: @DEPS_PKGCONFIG@
+Libs: -L${libdir} -lfreenect2
+Cflags: -I${includedir}
+
