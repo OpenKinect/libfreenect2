@@ -69,13 +69,19 @@ void ColorStream::populateFrame(libfreenect2::Frame* srcFrame, int srcX, int src
       return;
 
     case ONI_PIXEL_FORMAT_RGB888:
-      libfreenect2::Frame registered(512, 424, 3);
+      if (reg->isEnabled()) {
+        libfreenect2::Frame registered(512, 424, 3);
 
-      reg->colorFrameRGB888(srcFrame, &registered);
+        reg->colorFrameRGB888(srcFrame, &registered);
 
-      copyFrame(static_cast<uint8_t*>(registered.data), srcX, srcY, registered.width * registered.bytes_per_pixel, 
-                static_cast<uint8_t*>(dstFrame->data), dstX, dstY, dstFrame->stride, 
-                width, height, mirroring);
+        copyFrame(static_cast<uint8_t*>(registered.data), srcX, srcY, registered.width * registered.bytes_per_pixel, 
+                  static_cast<uint8_t*>(dstFrame->data), dstX, dstY, dstFrame->stride, 
+                  width, height, mirroring);
+      } else {
+        copyFrame(static_cast<uint8_t*>(srcFrame->data), srcX, srcY, srcFrame->width * srcFrame->bytes_per_pixel, 
+                  static_cast<uint8_t*>(dstFrame->data), dstX, dstY, dstFrame->stride, 
+                  width, height, mirroring);
+      }
       return;
   }
 }
