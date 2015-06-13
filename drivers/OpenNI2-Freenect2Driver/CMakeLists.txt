@@ -2,9 +2,9 @@
 # OpenNI2-Freenect2Driver
 ##############################################################################
 
-set(LIBFREENECT2_DIR ..)
+set(LIBFREENECT2_DIR ../..)
 set(PROTONECT_DIR ${LIBFREENECT2_DIR}/examples/protonect)
-set(MY_DIR ${LIBFREENECT2_DIR}/OpenNI2-Freenect2Driver)
+set(MY_DIR ${LIBFREENECT2_DIR}/drivers/OpenNI2-Freenect2Driver)
 LIST(APPEND CMAKE_MODULE_PATH ${PROTONECT_DIR}/cmake_modules)
 # setup threading
 INCLUDE(SetupLibfreenect2Threading)
