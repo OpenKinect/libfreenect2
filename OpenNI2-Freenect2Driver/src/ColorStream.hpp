@@ -45,6 +45,16 @@ namespace Freenect2Driver
       return sensors;
     }
 
+    OniStatus setImageRegistrationMode(OniImageRegistrationMode mode)
+    {
+      if (mode == ONI_IMAGE_REGISTRATION_DEPTH_TO_COLOR) {
+        // XXX, switch color resolution to 512x424 for registrarion here
+        OniVideoMode video_mode = makeOniVideoMode(ONI_PIXEL_FORMAT_RGB888, 512, 424, 30);
+        setProperty(ONI_STREAM_PROPERTY_VIDEO_MODE, &video_mode, sizeof(video_mode));
+      }
+      return ONI_STATUS_OK;
+    }
+
     // from StreamBase
     OniBool isPropertySupported(int propertyId)
     {

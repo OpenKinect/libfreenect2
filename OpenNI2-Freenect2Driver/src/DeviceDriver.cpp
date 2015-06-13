@@ -296,7 +296,9 @@ namespace Freenect2Driver
             LogError("Unexpected size for ONI_DEVICE_PROPERTY_IMAGE_REGISTRATION");
             return ONI_STATUS_ERROR;
           }
-          return depth->setImageRegistrationMode(*(static_cast<const OniImageRegistrationMode*>(data)));
+          OniImageRegistrationMode mode = *(static_cast<const OniImageRegistrationMode*>(data));
+          color->setImageRegistrationMode(mode);
+          return depth->setImageRegistrationMode(mode);
       }
     }
 

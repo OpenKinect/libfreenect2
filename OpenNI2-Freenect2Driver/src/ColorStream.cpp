@@ -10,8 +10,7 @@ const float ColorStream::VERTICAL_FOV = 48.6 * (M_PI / 180);
 
 ColorStream::ColorStream(libfreenect2::Freenect2Device* pDevice, Freenect2Driver::Registration *reg) : VideoStream(pDevice, reg)
 {
-  //video_mode = makeOniVideoMode(ONI_PIXEL_FORMAT_RGB888, 1920, 1080, 30);
-  video_mode = makeOniVideoMode(ONI_PIXEL_FORMAT_RGB888, 512, 424, 30);
+  video_mode = makeOniVideoMode(ONI_PIXEL_FORMAT_RGB888, 1920, 1080, 30);
   setVideoMode(video_mode);
   pDevice->start();
 }
@@ -21,9 +20,8 @@ ColorStream::FreenectVideoModeMap ColorStream::getSupportedVideoModes()
 {
   FreenectVideoModeMap modes;
   //                    pixelFormat, resolutionX, resolutionY, fps    freenect_video_format, freenect_resolution
-  //modes[makeOniVideoMode(ONI_PIXEL_FORMAT_RGB888, 1920, 1080, 30)] = std::pair<freenect2_video_format, freenect2_resolution>(FREENECT2_VIDEO_RGB, FREENECT2_RESOLUTION_1920x1080);
   modes[makeOniVideoMode(ONI_PIXEL_FORMAT_RGB888, 512, 424, 30)] = std::pair<freenect2_video_format, freenect2_resolution>(FREENECT2_VIDEO_RGB, FREENECT2_RESOLUTION_1920x1080);
-
+  modes[makeOniVideoMode(ONI_PIXEL_FORMAT_RGB888, 1920, 1080, 30)] = std::pair<freenect2_video_format, freenect2_resolution>(FREENECT2_VIDEO_RGB, FREENECT2_RESOLUTION_1920x1080);
 
   return modes;
 
