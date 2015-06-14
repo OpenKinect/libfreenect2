@@ -21,7 +21,6 @@
 #include <map>
 #include <string>
 #include <array>
-#include <sys/time.h>
 #include "Driver/OniDriverAPI.h"
 #include "libfreenect2/libfreenect2.hpp"
 #include <libfreenect2/frame_listener.hpp>
@@ -49,13 +48,6 @@ namespace Freenect2Driver
     libfreenect2::SyncMultiFrameListener listener;
     libfreenect2::thread* thread;
 
-    struct timeval ts_epoc;
-    long getTimestamp() {
-      struct timeval ts;
-      gettimeofday(&ts, NULL);
-      return (ts.tv_sec - ts_epoc.tv_sec) * 1000 + ts.tv_usec / 1000;  // XXX, ignoring nsec of the epoc.
-    }
-
     static void static_run(void* cookie)
     {
       static_cast<Device*>(cookie)->run();
@@ -71,13 +63,12 @@ namespace Freenect2Driver
         libfreenect2::Frame *irFrame    = frames[libfreenect2::Frame::Ir];
         libfreenect2::Frame *depthFrame = frames[libfreenect2::Frame::Depth];
         libfreenect2::Frame *colorFrame = frames[libfreenect2::Frame::Color];
-        const long timeStamp = getTimestamp();
         if (depth)
-          depth->buildFrame(depthFrame, timeStamp);
+          depth->buildFrame(depthFrame);
         if (ir)
-          ir->buildFrame(irFrame, timeStamp);
+          ir->buildFrame(irFrame);
         if (color)
-          color->buildFrame(colorFrame, timeStamp);
+          color->buildFrame(colorFrame);
 
         listener.release(frames);
     }
@@ -111,7 +102,6 @@ namespace Freenect2Driver
       listener(libfreenect2::Frame::Depth | libfreenect2::Frame::Ir | libfreenect2::Frame::Color),
       thread(NULL)
     {
-      gettimeofday(&ts_epoc, NULL);
       thread = new libfreenect2::thread(&Device::static_run, this);
     }
     ~Device()

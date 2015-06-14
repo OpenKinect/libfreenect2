@@ -70,14 +70,14 @@ namespace Freenect2Driver
       StreamBase::setPropertyChangedCallback(handler, pCookie);
     }
 
-    bool buildFrame(libfreenect2::Frame* lf2Frame, uint32_t timestamp)
+    bool buildFrame(libfreenect2::Frame* lf2Frame)
     {
       if (!running)
         return false;
 
       OniFrame* oniFrame = getServices().acquireFrame();
       oniFrame->frameIndex = frame_id++;
-      oniFrame->timestamp = timestamp;
+      oniFrame->timestamp = lf2Frame->sequence*33369;
       oniFrame->videoMode = video_mode;
       oniFrame->width = video_mode.resolutionX;
       oniFrame->height = video_mode.resolutionY;
