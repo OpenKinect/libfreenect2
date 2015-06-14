@@ -24,6 +24,22 @@ FIND_PATH(LibUSB_INCLUDE_DIRS
     libusb
 )
 
+SET(SUFFIXES
+  x64/Release/dll
+  x64/Debug/dll
+  Win32/Release/dll
+  Win32/Debug/dll
+  MS64
+)
+IF(USE_STATIC_LIBS)
+  SET(SUFFIXES
+    x64/Release/lib
+    x64/Debug/lib
+    Win32/Release/lib
+    Win32/Debug/lib
+  )
+ENDIF()
+
 FIND_LIBRARY(LibUSB_LIBRARIES
   NAMES libusb-1.0
   PATHS
@@ -31,11 +47,7 @@ FIND_LIBRARY(LibUSB_LIBRARIES
     "${DEPENDS_DIR}/libusbx"
     ENV LibUSB_ROOT
   PATH_SUFFIXES
-    x64/Release/dll
-    x64/Debug/dll
-    Win32/Release/dll
-    Win32/Debug/dll
-    MS64
+    ${SUFFIXES}
 )
 
 INCLUDE(FindPackageHandleStandardArgs)

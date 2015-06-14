@@ -37,10 +37,18 @@ SET(EXECUTABLE_OUTPUT_PATH ${MY_DIR}/bin)
 #set the default path for built libraries to the "lib" directory
 SET(LIBRARY_OUTPUT_PATH ${MY_DIR}/lib)
 
+IF(WIN32)
+  SET(USE_STATIC_LIBS TRUE CACHE BOOL "Prefer static libraries")
+  IF(BUILD_SHARED_LIBS)
+    SET(USE_STATIC_LIBS FALSE)
+  ENDIF()
+ENDIF()
+
 # dependencies
-FIND_PACKAGE(PkgConfig)    # try find PKGConfig as it will be used if found
+FIND_PACKAGE(PkgConfig QUIET)    # try find PKGConfig as it will be used if found
 FIND_PACKAGE(LibUSB REQUIRED)
-FIND_PACKAGE(OpenCV REQUIRED)
+SET(OpenCV_STATIC ${USE_STATIC_LIBS})
+FIND_PACKAGE(OpenCV REQUIRED core highgui)
 FIND_PACKAGE(TurboJPEG REQUIRED) #does not provide a package-config file
 
 # Add includes
@@ -103,7 +111,6 @@ SET(SOURCES
 )
 
 SET(LIBRARIES
-  ${OpenCV_LIBS}
   ${OpenCV_LIBRARIES}
   ${LibUSB_LIBRARIES}
   ${TurboJPEG_LIBRARIES}
@@ -171,29 +178,45 @@ CONFIGURE_FILE("${MY_DIR}/include/libfreenect2/config.h.in" "${MY_DIR}/include/l
 GENERATE_RESOURCES(${RESOURCES_INC_FILE} ${MY_DIR} ${RESOURCES})
 
 ADD_DEFINITIONS(-DRESOURCES_INC)
+IF(USE_STATIC_LIBS)
+  ADD_LIBRARY(freenect2static STATIC ${SOURCES})
+  set_target_properties(freenect2static PROPERTIES COMPILE_FLAGS "/MT")
+ELSE(USE_STATIC_LIBS)
 ADD_LIBRARY(freenect2 OBJECT ${SOURCES})
 set_target_properties(freenect2 PROPERTIES POSITION_INDEPENDENT_CODE 1)
 ADD_LIBRARY(freenect2shared SHARED $<TARGET_OBJECTS:freenect2>)
 ADD_LIBRARY(freenect2static STATIC $<TARGET_OBJECTS:freenect2>)
+TARGET_LINK_LIBRARIES(freenect2shared ${LIBRARIES})
 set_target_properties(freenect2shared PROPERTIES OUTPUT_NAME freenect2)
+ENDIF(USE_STATIC_LIBS)
 set_target_properties(freenect2static PROPERTIES OUTPUT_NAME freenect2)
 IF(MSVC)
   set_target_properties(freenect2static PROPERTIES OUTPUT_NAME freenect2static)
 ENDIF()
 MESSAGE("Linking with these libraries: ${LIBRARIES}")
-TARGET_LINK_LIBRARIES(freenect2shared ${LIBRARIES})
   
 ADD_EXECUTABLE(Protonect
   Protonect.cpp
 )
-  
+
+IF(USE_STATIC_LIBS)
+  set_target_properties(Protonect PROPERTIES COMPILE_FLAGS "/MT")
+  TARGET_LINK_LIBRARIES(Protonect
+    freenect2static
+    ${LIBRARIES}
+  )
+ELSE(USE_STATIC_LIBS)
 TARGET_LINK_LIBRARIES(Protonect
   freenect2shared
 )
+ENDIF(USE_STATIC_LIBS)
 
 CONFIGURE_FILE(freenect2.cmake.in "${PROJECT_BINARY_DIR}/freenect2Config.cmake" @ONLY)
 
+INSTALL(TARGETS Protonect DESTINATION bin)
+IF(NOT USE_STATIC_LIBS)
 INSTALL(TARGETS freenect2shared DESTINATION lib)
+ENDIF()
 INSTALL(TARGETS freenect2static DESTINATION lib)
 INSTALL(DIRECTORY "${MY_DIR}/include/" DESTINATION include PATTERN "*.in" EXCLUDE)
 IF(LIBFREENECT2_THREADING_TINYTHREAD)
