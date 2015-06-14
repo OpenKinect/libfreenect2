@@ -52,8 +52,8 @@ struct freenect2_device_attributes {
 /// Not all available resolutions are actually supported for all video formats.
 /// Frame modes may not perfectly match resolutions.
 typedef enum {
-	FREENECT2_RESOLUTION_512x424 = 0
-	FREENECT2_RESOLUTION_1920x1080 = 1
+	FREENECT2_RESOLUTION_512x424 = 0,
+	FREENECT2_RESOLUTION_1920x1080 = 1,
 	FREENECT2_RESOLUTION_DUMMY  = 2147483647, /**< Dummy value to force enum to be 32 bits wide */
 } freenect2_resolution;
 
