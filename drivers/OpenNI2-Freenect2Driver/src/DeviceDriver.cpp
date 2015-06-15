@@ -56,6 +56,9 @@ namespace Freenect2Driver
     void run()
     {
       libfreenect2::FrameMap frames;
+      long depthSequence = 0;
+      long irSequence = 0;
+      long colorSequence = 0;
       while(!device_stop)
       {
         listener.waitForNewFrame(frames);
@@ -63,15 +66,27 @@ namespace Freenect2Driver
         libfreenect2::Frame *irFrame    = frames[libfreenect2::Frame::Ir];
         libfreenect2::Frame *depthFrame = frames[libfreenect2::Frame::Depth];
         libfreenect2::Frame *colorFrame = frames[libfreenect2::Frame::Color];
-        if (depth)
+        if (depth) {
+          if (depthSequence == 0)
+            depthSequence = depthFrame->sequence;
+          depthFrame->sequence -= depthSequence;
           depth->buildFrame(depthFrame);
-        if (ir)
+        }
+        if (ir) {
+          if (irSequence == 0)
+            irSequence = irFrame->sequence;
+          irFrame->sequence -= irSequence;
           ir->buildFrame(irFrame);
-        if (color)
+        }
+        if (color) {
+          if (colorSequence == 0)
+            colorSequence = colorFrame->sequence;
+          colorFrame->sequence -= colorSequence;
           color->buildFrame(colorFrame);
+        }
 
         listener.release(frames);
-    }
+      }
     }
 
     OniStatus setStreamProperties(VideoStream* stream, std::string pfx)
