@@ -9,6 +9,8 @@ SET(DEPENDS_DIR "${MY_DIR}/../../depends" CACHE STRING "dependency directory")
 OPTION(ENABLE_CXX11 "Enable C++11 support" OFF)
 OPTION(ENABLE_OPENCL "Enable OpenCL support" ON)
 OPTION(ENABLE_OPENGL "Enable OpenGL support" ON)
+OPTION(BUILD_STATIC "Build static version of this library" ON)
+OPTION(BUILD_SHARED "Build shared version of this library" ON)
 
 IF(ENABLE_CXX11)
   INCLUDE(CheckCXXCompilerFlag)
@@ -173,28 +175,37 @@ GENERATE_RESOURCES(${RESOURCES_INC_FILE} ${MY_DIR} ${RESOURCES})
 ADD_DEFINITIONS(-DRESOURCES_INC)
 ADD_LIBRARY(freenect2 OBJECT ${SOURCES})
 set_target_properties(freenect2 PROPERTIES POSITION_INDEPENDENT_CODE 1)
-ADD_LIBRARY(freenect2shared SHARED $<TARGET_OBJECTS:freenect2>)
-ADD_LIBRARY(freenect2static STATIC $<TARGET_OBJECTS:freenect2>)
-set_target_properties(freenect2shared PROPERTIES OUTPUT_NAME freenect2)
-set_target_properties(freenect2static PROPERTIES OUTPUT_NAME freenect2)
-IF(MSVC)
-  set_target_properties(freenect2static PROPERTIES OUTPUT_NAME freenect2static)
-ENDIF()
-MESSAGE("Linking with these libraries: ${LIBRARIES}")
-TARGET_LINK_LIBRARIES(freenect2shared ${LIBRARIES})
-  
-ADD_EXECUTABLE(Protonect
-  Protonect.cpp
-)
-  
-TARGET_LINK_LIBRARIES(Protonect
-  freenect2shared
-)
+if(BUILD_SHARED)
+    ADD_LIBRARY(freenect2shared SHARED $<TARGET_OBJECTS:freenect2>)
+endif()
 
-CONFIGURE_FILE(freenect2.cmake.in "${PROJECT_BINARY_DIR}/freenect2Config.cmake" @ONLY)
+if(BUILD_STATIC)
+    ADD_LIBRARY(freenect2static STATIC $<TARGET_OBJECTS:freenect2>)
+endif()
 
-INSTALL(TARGETS freenect2shared DESTINATION lib)
-INSTALL(TARGETS freenect2static DESTINATION lib)
+if(BUILD_SHARED)
+    set_target_properties(freenect2shared PROPERTIES OUTPUT_NAME freenect2)
+    
+    MESSAGE("Linking with these libraries: ${LIBRARIES}")
+    TARGET_LINK_LIBRARIES(freenect2shared ${LIBRARIES})
+    ADD_EXECUTABLE(Protonect
+        Protonect.cpp
+    )
+    TARGET_LINK_LIBRARIES(Protonect
+        freenect2shared
+    )
+    CONFIGURE_FILE(freenect2.cmake.in "${PROJECT_BINARY_DIR}/freenect2Config.cmake" @ONLY)
+    INSTALL(TARGETS freenect2shared DESTINATION lib)
+endif()
+
+if(BUILD_STATIC)
+    set_target_properties(freenect2static PROPERTIES OUTPUT_NAME freenect2)
+    INSTALL(TARGETS freenect2static DESTINATION lib)
+    IF(MSVC)
+        set_target_properties(freenect2static PROPERTIES OUTPUT_NAME freenect2static)
+    endif()
+endif()
+
 INSTALL(DIRECTORY "${MY_DIR}/include/" DESTINATION include PATTERN "*.in" EXCLUDE)
 IF(LIBFREENECT2_THREADING_TINYTHREAD)
   INSTALL(FILES  "${MY_DIR}/src/tinythread/tinythread.h" DESTINATION include/${PROJECT_NAME}/tinythread/)
