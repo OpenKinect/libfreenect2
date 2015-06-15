@@ -140,6 +140,9 @@ IF(ENABLE_OPENGL)
     src/shader/filter2.fs
     src/shader/stage1.fs
     src/shader/stage2.fs
+    src/shader/render.fs
+    src/shader/grayrender.fs
+    src/shader/render.vs
   )
   ENDIF()
 ENDIF(ENABLE_OPENGL)
@@ -183,8 +186,21 @@ ENDIF()
 MESSAGE("Linking with these libraries: ${LIBRARIES}")
 TARGET_LINK_LIBRARIES(freenect2shared ${LIBRARIES})
   
+SET(Protonect_src
+    Protonect.cpp
+    )
+    
+IF (ENABLE_OPENGL AND OPENGL_FOUND)
+    LIST(APPEND Protonect_src
+        viewer.h
+        viewer.cpp
+        flextGL.c
+        )
+ENDIF()
+  
 ADD_EXECUTABLE(Protonect
-  Protonect.cpp
+  ${Protonect_src}
+
 )
   
 TARGET_LINK_LIBRARIES(Protonect
