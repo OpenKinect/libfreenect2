@@ -6,7 +6,8 @@ using namespace Freenect2Driver;
     
 Registration::Registration(libfreenect2::Freenect2Device* dev) :
   dev(dev),
-  reg(NULL)
+  reg(NULL),
+  enabled(false)
 {
   }
 
