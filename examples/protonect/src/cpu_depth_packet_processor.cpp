@@ -28,6 +28,9 @@
 #include <libfreenect2/resource.h>
 #include <libfreenect2/protocol/response.h>
 
+#ifdef LIBFREENECT2_OPENCV_FOUND
+#include <opencv2/opencv.hpp>
+#endif
 #include <iostream>
 #include <fstream>
 
@@ -245,12 +248,15 @@ public:
 
   void startTiming()
   {
-    //timing_current_start = cv::getTickCount();
+#ifdef LIBFREENECT2_OPENCV_FOUND
+    timing_current_start = cv::getTickCount();
+#endif
   }
 
   void stopTiming()
   {
-    //timing_acc += (cv::getTickCount() - timing_current_start) / cv::getTickFrequency();
+#ifdef LIBFREENECT2_OPENCV_FOUND
+    timing_acc += (cv::getTickCount() - timing_current_start) / cv::getTickFrequency();
     timing_acc_n += 1.0;
 
     if(timing_acc_n >= 100.0)
@@ -260,6 +266,7 @@ public:
       timing_acc = 0.0;
       timing_acc_n = 0.0;
     }
+#endif
   }
 
   void newIrFrame()
@@ -889,12 +896,13 @@ void CpuDepthPacketProcessor::process(const DepthPacket &packet)
 {
   if(listener_ == 0) return;
 
-  //impl_->startTiming();
+  impl_->startTiming();
 
   impl_->ir_frame->timestamp = packet.timestamp;
   impl_->depth_frame->timestamp = packet.timestamp;
   impl_->ir_frame->sequence = packet.sequence;
   impl_->depth_frame->sequence = packet.sequence;
+
   Mat<Vec<float, 9> >
       m(424, 512),
       m_filtered(424, 512)
@@ -977,7 +985,7 @@ void CpuDepthPacketProcessor::process(const DepthPacket &packet)
     impl_->newDepthFrame();
   }
 
-  //impl_->stopTiming();
+  impl_->stopTiming();
 }
 
 } /* namespace libfreenect2 */
