@@ -348,7 +348,7 @@ public:
     catch(const cl::Error &err)
     {
       std::cerr << OUT_NAME("init") "ERROR: " << err.what() << "(" << err.err() << ")" << std::endl;
-      throw err;
+      throw;
     }
     return true;
   }
@@ -462,7 +462,7 @@ public:
         std::cout << OUT_NAME("init") "Build Log:\t " << program.getBuildInfo<CL_PROGRAM_BUILD_LOG>(device) << std::endl;
       }
 
-      throw err;
+      throw;
     }
     programInitialized = true;
     return true;
@@ -507,7 +507,7 @@ public:
     catch(const cl::Error &err)
     {
       std::cerr << OUT_NAME("run") "ERROR: " << err.what() << " (" << err.err() << ")" << std::endl;
-      throw err;
+      throw;
     }
   }
 
