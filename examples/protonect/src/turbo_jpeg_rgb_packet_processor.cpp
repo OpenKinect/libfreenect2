@@ -25,9 +25,11 @@
  */
 
 #include <libfreenect2/rgb_packet_processor.h>
-
+#ifdef LIBFREENECT2_OPENCV_FOUND
 #include <opencv2/opencv.hpp>
+#endif
 #include <turbojpeg.h>
+#include <iostream>
 
 namespace libfreenect2
 {
@@ -78,11 +80,14 @@ public:
 
   void startTiming()
   {
+#ifdef LIBFREENECT2_OPENCV_FOUND
     timing_current_start = cv::getTickCount();
+#endif
   }
 
   void stopTiming()
   {
+#ifdef LIBFREENECT2_OPENCV_FOUND
     timing_acc += (cv::getTickCount() - timing_current_start) / cv::getTickFrequency();
     timing_acc_n += 1.0;
 
@@ -93,6 +98,7 @@ public:
       timing_acc = 0.0;
       timing_acc_n = 0.0;
     }
+#endif
   }
 };
 

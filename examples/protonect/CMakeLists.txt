@@ -40,8 +40,12 @@ SET(LIBRARY_OUTPUT_PATH ${MY_DIR}/lib)
 # dependencies
 FIND_PACKAGE(PkgConfig)    # try find PKGConfig as it will be used if found
 FIND_PACKAGE(LibUSB REQUIRED)
-FIND_PACKAGE(OpenCV REQUIRED)
+FIND_PACKAGE(OpenCV)
 FIND_PACKAGE(TurboJPEG REQUIRED) #does not provide a package-config file
+
+IF(OPENCV_FOUND)
+    SET(LIBFREENECT2_OPENCV_FOUND 1)
+ENDIF()
 
 # Add includes
 INCLUDE_DIRECTORIES(
@@ -140,9 +144,6 @@ IF(ENABLE_OPENGL)
     src/shader/filter2.fs
     src/shader/stage1.fs
     src/shader/stage2.fs
-    src/shader/render.fs
-    src/shader/grayrender.fs
-    src/shader/render.vs
   )
   ENDIF()
 ENDIF(ENABLE_OPENGL)
