@@ -508,7 +508,6 @@ public:
     {
       std::cerr << OUT_NAME("run") "ERROR: " << err.what() << " (" << err.err() << ")" << std::endl;
       throw err;
-      return;
     }
   }
 
