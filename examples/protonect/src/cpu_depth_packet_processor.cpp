@@ -44,7 +44,7 @@ namespace libfreenect2
 
 bool loadBufferFromFile2(const std::string& filename, unsigned char *buffer, size_t n)
 {
-  bool success = true;
+  bool success;
   std::ifstream in(filename.c_str());
 
   in.read(reinterpret_cast<char*>(buffer), n);

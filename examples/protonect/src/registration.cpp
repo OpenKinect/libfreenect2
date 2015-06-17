@@ -87,7 +87,7 @@ void Registration::apply( int dx, int dy, float dz, float& cx, float &cy) const
 void Registration::apply(const Frame *rgb, const Frame *depth, Frame *undistorted, Frame *registered, const bool enable_filter) const
 {
   // Check if all frames are valid and have the correct size
-  if (!undistorted || !rgb || !registered ||
+  if (!rgb || !depth || !undistorted || !registered ||
       rgb->width != 1920 || rgb->height != 1080 || rgb->bytes_per_pixel != 4 ||
       depth->width != 512 || depth->height != 424 || depth->bytes_per_pixel != 4 ||
       undistorted->width != 512 || undistorted->height != 424 || undistorted->bytes_per_pixel != 4 ||
