@@ -39,10 +39,9 @@ SET(LIBRARY_OUTPUT_PATH ${MY_DIR}/lib)
 
 # dependencies
 FIND_PACKAGE(PkgConfig)    # try find PKGConfig as it will be used if found
+FIND_PACKAGE(OpenCV)
 FIND_PACKAGE(LibUSB REQUIRED)
-FIND_PACKAGE(OpenCV REQUIRED)
 FIND_PACKAGE(TurboJPEG REQUIRED) #does not provide a package-config file
-
 # Add includes
 INCLUDE_DIRECTORIES(
   "${MY_DIR}/include"
@@ -103,7 +102,6 @@ SET(SOURCES
 )
 
 SET(LIBRARIES
-  ${OpenCV_LIBS}
   ${OpenCV_LIBRARIES}
   ${LibUSB_LIBRARIES}
   ${TurboJPEG_LIBRARIES}
