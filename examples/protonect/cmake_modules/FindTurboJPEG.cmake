@@ -19,6 +19,9 @@ FIND_PATH(TurboJPEG_INCLUDE_DIRS
     include
 )
 
+#Library names:
+# debian sid,strech: libturbojpeg0
+# debian/ubuntu else: libturbojpeg1-dev #provided by libjpeg-turbo8-dev (ubuntu)
 FIND_LIBRARY(TurboJPEG_LIBRARIES
   NAMES libturbojpeg.so.1 libturbojpeg.so.0 turbojpeg
   DOC "Found TurboJPEG library path"
