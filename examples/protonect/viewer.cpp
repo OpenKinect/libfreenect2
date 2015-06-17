@@ -16,9 +16,6 @@ Viewer::Viewer() : shader_folder("src/shader/")
     //glfwWindowHint(GLFW_VISIBLE, debug ? GL_TRUE : GL_FALSE);
 
     window = glfwCreateWindow(1280, 800, "Viewer", 0, NULL);
-
-    triangle_vbo = NULL;
-    triangle_vao = NULL;
 }
 
 void Viewer::initialize()
