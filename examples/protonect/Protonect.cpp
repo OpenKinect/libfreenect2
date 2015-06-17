@@ -28,13 +28,17 @@
 #include <iostream>
 #include <signal.h>
 
-//#include <opencv2/opencv.hpp>
-
 #include <libfreenect2/libfreenect2.hpp>
 #include <libfreenect2/frame_listener_impl.h>
 #include <libfreenect2/threading.h>
 #include <libfreenect2/registration.h>
 #include <libfreenect2/packet_pipeline.h>
+#include "viewer.h"
+
+#ifdef LIBFREENECT2_OPENCV_FOUND
+#include <opencv2/opencv.hpp>
+#endif
+
 
 bool protonect_shutdown = false;
 
@@ -135,6 +139,9 @@ int main(int argc, char *argv[])
 
   libfreenect2::Registration* registration = new libfreenect2::Registration(dev->getIrCameraParams(), dev->getColorCameraParams());
 
+  Viewer viewer;
+  viewer.initialize();
+
   while(!protonect_shutdown)
   {
     listener.waitForNewFrame(frames);
@@ -142,16 +149,21 @@ int main(int argc, char *argv[])
     libfreenect2::Frame *ir = frames[libfreenect2::Frame::Ir];
     libfreenect2::Frame *depth = frames[libfreenect2::Frame::Depth];
 
-    //cv::imshow("rgb", cv::Mat(rgb->height, rgb->width, CV_8UC4, rgb->data));
-    //cv::imshow("ir", cv::Mat(ir->height, ir->width, CV_32FC1, ir->data) / 20000.0f);
-    //cv::imshow("depth", cv::Mat(depth->height, depth->width, CV_32FC1, depth->data) / 4500.0f);
+    registration->apply(rgb, depth, &undistorted, &registered);
 
-    registration->apply(rgb,depth,&undistorted,&registered);
+#if defined(LIBFREENECT2_WITH_OPENGL_SUPPORT) && !defined(LIBFREENECT2_OPENCV_FOUND)
+    viewer.AddFrame("RGB", rgb);
+    viewer.AddFrame("ir", ir);
+    viewer.AddFrame("depth", depth);
+    viewer.AddFrame("registered", &registered);
 
+    protonect_shutdown = viewer.render();
+#else
     //cv::imshow("undistorted", cv::Mat(undistorted.height, undistorted.width, CV_32FC1, undistorted.data) / 4500.0f);
     //cv::imshow("registered", cv::Mat(registered.height, registered.width, CV_8UC4, registered.data));
-    int key = 1;
+    int key = cv::waitKey(1);
     protonect_shutdown = protonect_shutdown || (key > 0 && ((key & 0xFF) == 27)); // shutdown on escape
+#endif
 
     listener.release(frames);
     //libfreenect2::this_thread::sleep_for(libfreenect2::chrono::milliseconds(100));
