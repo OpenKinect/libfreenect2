@@ -8,7 +8,7 @@
 #include <string>
 #include <map>
 
-#include "flextGL.h"
+#include <../src/flextGL.h>
 #include <GLFW/glfw3.h>
 
 struct Vertex
@@ -280,8 +280,7 @@ public:
     void initialize();
     virtual void onOpenGLBindingsChanged(OpenGLBindings *b);
     bool render();
-    void AddFrame(std::string id,libfreenect2::Frame* frame);
-    void testMethod(libfreenect2::Frame* frame);
+    void addFrame(std::string id,libfreenect2::Frame* frame);
     void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
     static void key_callbackstatic(GLFWwindow* window, int key, int scancode, int action, int mods);
 };

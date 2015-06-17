@@ -30,7 +30,7 @@ void Viewer::initialize()
 
     std::string vertexshadersrc = ""
         "#version 330\n"
-                                                \
+                                                
         "in vec2 Position;"
         "in vec2 TexCoord;"
                     
@@ -190,7 +190,7 @@ bool Viewer::render()
     return shouldStop || glfwWindowShouldClose(window);
 }
 
-void Viewer::AddFrame(std::string id, libfreenect2::Frame* frame)
+void Viewer::addFrame(std::string id, libfreenect2::Frame* frame)
 {
     frames[id] = frame;
 }

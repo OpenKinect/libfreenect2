@@ -28,8 +28,6 @@
 #include <libfreenect2/resource.h>
 #include <libfreenect2/protocol/response.h>
 
-#ifdef LIBFREENECT2_OPENCV_FOUND
-#endif
 #include <iostream>
 #include <fstream>
 

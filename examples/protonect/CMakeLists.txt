@@ -193,7 +193,7 @@ IF (ENABLE_OPENGL AND OPENGL_FOUND)
     LIST(APPEND Protonect_src
         viewer.h
         viewer.cpp
-        flextGL.c
+        src/flextGL.c
         )
 ENDIF()
   
