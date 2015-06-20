@@ -51,38 +51,49 @@ namespace Freenect2Driver
     static void static_run(void* cookie)
     {
       static_cast<Device*>(cookie)->run();
-      }
+    }
+
+    VideoStream* getStream(libfreenect2::Frame::Type type)
+    {
+      if (type == libfreenect2::Frame::Depth)
+        return depth;
+      if (type == libfreenect2::Frame::Ir)
+        return ir;
+      if (type == libfreenect2::Frame::Color)
+        return color;
+      return NULL;
+    }
 
     void run()
     {
       libfreenect2::FrameMap frames;
-      long depthSequence = 0;
-      long irSequence = 0;
-      long colorSequence = 0;
+      uint32_t seqNum = 0;
+      libfreenect2::Frame::Type seqType;
+
+      struct streams {
+        const char* name;
+        libfreenect2::Frame::Type type;
+      } streams[] = {
+          { "Ir",    libfreenect2::Frame::Ir    },
+          { "Depth", libfreenect2::Frame::Depth },
+          { "Color", libfreenect2::Frame::Color }
+      };
       while(!device_stop)
       {
         listener.waitForNewFrame(frames);
 
-        libfreenect2::Frame *irFrame    = frames[libfreenect2::Frame::Ir];
-        libfreenect2::Frame *depthFrame = frames[libfreenect2::Frame::Depth];
-        libfreenect2::Frame *colorFrame = frames[libfreenect2::Frame::Color];
-        if (depth) {
-          if (depthSequence == 0)
-            depthSequence = depthFrame->sequence;
-          depthFrame->sequence -= depthSequence;
-          depth->buildFrame(depthFrame);
-        }
-        if (ir) {
-          if (irSequence == 0)
-            irSequence = irFrame->sequence;
-          irFrame->sequence -= irSequence;
-          ir->buildFrame(irFrame);
-        }
-        if (color) {
-          if (colorSequence == 0)
-            colorSequence = colorFrame->sequence;
-          colorFrame->sequence -= colorSequence;
-          color->buildFrame(colorFrame);
+        for (int i = 0; i < sizeof(streams)/sizeof(*streams); i++) {
+          struct streams& s = streams[i];
+          VideoStream* stream = getStream(s.type);
+          libfreenect2::Frame *frame = frames[s.type];
+          if (stream) {
+            if (seqNum == 0)
+              seqType = s.type;
+            if (s.type == seqType)
+              seqNum++;
+            frame->timestamp = seqNum * 33369;
+            stream->buildFrame(frame);
+          }
         }
 
         listener.release(frames);

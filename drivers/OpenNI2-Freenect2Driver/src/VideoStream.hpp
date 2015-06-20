@@ -77,7 +77,7 @@ namespace Freenect2Driver
 
       OniFrame* oniFrame = getServices().acquireFrame();
       oniFrame->frameIndex = frame_id++;
-      oniFrame->timestamp = lf2Frame->sequence*33369;
+      oniFrame->timestamp = lf2Frame->timestamp;
       oniFrame->videoMode = video_mode;
       oniFrame->width = video_mode.resolutionX;
       oniFrame->height = video_mode.resolutionY;
