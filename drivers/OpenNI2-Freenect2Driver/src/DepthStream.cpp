@@ -47,25 +47,6 @@ OniStatus DepthStream::setVideoMode(OniVideoMode requested_mode)
   if (matched_mode_iter == supported_video_modes.end())
     return ONI_STATUS_NOT_SUPPORTED;
 
-#if 0
-  freenect_depth_format format = matched_mode_iter->second.first;
-  freenect_resolution resolution = matched_mode_iter->second.second;
-  if (image_registration_mode == ONI_IMAGE_REGISTRATION_DEPTH_TO_COLOR) // try forcing registration mode
-    format = FREENECT_DEPTH_REGISTERED;
-
-  try { device->setDepthFormat(format, resolution); }
-  catch (std::runtime_error e)
-  {
-    LogError("Format " + to_string(format) + " and resolution " + to_string(resolution) + " combination not supported by libfreenect");
-    if (image_registration_mode == ONI_IMAGE_REGISTRATION_DEPTH_TO_COLOR)
-    {
-      LogError("Could not enable image registration format; falling back to format defined in getSupportedVideoModes()");
-      image_registration_mode = ONI_IMAGE_REGISTRATION_OFF;
-      return setVideoMode(requested_mode);
-    }
-    return ONI_STATUS_NOT_SUPPORTED;
-  }
-#endif // 0
   video_mode = requested_mode;
   return ONI_STATUS_OK;
 }
@@ -87,20 +68,3 @@ void DepthStream::populateFrame(libfreenect2::Frame* srcFrame, int srcX, int src
             static_cast<uint16_t*>(dstFrame->data), dstX, dstY, dstFrame->width,
             width, height, mirroring);
 }
-
-
-/* depth video modes reference
-
-FREENECT_DEPTH_11BIT        = 0, //< 11 bit depth information in one uint16_t/pixel
-FREENECT_DEPTH_10BIT        = 1, //< 10 bit depth information in one uint16_t/pixel
-FREENECT_DEPTH_11BIT_PACKED = 2, //< 11 bit packed depth information
-FREENECT_DEPTH_10BIT_PACKED = 3, //< 10 bit packed depth information
-FREENECT_DEPTH_REGISTERED   = 4, //< processed depth data in mm, aligned to 640x480 RGB
-FREENECT_DEPTH_MM           = 5, //< depth to each pixel in mm, but left unaligned to RGB image
-FREENECT_DEPTH_DUMMY        = 2147483647, //< Dummy value to force enum to be 32 bits wide
-
-ONI_PIXEL_FORMAT_DEPTH_1_MM = 100,
-ONI_PIXEL_FORMAT_DEPTH_100_UM = 101,
-ONI_PIXEL_FORMAT_SHIFT_9_2 = 102,
-ONI_PIXEL_FORMAT_SHIFT_9_3 = 103,
-*/

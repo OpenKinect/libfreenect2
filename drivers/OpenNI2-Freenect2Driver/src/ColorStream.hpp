@@ -128,44 +128,7 @@ namespace Freenect2Driver
       switch (propertyId)
       {
         default:
-          return VideoStream::setProperty(propertyId, data, dataSize);
-      
-#if 0      
-        // camera
-        case ONI_STREAM_PROPERTY_AUTO_WHITE_BALANCE: // OniBool
-        {
-          if (dataSize != sizeof(OniBool))
-          {
-            LogError("Unexpected size for ONI_STREAM_PROPERTY_AUTO_WHITE_BALANCE");
-            return ONI_STATUS_ERROR;
-          }
-          auto_white_balance = *(static_cast<const OniBool*>(data));
-          int ret = device->setFlag(FREENECT_AUTO_WHITE_BALANCE, auto_white_balance);
-          return (ret == 0) ? ONI_STATUS_OK : ONI_STATUS_ERROR;
-        }
-        case ONI_STREAM_PROPERTY_AUTO_EXPOSURE:      // OniBool
-        {
-          if (dataSize != sizeof(OniBool))
-          {
-            LogError("Unexpected size for ONI_STREAM_PROPERTY_AUTO_EXPOSURE");
-            return ONI_STATUS_ERROR;
-          }
-          auto_exposure = *(static_cast<const OniBool*>(data));
-          int ret = device->setFlag(FREENECT_AUTO_WHITE_BALANCE, auto_exposure);
-          return (ret == 0) ? ONI_STATUS_OK : ONI_STATUS_ERROR;
-        }
-        case ONI_STREAM_PROPERTY_MIRRORING:          // OniBool
-        {
-          if (dataSize != sizeof(OniBool))
-          {
-            LogError("Unexpected size for ONI_STREAM_PROPERTY_MIRRORING");
-            return ONI_STATUS_ERROR;
-          }
-          mirroring = *(static_cast<const OniBool*>(data));
-          int ret = device->setFlag(FREENECT_MIRROR_VIDEO, mirroring);
-          return (ret == 0) ? ONI_STATUS_OK : ONI_STATUS_ERROR;
-        }
-#endif
+          return VideoStream::setProperty(propertyId, data, dataSize);      
       }
     }
   };

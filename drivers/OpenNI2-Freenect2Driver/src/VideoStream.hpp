@@ -235,22 +235,3 @@ namespace Freenect2Driver
     */
   };
 }
-
-
-/* image video modes reference
-
-FREENECT_VIDEO_RGB             = 0, //< Decompressed RGB mode (demosaicing done by libfreenect)
-FREENECT_VIDEO_BAYER           = 1, //< Bayer compressed mode (raw information from camera)
-FREENECT_VIDEO_IR_8BIT         = 2, //< 8-bit IR mode
-FREENECT_VIDEO_IR_10BIT        = 3, //< 10-bit IR mode
-FREENECT_VIDEO_IR_10BIT_PACKED = 4, //< 10-bit packed IR mode
-FREENECT_VIDEO_YUV_RGB         = 5, //< YUV RGB mode
-FREENECT_VIDEO_YUV_RAW         = 6, //< YUV Raw mode
-FREENECT_VIDEO_DUMMY           = 2147483647, //< Dummy value to force enum to be 32 bits wide
-
-ONI_PIXEL_FORMAT_RGB888 = 200,
-ONI_PIXEL_FORMAT_YUV422 = 201,
-ONI_PIXEL_FORMAT_GRAY8 = 202,
-ONI_PIXEL_FORMAT_GRAY16 = 203,
-ONI_PIXEL_FORMAT_JPEG = 204,
-*/
