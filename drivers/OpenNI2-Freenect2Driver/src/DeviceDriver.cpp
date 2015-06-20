@@ -386,10 +386,6 @@ namespace Freenect2Driver
         //WriteMessage("Using libfreenect v" + to_string(PROJECT_VER));
       WriteMessage("Using libfreenect2");
 
-#if 0
-      freenect_set_log_level(m_ctx, FREENECT_LOG_DEBUG);
-      freenect_select_subdevices(m_ctx, FREENECT_DEVICE_CAMERA); // OpenNI2 doesn't use MOTOR or AUDIO
-#endif // 0
       DriverServices = &getServices();
     }
     ~Driver() { shutdown(); }
@@ -413,20 +409,6 @@ namespace Freenect2Driver
         for (int i = 0; i < modes.size(); i++) {
           register_uri(uri + modes[i]);
         }
-
-#if 0
-        freenect_device* dev;
-        if (freenect_open_device(m_ctx, &dev, i) == 0)
-        {
-          info.usbVendorId = dev->usb_cam.VID;
-          info.usbProductId = dev->usb_cam.PID;
-          freenect_close_device(dev);
-        }
-        else
-        {
-          WriteMessage("Unable to open device to query VID/PID");
-        }
-#endif // 0
       }
       return ONI_STATUS_OK;
     }
