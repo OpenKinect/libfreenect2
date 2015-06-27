@@ -45,7 +45,6 @@ public:
     Warning = 3,
     Error = 4,
   };
-  static Log *console();
   virtual ~Log();
 
   virtual void setLevel(Level new_level);
@@ -55,6 +54,8 @@ public:
 protected:
   Level level_;
 };
+
+Log *createConsoleLog();
 
 class LogMessage
 {

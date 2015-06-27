@@ -71,10 +71,9 @@ public:
   }
 };
 
-Log *Log::console()
+Log *createConsoleLog()
 {
-  static ConsoleLog log;
-  return &log;
+  return new ConsoleLog();
 }
 
 LogMessage::LogMessage(Log *log, Log::Level level) : log_(log), level_(level)
@@ -107,6 +106,7 @@ void WithLogImpl::onLogChanged(Log *log) {}
 void WithLogImpl::setLog(Log *log)
 {
   log_ = log;
+  onLogChanged(log_);
 }
 
 Log *WithLogImpl::log()

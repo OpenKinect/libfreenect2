@@ -134,7 +134,7 @@ public:
     usb_context_(reinterpret_cast<libusb_context *>(usb_context)),
     has_device_enumeration_(false)
   {
-    log_ = Log::console();
+    log_ = createConsoleLog();
     log_->setLevel(Log::Info);
 
     if(managed_usb_context_)
@@ -161,6 +161,19 @@ public:
     {
       libusb_exit(usb_context_);
       usb_context_ = 0;
+    }
+
+    setLog(0);
+  }
+
+  virtual void setLog(Log *log)
+  {
+    Log *old_log = log_;
+    WithLogImpl::setLog(log);
+
+    if(old_log != 0)
+    {
+      delete old_log;
     }
   }
 
