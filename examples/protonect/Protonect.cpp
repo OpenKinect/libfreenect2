@@ -58,6 +58,9 @@ int main(int argc, char *argv[])
   }
 
   libfreenect2::Freenect2 freenect2;
+  // create a console logger with debug level (default is console logger with info level)
+  freenect2.setLogger(libfreenect2::createConsoleLogger(libfreenect2::Logger::Debug));
+
   libfreenect2::Freenect2Device *dev = 0;
   libfreenect2::PacketPipeline *pipeline = 0;
 
