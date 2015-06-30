@@ -29,40 +29,40 @@
 
 namespace libfreenect2
 {
-Log::~Log() {}
+Logger::~Logger() {}
 
-void Log::setLevel(Level new_level)
+void Logger::setLevel(Level new_level)
 {
   level_ = new_level;
 }
 
-Log::Level Log::level() const
+Logger::Level Logger::level() const
 {
   return level_;
 }
 
-std::string level2str(const Log::Level &l)
+std::string level2str(const Logger::Level &l)
 {
   switch(l)
   {
-  case Log::Debug:
+  case Logger::Debug:
     return "Debug";
-  case Log::Info:
+  case Logger::Info:
     return "Info";
-  case Log::Warning:
+  case Logger::Warning:
     return "Warning";
-  case Log::Error:
+  case Logger::Error:
     return "Error";
   default:
     return "";
   }
 }
 
-class ConsoleLog : public Log
+class ConsoleLogger : public Logger
 {
 public:
-  ConsoleLog() {};
-  virtual ~ConsoleLog() {};
+  ConsoleLogger() {};
+  virtual ~ConsoleLogger() {};
   virtual void log(Level level, const std::string &message)
   {
     if(level < level_) return;
@@ -71,21 +71,21 @@ public:
   }
 };
 
-Log *createConsoleLog()
+Logger *createConsoleLogger()
 {
-  return new ConsoleLog();
+  return new ConsoleLogger();
 }
 
-LogMessage::LogMessage(Log *log, Log::Level level) : log_(log), level_(level)
+LogMessage::LogMessage(Logger *logger, Logger::Level level) : logger_(logger), level_(level)
 {
 
 }
 
 LogMessage::~LogMessage()
 {
-  if(log_ != 0)
+  if(logger_ != 0)
   {
-    log_->log(level_, stream_.str());
+    logger_->log(level_, stream_.str());
   }
 }
 
@@ -94,24 +94,24 @@ std::ostream &LogMessage::stream()
   return stream_;
 }
 
-WithLog::~WithLog() {}
+WithLogger::~WithLogger() {}
 
-WithLogImpl::WithLogImpl() : log_(0)
+WithLoggerImpl::WithLoggerImpl() : logger_(0)
 {
 }
 
-WithLogImpl::~WithLogImpl() {}
-void WithLogImpl::onLogChanged(Log *log) {}
+WithLoggerImpl::~WithLoggerImpl() {}
+void WithLoggerImpl::onLoggerChanged(Logger *logger) {}
 
-void WithLogImpl::setLog(Log *log)
+void WithLoggerImpl::setLogger(Logger *logger)
 {
-  log_ = log;
-  onLogChanged(log_);
+  logger_ = logger;
+  onLoggerChanged(logger_);
 }
 
-Log *WithLogImpl::log()
+Logger *WithLoggerImpl::logger()
 {
-  return log_;
+  return logger_;
 }
 
 } /* namespace libfreenect2 */

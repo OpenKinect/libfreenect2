@@ -56,8 +56,8 @@ int main(int argc, char *argv[])
   }
 
   libfreenect2::Freenect2 freenect2;
-  // change log level (default is libfreenect2::Log::Info)
-  freenect2.log()->setLevel(libfreenect2::Log::Debug);
+  // change logger level (default is libfreenect2::Logger::Info)
+  freenect2.logger()->setLevel(libfreenect2::Logger::Debug);
 
   libfreenect2::Freenect2Device *dev = 0;
   libfreenect2::PacketPipeline *pipeline = 0;

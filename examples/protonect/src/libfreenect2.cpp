@@ -45,7 +45,7 @@ using namespace libfreenect2;
 using namespace libfreenect2::usb;
 using namespace libfreenect2::protocol;
 
-class Freenect2DeviceImpl : public Freenect2Device, public WithLogImpl
+class Freenect2DeviceImpl : public Freenect2Device, public WithLoggerImpl
 {
 private:
   enum State
@@ -110,7 +110,7 @@ std::ostream &operator<<(std::ostream &out, const PrintBusAndDevice& dev)
   return out;
 }
 
-class Freenect2Impl : public WithLogImpl
+class Freenect2Impl : public WithLoggerImpl
 {
 private:
   bool managed_usb_context_;
@@ -134,8 +134,8 @@ public:
     usb_context_(reinterpret_cast<libusb_context *>(usb_context)),
     has_device_enumeration_(false)
   {
-    log_ = createConsoleLog();
-    log_->setLevel(Log::Info);
+    logger_ = createConsoleLogger();
+    logger_->setLevel(Logger::Info);
 
     if(managed_usb_context_)
     {
@@ -163,31 +163,31 @@ public:
       usb_context_ = 0;
     }
 
-    setLog(0);
+    setLogger(0);
   }
 
-  virtual void setLog(Log *log)
+  virtual void setLogger(Logger *logger)
   {
-    Log *old_log = log_;
-    WithLogImpl::setLog(log);
+    Logger *old_logger = logger_;
+    WithLoggerImpl::setLogger(logger);
 
-    if(old_log != 0)
+    if(old_logger != 0)
     {
-      delete old_log;
+      delete old_logger;
     }
   }
 
-  virtual void onLogChanged(Log *log)
+  virtual void onLoggerChanged(Logger *logger)
   {
     for(DeviceVector::iterator it = devices_.begin(); it != devices_.end(); ++it)
     {
-      (*it)->setLog(log);
+      (*it)->setLogger(logger);
     }
   }
 
   void addDevice(Freenect2DeviceImpl *device)
   {
-    device->setLog(log_);
+    device->setLogger(logger_);
     devices_.push_back(device);
   }
 
@@ -198,7 +198,7 @@ public:
     if(it != devices_.end())
     {
       devices_.erase(it);
-      device->setLog(0);
+      device->setLogger(0);
     }
     else
     {
@@ -673,14 +673,14 @@ Freenect2::~Freenect2()
   delete impl_;
 }
 
-void Freenect2::setLog(Log *log)
+void Freenect2::setLogger(Logger *logger)
 {
-  impl_->setLog(log);
+  impl_->setLogger(logger);
 }
 
-Log *Freenect2::log()
+Logger *Freenect2::logger()
 {
-  return impl_->log();
+  return impl_->logger();
 }
 
 int Freenect2::enumerateDevices()

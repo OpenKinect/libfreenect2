@@ -35,7 +35,7 @@
 namespace libfreenect2
 {
 
-class Log
+class Logger
 {
 public:
   enum Level
@@ -45,7 +45,7 @@ public:
     Warning = 3,
     Error = 4,
   };
-  virtual ~Log();
+  virtual ~Logger();
 
   virtual void setLevel(Level new_level);
   virtual Level level() const;
@@ -55,47 +55,47 @@ protected:
   Level level_;
 };
 
-Log *createConsoleLog();
+Logger *createConsoleLogger();
 
 class LogMessage
 {
 private:
-  Log *log_;
-  Log::Level level_;
+  Logger *logger_;
+  Logger::Level level_;
   std::ostringstream stream_;
 public:
-  LogMessage(Log *log, Log::Level level);
+  LogMessage(Logger *logger, Logger::Level level);
   ~LogMessage();
 
   std::ostream &stream();
 };
 
-class WithLog
+class WithLogger
 {
 public:
-  virtual ~WithLog();
-  virtual void setLog(Log *log) = 0;
-  virtual Log *log() = 0;
+  virtual ~WithLogger();
+  virtual void setLogger(Logger *logger) = 0;
+  virtual Logger *logger() = 0;
 };
 
-class WithLogImpl : public WithLog
+class WithLoggerImpl : public WithLogger
 {
 protected:
-  Log *log_;
+  Logger *logger_;
 
-  virtual void onLogChanged(Log *log);
+  virtual void onLoggerChanged(Logger *logger);
 public:
-  WithLogImpl();
-  virtual ~WithLogImpl();
-  virtual void setLog(Log *log);
-  virtual Log *log();
+  WithLoggerImpl();
+  virtual ~WithLoggerImpl();
+  virtual void setLogger(Logger *logger);
+  virtual Logger *logger();
 };
 
 } /* namespace libfreenect2 */
 
-#define LOG_DEBUG (::libfreenect2::LogMessage(log(), ::libfreenect2::Log::Debug).stream())
-#define LOG_INFO (::libfreenect2::LogMessage(log(), ::libfreenect2::Log::Info).stream())
-#define LOG_WARNING (::libfreenect2::LogMessage(log(), ::libfreenect2::Log::Warning).stream())
-#define LOG_ERROR (::libfreenect2::LogMessage(log(), ::libfreenect2::Log::Error).stream())
+#define LOG_DEBUG (::libfreenect2::LogMessage(logger(), ::libfreenect2::Logger::Debug).stream())
+#define LOG_INFO (::libfreenect2::LogMessage(logger(), ::libfreenect2::Logger::Info).stream())
+#define LOG_WARNING (::libfreenect2::LogMessage(logger(), ::libfreenect2::Logger::Warning).stream())
+#define LOG_ERROR (::libfreenect2::LogMessage(logger(), ::libfreenect2::Logger::Error).stream())
 
 #endif /* LOGGING_H_ */

@@ -96,14 +96,14 @@ public:
 
 class Freenect2Impl;
 
-class LIBFREENECT2_API Freenect2 : public WithLog
+class LIBFREENECT2_API Freenect2 : public WithLogger
 {
 public:
   Freenect2(void *usb_context = 0);
   virtual ~Freenect2();
 
-  virtual void setLog(Log *log);
-  virtual Log *log();
+  virtual void setLogger(Logger *logger);
+  virtual Logger *logger();
 
   int enumerateDevices();
 
