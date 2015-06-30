@@ -35,7 +35,7 @@
 namespace libfreenect2
 {
 
-class Logger
+class LIBFREENECT2_API Logger
 {
 public:
   enum Level
@@ -55,9 +55,9 @@ protected:
   Level level_;
 };
 
-Logger *createConsoleLogger();
+LIBFREENECT2_API Logger *createConsoleLogger();
 
-class LogMessage
+class LIBFREENECT2_API LogMessage
 {
 private:
   Logger *logger_;
@@ -70,7 +70,7 @@ public:
   std::ostream &stream();
 };
 
-class WithLogger
+class LIBFREENECT2_API WithLogger
 {
 public:
   virtual ~WithLogger();
@@ -78,7 +78,7 @@ public:
   virtual Logger *logger() = 0;
 };
 
-class WithLoggerImpl : public WithLogger
+class LIBFREENECT2_API WithLoggerImpl : public WithLogger
 {
 protected:
   Logger *logger_;
