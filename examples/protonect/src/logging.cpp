@@ -26,14 +26,37 @@
 
 #include <libfreenect2/logging.h>
 #include <iostream>
+#include <cstdlib>
+#include <string>
+#include <algorithm>
 
 namespace libfreenect2
 {
 Logger::~Logger() {}
 
-void Logger::setLevel(Level new_level)
+
+Logger::Level Logger::getDefaultLevel()
 {
-  level_ = new_level;
+  Logger::Level l = Logger::Info;
+
+  char *env_logger_level_c_str = getenv("LIBFREENECT2_LOGGER_LEVEL");
+
+  if(env_logger_level_c_str != 0)
+  {
+    std::string env_logger_level_str(env_logger_level_c_str);
+    std::transform(env_logger_level_str.begin(), env_logger_level_str.end(), env_logger_level_str.begin(), ::tolower);
+
+    if(env_logger_level_str == "debug")
+      l = Logger::Debug;
+    else if(env_logger_level_str == "info")
+      l = Logger::Info;
+    else if(env_logger_level_str == "warning")
+      l = Logger::Warning;
+    else if(env_logger_level_str == "error")
+      l = Logger::Error;
+  }
+
+  return l;
 }
 
 Logger::Level Logger::level() const
@@ -61,8 +84,11 @@ std::string level2str(const Logger::Level &l)
 class ConsoleLogger : public Logger
 {
 public:
-  ConsoleLogger() {};
-  virtual ~ConsoleLogger() {};
+  ConsoleLogger(Level level)
+  {
+    level_ = level;
+  }
+  virtual ~ConsoleLogger() {}
   virtual void log(Level level, const std::string &message)
   {
     if(level < level_) return;
@@ -71,9 +97,30 @@ public:
   }
 };
 
-Logger *createConsoleLogger()
+class NoopLogger : public Logger
 {
-  return new ConsoleLogger();
+public:
+  NoopLogger()
+  {
+    level_ = Debug;
+  }
+  virtual ~NoopLogger() {}
+  virtual void log(Level level, const std::string &message) {}
+};
+
+Logger *createConsoleLogger(Logger::Level level)
+{
+  return new ConsoleLogger(level);
+}
+
+Logger *createConsoleLoggerWithDefaultLevel()
+{
+  return new ConsoleLogger(Logger::getDefaultLevel());
+}
+
+Logger *createNoopLogger()
+{
+  return new NoopLogger();
 }
 
 LogMessage::LogMessage(Logger *logger, Logger::Level level) : logger_(logger), level_(level)

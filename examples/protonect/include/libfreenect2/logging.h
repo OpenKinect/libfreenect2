@@ -45,9 +45,10 @@ public:
     Warning = 3,
     Error = 4,
   };
+  static Level getDefaultLevel();
+
   virtual ~Logger();
 
-  virtual void setLevel(Level new_level);
   virtual Level level() const;
 
   virtual void log(Level level, const std::string &message) = 0;
@@ -55,7 +56,9 @@ protected:
   Level level_;
 };
 
-LIBFREENECT2_API Logger *createConsoleLogger();
+LIBFREENECT2_API Logger *createConsoleLogger(Logger::Level level);
+LIBFREENECT2_API Logger *createConsoleLoggerWithDefaultLevel();
+LIBFREENECT2_API Logger *createNoopLogger();
 
 class LIBFREENECT2_API LogMessage
 {

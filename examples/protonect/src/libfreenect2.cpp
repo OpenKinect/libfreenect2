@@ -28,7 +28,6 @@
 #include <vector>
 #include <algorithm>
 #include <libusb.h>
-#include <cstdlib>
 
 #include <libfreenect2/libfreenect2.hpp>
 
@@ -111,30 +110,6 @@ std::ostream &operator<<(std::ostream &out, const PrintBusAndDevice& dev)
   return out;
 }
 
-Logger::Level getDefaultLoggerLevel()
-{
-  Logger::Level l = Logger::Info;
-
-  char *env_logger_level_c_str = getenv("LIBFREENECT2_LOGGER_LEVEL");
-
-  if(env_logger_level_c_str != 0)
-  {
-    std::string env_logger_level_str(env_logger_level_c_str);
-    std::transform(env_logger_level_str.begin(), env_logger_level_str.end(), env_logger_level_str.begin(), ::tolower);
-
-    if(env_logger_level_str == "debug")
-      l = Logger::Debug;
-    else if(env_logger_level_str == "info")
-      l = Logger::Info;
-    else if(env_logger_level_str == "warning")
-      l = Logger::Warning;
-    else if(env_logger_level_str == "error")
-      l = Logger::Error;
-  }
-
-  return l;
-}
-
 class Freenect2Impl : public WithLoggerImpl
 {
 private:
@@ -159,8 +134,7 @@ public:
     usb_context_(reinterpret_cast<libusb_context *>(usb_context)),
     has_device_enumeration_(false)
   {
-    logger_ = createConsoleLogger();
-    logger_->setLevel(getDefaultLoggerLevel());
+    logger_ = createConsoleLoggerWithDefaultLevel();
 
     if(managed_usb_context_)
     {
@@ -188,18 +162,19 @@ public:
       usb_context_ = 0;
     }
 
-    setLogger(0);
+    setLoggerInternal(0);
+  }
+
+  void setLoggerInternal(Logger *logger)
+  {
+    Logger *old_logger = logger_;
+    WithLoggerImpl::setLogger(logger);
+    delete old_logger;
   }
 
   virtual void setLogger(Logger *logger)
   {
-    Logger *old_logger = logger_;
-    WithLoggerImpl::setLogger(logger);
-
-    if(old_logger != 0)
-    {
-      delete old_logger;
-    }
+    setLoggerInternal(logger != 0 ? logger : createNoopLogger());
   }
 
   virtual void onLoggerChanged(Logger *logger)
