@@ -25,7 +25,7 @@ add_definitions(-DPROJECT_VER="${PROJECT_VER}")
 
 include_directories(${LIBFREENECT2_DIR}/include)
 include_directories(${PROTONECT_DIR}/include)
-include_directories(${MY_DIR}/extern/OpenNI-Linux-x64-2.2.0.33/Include)
+include_directories(${MY_DIR}/extern/OpenNI2/Include)
 include_directories(${MY_DIR}/src)
 include_directories(${PROTONECT_DIR}/${LIBFREENECT2_THREADING_INCLUDE_DIR})
 
