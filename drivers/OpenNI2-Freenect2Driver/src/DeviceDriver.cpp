@@ -345,13 +345,14 @@ namespace Freenect2Driver
   };
 
 
-  class Driver : public oni::driver::DriverBase, private libfreenect2::Freenect2
+  class Driver : public oni::driver::DriverBase
   {
   private:
     typedef std::map<OniDeviceInfo, oni::driver::DeviceBase*> OniDeviceMap;
     OniDeviceMap devices;
     std::string uriScheme;
     ConfigStrings config;
+    libfreenect2::Freenect2 freenect2;
 
     std::string devid_to_uri(int id) {
       return uriScheme + "://" + to_string(id);
@@ -395,7 +396,7 @@ namespace Freenect2Driver
     OniStatus initialize(oni::driver::DeviceConnectedCallback connectedCallback, oni::driver::DeviceDisconnectedCallback disconnectedCallback, oni::driver::DeviceStateChangedCallback deviceStateChangedCallback, void* pCookie)
     {
       DriverBase::initialize(connectedCallback, disconnectedCallback, deviceStateChangedCallback, pCookie);
-      for (int i = 0; i < Freenect2::enumerateDevices(); i++)
+      for (int i = 0; i < freenect2.enumerateDevices(); i++)
       {
         std::string uri = devid_to_uri(i);
         std::array<std::string, 3> modes = {
@@ -451,7 +452,7 @@ namespace Freenect2Driver
             WriteMessage("Opening device " + std::string(uri));
             int id = uri_to_devid(iter->first.uri);
             Device* device = new Device(id);
-            device->setFreenect2Device(openDevice(id)); // XXX, detault pipeline // const PacketPipeline *factory);
+            device->setFreenect2Device(freenect2.openDevice(id)); // XXX, detault pipeline // const PacketPipeline *factory);
             device->setConfigStrings(config);
             iter->second = device;
             return device;
