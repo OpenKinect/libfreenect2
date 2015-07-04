@@ -56,19 +56,22 @@ static std::string to_string(const T& n)
 // global logging
 namespace Freenect2Driver
 {
-  static void WriteMessage(std::string info)
-  {
-    std::cout << "OpenNI2-Freenect2Driver: " << info << std::endl;
-  }
-  
   // DriverServices is set in DeviceDriver.cpp so all files can call errorLoggerAppend()
   static oni::driver::DriverServices* DriverServices;
-  static void LogError(std::string error)
-  {
-    // errorLoggerAppend() doesn't seem to go anywhere, so WriteMessage also
-    WriteMessage("(ERROR) " + error);
-    
-    if (DriverServices != NULL)
-      DriverServices->errorLoggerAppend(std::string("OpenNI2-Freenect2Driver: " + error).c_str());
-  }
+
+  // from XnLog.h
+  typedef enum XnLogSeverity {
+    XN_LOG_VERBOSE = 0,
+    XN_LOG_INFO = 1,
+    XN_LOG_WARNING = 2,
+    XN_LOG_ERROR = 3,
+    XN_LOG_SEVERITY_NONE = 10,
+  } XnLogSeverity;
 }
+#define FN2DRV_LOG_MASK "Freenect2Driver"
+#define WriteVerbose(str) do { if (DriverServices != NULL) DriverServices->log(XN_LOG_VERBOSE, __FILE__, __LINE__, FN2DRV_LOG_MASK, std::string(str).c_str()); } while(0)
+#define WriteInfo(str)    do { if (DriverServices != NULL) DriverServices->log(XN_LOG_INFO,    __FILE__, __LINE__, FN2DRV_LOG_MASK, std::string(str).c_str()); } while(0)
+#define WriteWarning(str) do { if (DriverServices != NULL) DriverServices->log(XN_LOG_WARNING, __FILE__, __LINE__, FN2DRV_LOG_MASK, std::string(str).c_str()); } while(0)
+#define WriteError(str)   do { if (DriverServices != NULL) DriverServices->log(XN_LOG_ERROR,   __FILE__, __LINE__, FN2DRV_LOG_MASK, std::string(str).c_str()); } while(0)
+#define WriteMessage(str) WriteInfo(str)
+#define LogError(str)     WriteError(str)
