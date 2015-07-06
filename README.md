@@ -53,6 +53,10 @@ Finally, it's also possible that your executable is not actually using the patch
 
 The depth packet processor runs on OpenGL by default. You can try alternatives, such as OpenCL (by running `Protonect cl`) or CPU (`Protonect cpu`). At least the CPU DPP should always produce some output, although slow. For OpenCL on Intel/Linux, you can also try to set `/sys/module/i915/parameters/enable_cmd_parser` to 0.
 
+### Can I use multiple Kinect v2 devices on one machine?
+
+Yes - in fact, this has been reported to work for up to 5 devices on a high-end PC. If you're using Linux, you may have to increase USBFS memory buffers by appending `usbcore.usbfs_memory_mb=64` to your kernel commandline. Depending on the number of Kinects, you may need to increase the value.
+
 ## Maintainers:
 
 * Joshua Blake <joshblake@gmail.com>
