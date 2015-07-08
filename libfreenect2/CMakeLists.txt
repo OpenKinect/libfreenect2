@@ -184,7 +184,7 @@ MESSAGE("Linking with these libraries: ${LIBRARIES}")
 TARGET_LINK_LIBRARIES(freenect2shared ${LIBRARIES})
   
 ADD_EXECUTABLE(Protonect
-  Protonect.cpp
+  ../examples/Protonect.cpp
 )
   
 TARGET_LINK_LIBRARIES(Protonect

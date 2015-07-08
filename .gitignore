@@ -1,10 +1,10 @@
 # generated config file
-src/include/libfreenect2/config.h
+libfreenect2/include/libfreenect2/config.h
 
 # generated resource file
-src/src/resources.inc.h
-src/build
-src/lib
+libfreenect2/src/resources.inc.h
+libfreenect2/build
+libfreenect2/lib
 
 # Dependency folders
 depends/*/
