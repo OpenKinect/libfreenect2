@@ -4,7 +4,7 @@ PROJECT(libfreenect2)
 SET(CMAKE_BUILD_TYPE RelWithDebInfo)
 
 SET(MY_DIR ${libfreenect2_SOURCE_DIR})
-SET(DEPENDS_DIR "${MY_DIR}/../../depends" CACHE STRING "dependency directory")
+SET(DEPENDS_DIR "${MY_DIR}/../depends" CACHE STRING "dependency directory")
 
 OPTION(ENABLE_CXX11 "Enable C++11 support" OFF)
 OPTION(ENABLE_OPENCL "Enable OpenCL support" ON)
@@ -184,7 +184,7 @@ MESSAGE("Linking with these libraries: ${LIBRARIES}")
 TARGET_LINK_LIBRARIES(freenect2shared ${LIBRARIES})
   
 ADD_EXECUTABLE(Protonect
-  Protonect.cpp
+  ../examples/Protonect.cpp
 )
   
 TARGET_LINK_LIBRARIES(Protonect
