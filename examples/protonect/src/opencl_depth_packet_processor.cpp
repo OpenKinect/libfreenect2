@@ -138,10 +138,14 @@ public:
   cl::Buffer buf_filtered;
 
   bool deviceInitialized;
+  bool programBuilt;
   bool programInitialized;
   std::string sourceCode;
 
-  OpenCLDepthPacketProcessorImpl(const int deviceId = -1) : deviceInitialized(false), programInitialized(false)
+  OpenCLDepthPacketProcessorImpl(const int deviceId = -1) 
+    : deviceInitialized(false)
+    , programBuilt(false)
+    , programInitialized(false)
   {
     newIrFrame();
     newDepthFrame();
@@ -350,7 +354,8 @@ public:
       std::cerr << OUT_NAME("init") "ERROR: " << err.what() << "(" << err.err() << ")" << std::endl;
       throw;
     }
-    return true;
+
+    return buildProgram(sourceCode);
   }
 
   bool initProgram()
@@ -360,16 +365,13 @@ public:
       return false;
     }
 
+    if (!programBuilt)
+      if (!buildProgram(sourceCode))
+        return false;
+
     cl_int err = CL_SUCCESS;
     try
     {
-      std::string options;
-      generateOptions(options);
-
-      cl::Program::Sources source(1, std::make_pair(sourceCode.c_str(), sourceCode.length()));
-      program = cl::Program(context, source);
-      program.build(options.c_str());
-
       queue = cl::CommandQueue(context, device, 0, &err);
 
       //Read only
@@ -454,14 +456,6 @@ public:
     catch(const cl::Error &err)
     {
       std::cerr << OUT_NAME("init") "ERROR: " << err.what() << "(" << err.err() << ")" << std::endl;
-
-      if(err.err() == CL_BUILD_PROGRAM_FAILURE)
-      {
-        std::cout << OUT_NAME("init") "Build Status: " << program.getBuildInfo<CL_PROGRAM_BUILD_STATUS>(device) << std::endl;
-        std::cout << OUT_NAME("init") "Build Options:\t" << program.getBuildInfo<CL_PROGRAM_BUILD_OPTIONS>(device) << std::endl;
-        std::cout << OUT_NAME("init") "Build Log:\t " << program.getBuildInfo<CL_PROGRAM_BUILD_LOG>(device) << std::endl;
-      }
-
       throw;
     }
     programInitialized = true;
@@ -515,6 +509,38 @@ public:
   {
     source = loadCLSource("src/opencl_depth_packet_processor.cl");
     return !source.empty();
+  }
+
+  bool buildProgram(const std::string& sources)
+  {
+    try
+    {
+      std::cout<< OUT_NAME("buildProgram") "building OpenCL program..." <<std::endl;
+
+      std::string options;
+      generateOptions(options);
+
+      cl::Program::Sources source(1, std::make_pair(sources.c_str(), sources.length()));
+      program = cl::Program(context, source);
+      program.build(options.c_str());
+      std::cout<< OUT_NAME("buildProgram") "OpenCL program built successfully" <<std::endl;
+    }
+    catch(const cl::Error &err)
+    {
+      std::cerr << OUT_NAME("buildProgram") "ERROR: " << err.what() << "(" << err.err() << ")" << std::endl;
+
+      if(err.err() == CL_BUILD_PROGRAM_FAILURE)
+      {
+        std::cout << OUT_NAME("buildProgram") "Build Status: " << program.getBuildInfo<CL_PROGRAM_BUILD_STATUS>(device) << std::endl;
+        std::cout << OUT_NAME("buildProgram") "Build Options:\t" << program.getBuildInfo<CL_PROGRAM_BUILD_OPTIONS>(device) << std::endl;
+        std::cout << OUT_NAME("buildProgram") "Build Log:\t " << program.getBuildInfo<CL_PROGRAM_BUILD_LOG>(device) << std::endl;
+      }
+
+      programBuilt = false;
+      return false;
+    }
+    programBuilt = true;
+    return true;
   }
 
   void startTiming()
@@ -578,8 +604,23 @@ OpenCLDepthPacketProcessor::~OpenCLDepthPacketProcessor()
 void OpenCLDepthPacketProcessor::setConfiguration(const libfreenect2::DepthPacketProcessor::Config &config)
 {
   DepthPacketProcessor::setConfiguration(config);
+
+  if ( impl_->config.MaxDepth != config.MaxDepth 
+    || impl_->config.MinDepth != config.MinDepth)
+  {
+    // OpenCL program needs to be rebuilt, then reinitialized
+    impl_->programBuilt = false;
+    impl_->programInitialized = false;
+    impl_->buildProgram(impl_->sourceCode);
+  }
+  else if (impl_->config.EnableBilateralFilter != config.EnableBilateralFilter
+    || impl_->config.EnableEdgeAwareFilter != config.EnableEdgeAwareFilter)
+  {
+    // OpenCL program only needs to be reinitialized
+    impl_->programInitialized = false;
+  }
+
   impl_->config = config;
-  impl_->programInitialized = false;
 }
 
 void OpenCLDepthPacketProcessor::loadP0TablesFromCommandResponse(unsigned char *buffer, size_t buffer_length)
