@@ -678,6 +678,7 @@ Freenect2Device *Freenect2::openDevice(int idx, const PacketPipeline *pipeline, 
   if(idx >= num_devices)
   {
     std::cout << "[Freenect2Impl] requested device " << idx << " is not connected!" << std::endl;
+    delete pipeline;
     return device;
   }
 
@@ -688,6 +689,7 @@ Freenect2Device *Freenect2::openDevice(int idx, const PacketPipeline *pipeline, 
   {
     std::cout << "[Freenect2Impl] failed to get device " << PrintBusAndDevice(dev.dev)
         << " (the device may already be open)" << std::endl;
+    delete pipeline;
     return device;
   }
 
@@ -696,6 +698,7 @@ Freenect2Device *Freenect2::openDevice(int idx, const PacketPipeline *pipeline, 
   if(r != LIBUSB_SUCCESS)
   {
     std::cout << "[Freenect2Impl] failed to open Kinect v2 " << PrintBusAndDevice(dev.dev) << "!" << std::endl;
+    delete pipeline;
     return device;
   }
 
@@ -733,6 +736,7 @@ Freenect2Device *Freenect2::openDevice(int idx, const PacketPipeline *pipeline, 
     else if(r != LIBUSB_SUCCESS)
     {
       std::cout << "[Freenect2Impl] failed to reset Kinect v2 " << PrintBusAndDevice(dev.dev) << "!" << std::endl;
+      delete pipeline;
       return device;
     }
   }
@@ -765,11 +769,11 @@ Freenect2Device *Freenect2::openDevice(const std::string &serial, const PacketPi
   {
     if(impl_->enumerated_devices_[idx].serial == serial)
     {
-      device = openDevice(idx, pipeline);
-      break;
+      return openDevice(idx, pipeline);
     }
   }
 
+  delete pipeline;
   return device;
 }
 
