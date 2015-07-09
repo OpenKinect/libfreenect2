@@ -106,6 +106,11 @@ public:
   std::string getDeviceSerialNumber(int idx);
   std::string getDefaultDeviceSerialNumber();
 
+  /* Important note:
+   * After passing a PacketPipeline object to libfreenect2 do not use or free the object,
+   * libfreenect2 will take care. If openDevice fails the PacketPipeline object will get
+   * deleted. A new PacketPipeline object has to be created each time a device is opened.
+   */
   Freenect2Device *openDevice(int idx);
   Freenect2Device *openDevice(int idx, const PacketPipeline *factory);
   Freenect2Device *openDevice(const std::string &serial);
