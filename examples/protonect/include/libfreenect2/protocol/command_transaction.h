@@ -28,6 +28,7 @@
 #define COMMAND_TRANSACTION_H_
 
 #include <libusb.h>
+#include <libfreenect2/logging.h>
 #include <libfreenect2/protocol/command.h>
 
 namespace libfreenect2
@@ -35,7 +36,7 @@ namespace libfreenect2
 namespace protocol
 {
 
-class CommandTransaction
+class CommandTransaction : public WithLoggerImpl
 {
 public:
   static const int ResponseCompleteLength = 16;
@@ -63,7 +64,7 @@ public:
   };
 
   CommandTransaction(libusb_device_handle *handle, int inbound_endpoint, int outbound_endpoint);
-  ~CommandTransaction();
+  virtual ~CommandTransaction();
 
   void execute(const CommandBase& command, Result& result);
 private:

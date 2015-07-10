@@ -30,6 +30,7 @@
 #include <stddef.h>
 
 #include <libfreenect2/config.h>
+#include <libfreenect2/logging.h>
 #include <libfreenect2/double_buffer.h>
 #include <libfreenect2/rgb_packet_processor.h>
 
@@ -38,7 +39,7 @@
 namespace libfreenect2
 {
 
-class LIBFREENECT2_API RgbPacketStreamParser : public DataCallback
+class LIBFREENECT2_API RgbPacketStreamParser : public DataCallback, public WithLoggerImpl
 {
 public:
   RgbPacketStreamParser();

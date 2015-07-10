@@ -27,7 +27,6 @@
 #include <libfreenect2/protocol/command_transaction.h>
 
 #include <stdint.h>
-#include <iostream>
 
 namespace libfreenect2
 {
@@ -106,7 +105,7 @@ void CommandTransaction::execute(const CommandBase& command, Result& result)
 
     if(complete)
     {
-      std::cerr << "[CommandTransaction::execute] received premature response complete!" << std::endl;
+      LOG_ERROR << "received premature response complete!";
       result.code = Error;
     }
 
@@ -119,7 +118,7 @@ void CommandTransaction::execute(const CommandBase& command, Result& result)
 
   if(!complete)
   {
-    std::cerr << "[CommandTransaction::execute] missing response complete!" << std::endl;
+    LOG_ERROR << "missing response complete!";
     result.code = Error;
   }
 
@@ -135,13 +134,13 @@ CommandTransaction::ResultCode CommandTransaction::send(const CommandBase& comma
 
   if(r != LIBUSB_SUCCESS)
   {
-    std::cerr << "[CommandTransaction::send] bulk transfer failed! libusb error " << r << ": " << libusb_error_name(r) << std::endl;
+    LOG_ERROR << "bulk transfer failed! libusb error " << r << ": " << libusb_error_name(r);
     code = Error;
   }
 
   if(transferred_bytes != command.size())
   {
-    std::cerr << "[CommandTransaction::send] sent number of bytes differs from expected number! expected: " << command.size() << " got: " << transferred_bytes << std::endl;
+    LOG_ERROR << "sent number of bytes differs from expected number! expected: " << command.size() << " got: " << transferred_bytes;
     code = Error;
   }
 
@@ -157,7 +156,7 @@ void CommandTransaction::receive(CommandTransaction::Result& result)
 
   if(r != LIBUSB_SUCCESS)
   {
-    std::cerr << "[CommandTransaction::receive] bulk transfer failed! libusb error " << r << ": " << libusb_error_name(r) << std::endl;
+    LOG_ERROR << "bulk transfer failed! libusb error " << r << ": " << libusb_error_name(r);
     result.code = Error;
   }
 }
@@ -176,7 +175,7 @@ bool CommandTransaction::isResponseCompleteResult(CommandTransaction::Result& re
 
       if(data[1] != sequence)
       {
-        std::cerr << "[CommandTransaction::isResponseCompleteResult] response complete with wrong sequence number! expected: " << sequence << " got: " << data[1]<< std::endl;
+        LOG_ERROR << "response complete with wrong sequence number! expected: " << sequence << " got: " << data[1];
       }
     }
   }

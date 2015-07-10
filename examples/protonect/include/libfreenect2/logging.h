@@ -81,6 +81,16 @@ public:
   virtual Logger *logger() = 0;
 };
 
+template<class T>
+void trySetLogger(T *obj, Logger *logger)
+{
+  WithLogger *obj_with_logger = dynamic_cast<WithLogger *>(obj);
+  if(obj_with_logger != 0)
+  {
+    obj_with_logger->setLogger(logger);
+  }
+}
+
 class LIBFREENECT2_API WithLoggerImpl : public WithLogger
 {
 protected:

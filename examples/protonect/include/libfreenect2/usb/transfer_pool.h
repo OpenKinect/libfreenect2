@@ -30,6 +30,7 @@
 #include <vector>
 #include <libusb.h>
 
+#include <libfreenect2/logging.h>
 #include <libfreenect2/data_callback.h>
 #include <libfreenect2/threading.h>
 
@@ -39,7 +40,7 @@ namespace libfreenect2
 namespace usb
 {
 
-class TransferPool
+class TransferPool : public WithLoggerImpl
 {
 public:
   TransferPool(libusb_device_handle *device_handle, unsigned char device_endpoint);

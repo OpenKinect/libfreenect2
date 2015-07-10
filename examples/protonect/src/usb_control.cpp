@@ -187,18 +187,8 @@ UsbControl::~UsbControl()
 {
 }
 
-static UsbControl::ResultCode checkLibusbResult(const char* method, int r)
-{
-  if(r != LIBUSB_SUCCESS)
-  {
-    std::cerr << "[UsbControl::" << method << "] failed! libusb error " << r << ": " << libusb_error_name(r) << std::endl;
-    return UsbControl::Error;
-  }
-  else
-  {
-    return UsbControl::Success;
-  }
-}
+#define CHECK_LIBUSB_RESULT(__CODE, __RESULT) if((__CODE = (__RESULT == LIBUSB_SUCCESS ? Success : Error)) == Error) LOG_ERROR
+#define WRITE_LIBUSB_ERROR(__RESULT) "libusb error " << __RESULT << ": " << libusb_error_name(__RESULT)
 
 UsbControl::ResultCode UsbControl::setConfiguration()
 {
@@ -208,14 +198,14 @@ UsbControl::ResultCode UsbControl::setConfiguration()
   int r;
 
   r = libusb_get_configuration(handle_, &current_config_id);
-  code = checkLibusbResult("setConfiguration(initial get)", r);
+  CHECK_LIBUSB_RESULT(code, r) << "failed to get configuration! " << WRITE_LIBUSB_ERROR(r);
 
   if(code == Success)
   {
     if(current_config_id != desired_config_id)
     {
       r = libusb_set_configuration(handle_, desired_config_id);
-      code = checkLibusbResult("setConfiguration(set)", r);
+      CHECK_LIBUSB_RESULT(code, r) << "failed to set configuration! " << WRITE_LIBUSB_ERROR(r);
     }
   }
 
@@ -228,12 +218,12 @@ UsbControl::ResultCode UsbControl::claimInterfaces()
   int r;
 
   r = libusb_claim_interface(handle_, ControlAndRgbInterfaceId);
-  code = checkLibusbResult("claimInterfaces(ControlAndRgbInterfaceId)", r);
+  CHECK_LIBUSB_RESULT(code, r) << "failed to claim interface with ControlAndRgbInterfaceId(="<< ControlAndRgbInterfaceId << ")! " << WRITE_LIBUSB_ERROR(r);
 
   if(code == Success)
   {
     r = libusb_claim_interface(handle_, IrInterfaceId);
-    code = checkLibusbResult("claimInterfaces(IrInterfaceId)", r);
+    CHECK_LIBUSB_RESULT(code, r) << "failed to claim interface with IrInterfaceId(="<< IrInterfaceId << ")! " << WRITE_LIBUSB_ERROR(r);
   }
 
   return code;
@@ -245,12 +235,12 @@ UsbControl::ResultCode UsbControl::releaseInterfaces()
   int r;
 
   r = libusb_release_interface(handle_, ControlAndRgbInterfaceId);
-  code = checkLibusbResult("releaseInterfaces(ControlAndRgbInterfaceId)", r);
+  CHECK_LIBUSB_RESULT(code, r) << "failed to release interface with ControlAndRgbInterfaceId(="<< ControlAndRgbInterfaceId << ")! " << WRITE_LIBUSB_ERROR(r);
 
   if(code == Success)
   {
     r = libusb_release_interface(handle_, IrInterfaceId);
-    code = checkLibusbResult("releaseInterfaces(IrInterfaceId)", r);
+    CHECK_LIBUSB_RESULT(code, r) << "failed to release interface with IrInterfaceId(="<< IrInterfaceId << ")! " << WRITE_LIBUSB_ERROR(r);
   }
 
   return code;
@@ -260,14 +250,18 @@ UsbControl::ResultCode UsbControl::setIsochronousDelay()
 {
   int r = libusb_ext::set_isochronous_delay(handle_, timeout_);
 
-  return checkLibusbResult("setIsochronousDelay", r);
+  UsbControl::ResultCode code;
+  CHECK_LIBUSB_RESULT(code, r) << "failed to set isochronous delay! " << WRITE_LIBUSB_ERROR(r);
+  return code;
 }
 
 UsbControl::ResultCode UsbControl::setPowerStateLatencies()
 {
   int r = libusb_ext::set_sel(handle_, timeout_, 0x55, 0, 0x55, 0);
 
-  return checkLibusbResult("setPowerStateLatencies", r);
+  UsbControl::ResultCode code;
+  CHECK_LIBUSB_RESULT(code, r) << "failed to set power state latencies! " << WRITE_LIBUSB_ERROR(r);
+  return code;
 }
 
 UsbControl::ResultCode UsbControl::enablePowerStates()
@@ -276,12 +270,12 @@ UsbControl::ResultCode UsbControl::enablePowerStates()
   int r;
 
   r = libusb_ext::set_feature(handle_, timeout_, libusb_ext::U1_ENABLE);
-  code = checkLibusbResult("enablePowerStates(U1)", r);
+  CHECK_LIBUSB_RESULT(code, r) << "failed to enable power states U1! " << WRITE_LIBUSB_ERROR(r);
 
   if(code == Success)
   {
     r = libusb_ext::set_feature(handle_, timeout_, libusb_ext::U2_ENABLE);
-    code = checkLibusbResult("enablePowerStates(U2)", r);
+    CHECK_LIBUSB_RESULT(code, r) << "failed to enable power states U2! " << WRITE_LIBUSB_ERROR(r);
   }
 
   return code;
@@ -292,7 +286,9 @@ UsbControl::ResultCode UsbControl::setVideoTransferFunctionState(UsbControl::Sta
   bool suspend = state == Enabled ? false : true;
   int r = libusb_ext::set_feature_function_suspend(handle_, timeout_, suspend, suspend);
 
-  return checkLibusbResult("setVideoTransferFunctionState", r);
+  UsbControl::ResultCode code;
+  CHECK_LIBUSB_RESULT(code, r) << "failed to set video transfer function state! " << WRITE_LIBUSB_ERROR(r);
+  return code;
 }
 
 UsbControl::ResultCode UsbControl::setIrInterfaceState(UsbControl::State state)
@@ -300,7 +296,9 @@ UsbControl::ResultCode UsbControl::setIrInterfaceState(UsbControl::State state)
   int alternate_setting = state == Enabled ? 1 : 0;
   int r = libusb_set_interface_alt_setting(handle_, IrInterfaceId, alternate_setting);
 
-  return checkLibusbResult("setIrInterfaceState", r);
+  UsbControl::ResultCode code;
+  CHECK_LIBUSB_RESULT(code, r) << "failed to set ir interface state! " << WRITE_LIBUSB_ERROR(r);
+  return code;
 }
 
 
@@ -316,7 +314,9 @@ UsbControl::ResultCode UsbControl::getIrMaxIsoPacketSize(int &size)
     r = LIBUSB_SUCCESS;
   }
 
-  return checkLibusbResult("getIrMaxIsoPacketSize", r);
+  UsbControl::ResultCode code;
+  CHECK_LIBUSB_RESULT(code, r) << "failed to get max iso packet size! " << WRITE_LIBUSB_ERROR(r);
+  return code;
 }
 
 } /* namespace protocol */

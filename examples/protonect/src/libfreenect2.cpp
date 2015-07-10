@@ -74,6 +74,8 @@ private:
   std::string serial_, firmware_;
   Freenect2Device::IrCameraParams ir_camera_params_;
   Freenect2Device::ColorCameraParams rgb_camera_params_;
+protected:
+  virtual void onLoggerChanged(Logger *logger);
 public:
   Freenect2DeviceImpl(Freenect2Impl *context, const PacketPipeline *pipeline, libusb_device *usb_device, libusb_device_handle *usb_device_handle, const std::string &serial);
   virtual ~Freenect2DeviceImpl();
@@ -362,6 +364,17 @@ Freenect2DeviceImpl::~Freenect2DeviceImpl()
   context_->removeDevice(this);
 
   delete pipeline_;
+}
+
+void Freenect2DeviceImpl::onLoggerChanged(Logger *logger)
+{
+  rgb_transfer_pool_.setLogger(logger);
+  ir_transfer_pool_.setLogger(logger);
+  usb_control_.setLogger(logger);
+  command_tx_.setLogger(logger);
+
+  // TODO: is this ok?
+  trySetLogger(const_cast<PacketPipeline *>(pipeline_), logger);
 }
 
 int Freenect2DeviceImpl::nextCommandSeq()

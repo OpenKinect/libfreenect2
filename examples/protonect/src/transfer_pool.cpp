@@ -25,7 +25,6 @@
  */
 
 #include <libfreenect2/usb/transfer_pool.h>
-#include <iostream>
 
 namespace libfreenect2
 {
@@ -77,13 +76,13 @@ void TransferPool::submit(size_t num_parallel_transfers)
 {
   if(!enable_submit_)
   {
-    std::cerr << "[TransferPool::submit] transfer submission disabled!" << std::endl;
+    LOG_WARNING << "transfer submission disabled!";
     return;
   }
 
   if(transfers_.size() < num_parallel_transfers)
   {
-    std::cerr << "[TransferPool::submit] too few idle transfers!" << std::endl;
+    LOG_ERROR << "too few idle transfers!";
   }
 
   for(size_t i = 0; i < num_parallel_transfers; ++i)
@@ -95,7 +94,7 @@ void TransferPool::submit(size_t num_parallel_transfers)
 
     if(r != LIBUSB_SUCCESS)
     {
-      std::cerr << "[TransferPool::submit] failed to submit transfer: " << libusb_error_name(r) << std::endl;
+      LOG_ERROR << "failed to submit transfer: " << libusb_error_name(r);
       transfers_[i].setStopped(true);
     }
   }
@@ -109,7 +108,7 @@ void TransferPool::cancel()
 
     if(r != LIBUSB_SUCCESS && r != LIBUSB_ERROR_NOT_FOUND)
     {
-      std::cerr << "[TransferPool::cancel] failed to cancel transfer: " << libusb_error_name(r) << std::endl;
+      LOG_ERROR << "failed to cancel transfer: " << libusb_error_name(r);
     }
   }
 
@@ -121,7 +120,7 @@ void TransferPool::cancel()
       stopped_transfers += it->getStopped();
     if (stopped_transfers == transfers_.size())
       break;
-    std::cerr << "[TransferPool::cancel] waiting for transfer cancellation" << std::endl;
+    LOG_INFO << "waiting for transfer cancellation";
     libfreenect2::this_thread::sleep_for(libfreenect2::chrono::milliseconds(1000));
   }
 }
@@ -186,7 +185,7 @@ void TransferPool::onTransferComplete(TransferPool::Transfer* t)
 
   if(r != LIBUSB_SUCCESS)
   {
-    std::cerr << "[TransferPool::onTransferComplete] failed to submit transfer: " << libusb_error_name(r) << std::endl;
+    LOG_ERROR << "failed to submit transfer: " << libusb_error_name(r);
     t->setStopped(true);
   }
 }

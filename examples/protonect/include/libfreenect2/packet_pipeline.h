@@ -28,6 +28,7 @@
 #define PACKET_PIPELINE_H_
 
 #include <libfreenect2/config.h>
+#include <libfreenect2/logging.h>
 #include <libfreenect2/data_callback.h>
 #include <libfreenect2/rgb_packet_stream_parser.h>
 #include <libfreenect2/depth_packet_stream_parser.h>
@@ -50,7 +51,7 @@ public:
   virtual DepthPacketProcessor *getDepthPacketProcessor() const = 0;
 };
 
-class LIBFREENECT2_API BasePacketPipeline : public PacketPipeline
+class LIBFREENECT2_API BasePacketPipeline : public PacketPipeline, public WithLoggerImpl
 {
 protected:
   RgbPacketStreamParser *rgb_parser_;
@@ -63,6 +64,8 @@ protected:
 
   virtual void initialize();
   virtual DepthPacketProcessor *createDepthPacketProcessor() = 0;
+
+  virtual void onLoggerChanged(Logger *logger);
 public:
   virtual ~BasePacketPipeline();
 
