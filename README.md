@@ -47,11 +47,15 @@ Messages in `dmesg` like this means bugs in the USB driver. Updating kernel migh
 [  509.238580] xhci_hcd 0000:03:00.0: Assuming host is dying, halting host.
 ```
 
-Finally, it's also possible that your executable is not actually using the patched libusb from the depends/ folder which is required at the moment. Check this using `ldd | grep libusb` (shows libusb-1.0 under `depends/`), and adjust your `LD_LIBRARY_PATH` if necessary.
+Finally, it's also possible that your executable is not actually using the patched libusb from the `depends/` folder which is required at the moment. Check this using `ldd | grep libusb` (shows `libusb-1.0` under `depends/`), and adjust your `LD_LIBRARY_PATH` if necessary.
 
 ### I'm seeing the color camera stream, but no depth/IR (black windows).
 
 The depth packet processor runs on OpenGL by default. You can try alternatives, such as OpenCL (by running `Protonect cl`) or CPU (`Protonect cpu`). At least the CPU DPP should always produce some output, although slow. For OpenCL on Intel/Linux, you can also try to set `/sys/module/i915/parameters/enable_cmd_parser` to 0.
+
+### Can I use multiple Kinect v2 devices on one machine?
+
+Yes - in fact, this has been reported to work for up to 5 devices on a high-end PC. If you're using Linux, you may have to increase USBFS memory buffers by appending `usbcore.usbfs_memory_mb=64` to your kernel commandline. Depending on the number of Kinects, you may need to increase the value.
 
 ## Maintainers:
 
