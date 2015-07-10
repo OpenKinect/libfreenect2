@@ -27,7 +27,6 @@
 #include <libfreenect2/config.h>
 #include <libfreenect2/rgb_packet_stream_parser.h>
 #include <memory.h>
-#include <iostream>
 
 namespace libfreenect2
 {
@@ -88,7 +87,7 @@ void RgbPacketStreamParser::onDataReceived(unsigned char* buffer, size_t length)
     }
     else
     {
-      std::cerr << "[RgbPacketStreamParser::onDataReceived] buffer overflow!" << std::endl;
+      LOG_ERROR << "buffer overflow!";
       fb.length = 0;
       return;
     }
@@ -105,14 +104,14 @@ void RgbPacketStreamParser::onDataReceived(unsigned char* buffer, size_t length)
 
       if (fb.length != footer->packet_size || raw_packet->sequence != footer->sequence)
       {
-        std::cerr << "[RgbPacketStreamParser::onDataReceived] packetsize or sequence doesn't match!" << std::endl;
+        LOG_ERROR << "packetsize or sequence doesn't match!";
         fb.length = 0;
         return;
       }
 
       if (fb.length - sizeof(RawRgbPacket) - sizeof(RgbPacketFooter) < footer->filler_length)
       {
-        std::cerr << "[RgbPacketStreamParser::onDataReceived] not enough space for packet filler!" << std::endl;
+        LOG_ERROR << "not enough space for packet filler!";
         fb.length = 0;
         return;
       }
@@ -132,7 +131,7 @@ void RgbPacketStreamParser::onDataReceived(unsigned char* buffer, size_t length)
 
       if (jpeg_length == 0)
       {
-        std::cerr << "[RgbPacketStreamParser::onDataReceived] no JPEG detected!" << std::endl;
+        LOG_ERROR << "no JPEG detected!";
         fb.length = 0;
         return;
       }
@@ -155,7 +154,7 @@ void RgbPacketStreamParser::onDataReceived(unsigned char* buffer, size_t length)
       }
       else
       {
-        std::cerr << "[RgbPacketStreamParser::onDataReceived] skipping rgb packet!" << std::endl;
+        LOG_WARNING << "skipping rgb packet!";
       }
 
       // reset front buffer
