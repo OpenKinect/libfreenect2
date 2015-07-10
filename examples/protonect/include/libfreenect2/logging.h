@@ -96,9 +96,17 @@ public:
 
 } /* namespace libfreenect2 */
 
-#define LOG_DEBUG (::libfreenect2::LogMessage(logger(), ::libfreenect2::Logger::Debug).stream())
-#define LOG_INFO (::libfreenect2::LogMessage(logger(), ::libfreenect2::Logger::Info).stream())
-#define LOG_WARNING (::libfreenect2::LogMessage(logger(), ::libfreenect2::Logger::Warning).stream())
-#define LOG_ERROR (::libfreenect2::LogMessage(logger(), ::libfreenect2::Logger::Error).stream())
+#if defined(__GNUC__) or defined(__clang__)
+#define LIBFREENECT2_LOG_SOURCE __PRETTY_FUNCTION__
+#elif defined(_MSC_VER)
+#define LIBFREENECT2_LOG_SOURCE __FUNCSIG__
+#else
+#define LIBFREENECT2_LOG_SOURCE ""
+#endif
+
+#define LOG_DEBUG (::libfreenect2::LogMessage(logger(), ::libfreenect2::Logger::Debug).stream() << "[" << LIBFREENECT2_LOG_SOURCE << "] ")
+#define LOG_INFO (::libfreenect2::LogMessage(logger(), ::libfreenect2::Logger::Info).stream() << "[" << LIBFREENECT2_LOG_SOURCE << "] ")
+#define LOG_WARNING (::libfreenect2::LogMessage(logger(), ::libfreenect2::Logger::Warning).stream() << "[" << LIBFREENECT2_LOG_SOURCE << "] ")
+#define LOG_ERROR (::libfreenect2::LogMessage(logger(), ::libfreenect2::Logger::Error).stream() << "[" << LIBFREENECT2_LOG_SOURCE << "] ")
 
 #endif /* LOGGING_H_ */
