@@ -84,7 +84,7 @@ void Registration::apply( int dx, int dy, float dz, float& cx, float &cy) const
   cx = rx * color.fx + color.cx;
 }
 
-void Registration::apply(const Frame *rgb, const Frame *depth, Frame *undistorted, Frame *registered, const bool enable_filter) const
+void Registration::apply(const Frame *rgb, const Frame *depth, Frame *undistorted, Frame *registered, const bool enable_filter, Frame *bigdepth) const
 {
   // Check if all frames are valid and have the correct size
   if (!rgb || !depth || !undistorted || !registered ||
@@ -123,7 +123,7 @@ void Registration::apply(const Frame *rgb, const Frame *depth, Frame *undistorte
 
   // initializing the depth_map with values outside of the Kinect2 range
   if(enable_filter){
-    filter_map = new float[size_filter_map];
+    filter_map = bigdepth ? (float*)bigdepth->data : new float[size_filter_map];
     p_filter_map = filter_map + offset_filter_map;
 
     for(float *it = filter_map, *end = filter_map + size_filter_map; it != end; ++it){
@@ -210,7 +210,7 @@ void Registration::apply(const Frame *rgb, const Frame *depth, Frame *undistorte
       *registered_data = (z - min_z) / z > filter_tolerance ? 0 : *(rgb_data + c_off);
     }
 
-    delete[] filter_map;
+    if (!bigdepth) delete[] filter_map;
   }
   else
   {
