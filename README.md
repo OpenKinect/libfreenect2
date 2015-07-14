@@ -55,7 +55,7 @@ The depth packet processor runs on OpenGL by default. You can try alternatives, 
 
 ### Can I use multiple Kinect v2 devices on one machine?
 
-Yes - in fact, this has been reported to work for up to 5 devices on a high-end PC. If you're using Linux, you may have to increase USBFS memory buffers by appending `usbcore.usbfs_memory_mb=64` to your kernel commandline. Depending on the number of Kinects, you may need to increase the value.
+Yes - in fact, this has been reported to work for up to 5 devices on a high-end PC using multiple separate PCI Express USB3 expansion cards (with NEC controller chip). If you're using Linux, you may have to increase USBFS memory buffers by appending `usbcore.usbfs_memory_mb=64` to your kernel commandline. Depending on the number of Kinects, you may need to use an even larger buffer size.
 
 ## Maintainers:
 
