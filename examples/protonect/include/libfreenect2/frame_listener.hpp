@@ -29,7 +29,6 @@
 
 #include <cstddef>
 #include <stdint.h>
-#include <stdlib.h>
 #include <libfreenect2/config.h>
 
 namespace libfreenect2
