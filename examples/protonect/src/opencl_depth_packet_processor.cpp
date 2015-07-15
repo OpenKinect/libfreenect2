@@ -611,7 +611,6 @@ void OpenCLDepthPacketProcessor::setConfiguration(const libfreenect2::DepthPacke
     // OpenCL program needs to be rebuilt, then reinitialized
     impl_->programBuilt = false;
     impl_->programInitialized = false;
-    impl_->buildProgram(impl_->sourceCode);
   }
   else if (impl_->config.EnableBilateralFilter != config.EnableBilateralFilter
     || impl_->config.EnableEdgeAwareFilter != config.EnableEdgeAwareFilter)
@@ -621,6 +620,8 @@ void OpenCLDepthPacketProcessor::setConfiguration(const libfreenect2::DepthPacke
   }
 
   impl_->config = config;
+  if (!impl_->programBuilt)
+    impl_->buildProgram(impl_->sourceCode);
 }
 
 void OpenCLDepthPacketProcessor::loadP0TablesFromCommandResponse(unsigned char *buffer, size_t buffer_length)
