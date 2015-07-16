@@ -47,7 +47,7 @@ Messages in `dmesg` like this means bugs in the USB driver. Updating kernel migh
 [  509.238580] xhci_hcd 0000:03:00.0: Assuming host is dying, halting host.
 ```
 
-Finally, it's also possible that your executable is not actually using the patched libusb from the `depends/` folder which is required at the moment. Check this using `ldd | grep libusb` (shows `libusb-1.0` under `depends/`), and adjust your `LD_LIBRARY_PATH` if necessary.
+Finally, it's also possible that your executable is not actually using the patched libusb from the `depends/` folder which is required at the moment. Check this using `ldd ./Protonect | grep libusb` (shows `libusb-1.0` under `depends/`), and adjust your `LD_LIBRARY_PATH` if necessary.
 
 ### I'm seeing the color camera stream, but no depth/IR (black windows).
 
