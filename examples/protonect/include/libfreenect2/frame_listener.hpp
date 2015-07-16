@@ -34,8 +34,9 @@
 namespace libfreenect2
 {
 
-struct LIBFREENECT2_API Frame
+class LIBFREENECT2_API Frame
 {
+  public:
   enum Type
   {
     Color = 1,
@@ -53,13 +54,21 @@ struct LIBFREENECT2_API Frame
     height(height),
     bytes_per_pixel(bytes_per_pixel)
   {
-    data = new unsigned char[width * height * bytes_per_pixel];
+    const size_t alignment = 64;
+    size_t space = width * height * bytes_per_pixel + alignment;
+    rawdata = new unsigned char[space];
+    uintptr_t ptr = reinterpret_cast<uintptr_t>(rawdata);
+    uintptr_t aligned = (ptr - 1u + alignment) & -alignment;
+    data = reinterpret_cast<unsigned char *>(aligned);
   }
 
   ~Frame()
   {
-    delete[] data;
+    delete[] rawdata;
   }
+
+  protected:
+  unsigned char* rawdata;
 };
 
 class LIBFREENECT2_API FrameListener
