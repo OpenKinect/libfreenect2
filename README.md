@@ -146,16 +146,23 @@ Then you can run the program with `.\bin\Protonect.exe`. If DLLs are missing, yo
 
 ### Mac OSX
 
+Use your favorite package managers (brew, ports, etc.)
+
 1. ``cd`` into a directory where you want to keep libfreenect2 stuff in
-1. Install opencv and git via brew (or your own favorite package manager, ie ports)
+1. Make sure these build tools are available: wget, git, cmake, pkg-config, automake, autoconf, libtool. Xcode may provide some of them. Install the rest via package managers.
+1. Install dependencies: OpenCV, TurboJPEG, GLFW.
 
     ```
 brew update
 brew tap homebrew/science
-brew install opencv git nasm wget jpeg-turbo
+brew install opencv jpeg-turbo
 brew tap homebrew/versions
 brew install glfw3
 ```
+
+    Do not install libusb via package managers for libfreenect2. libfreenect2 includes an unreleased local version of libusb with USB3 specific patches. libfreenect2's libusb should still work fine in presence of a global version libusb.
+
+    It is not recommended to build TurboJPEG from source, which produces corrupted results on Mac OSX according to reports. Install TurboJPEG binary only from package managers.
 
 1. Download the libfreenect2 repository
 
@@ -174,8 +181,10 @@ sh ./depends/install_mac.sh
 
     ```
 cd ./examples/protonect/
-cmake CMakeLists.txt
-make && make install
+mkdir build && cd build
+cmake ..
+make
+make install
 ```
 
 1. Run the program
@@ -213,8 +222,10 @@ sudo dpkg -i libglfw3*_3.0.4-1_*.deb  # Ubuntu 14.04 only
 
     ```
 cd ../examples/protonect/
-cmake CMakeLists.txt
-make && sudo make install
+mkdir build && cd build
+cmake ..
+make
+sudo make install
 ```
 
 1. Run the program
