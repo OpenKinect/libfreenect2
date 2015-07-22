@@ -125,7 +125,7 @@ Joshua Blake provided a Debug version binary: https://www.dropbox.com/s/madoye1a
 
 #### OpenCV
 
-* Download the installer from http://sourceforge.net/projects/opencvlibrary/files/opencv-win
+* Download the installer from http://sourceforge.net/projects/opencvlibrary/files/opencv-win (2.x only; 3.0 is not supported.)
 * Extract it anywhere (maybe also in `depends`)
 
 #### OpenCL
@@ -136,7 +136,7 @@ Joshua Blake provided a Debug version binary: https://www.dropbox.com/s/madoye1a
 
 You need to specify the location of OpenCV installation in `OpenCV_DIR`.
 ```
-cd example\protonect
+cd examples\protonect
 mkdir build && cd build
 cmake .. -G "Visual Studio 12 2013 Win64" -DCMAKE_INSTALL_PREFIX=. -DOpenCV_DIR=%cd%\..\..\..\depends\opencv\build 
 cmake --build . --config Release --target install
