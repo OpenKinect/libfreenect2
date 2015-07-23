@@ -469,7 +469,11 @@ struct OpenGLDepthPacketProcessorImpl : public WithOpenGLBindings
     ChangeCurrentOpenGLContext ctx(opengl_context_ptr);
     
     OpenGLBindings *b = new OpenGLBindings();
-    flextInit(opengl_context_ptr, b);
+    if (flextInit(opengl_context_ptr, b) == 0)
+    {
+        std::cerr << "[OpenGLDepthPacketProcessor] Failed to initialize flextGL.";
+        exit(-1);
+    }
     gl(b);
 
     input_data.allocate(352, 424 * 10);
@@ -768,7 +772,11 @@ OpenGLDepthPacketProcessor::OpenGLDepthPacketProcessor(void *parent_opengl_conte
   GLFWwindow* parent_window = (GLFWwindow *)parent_opengl_context_ptr;
 
   // init glfw - if already initialized nothing happens
-  glfwInit();
+  if (glfwInit() == GL_FALSE)
+  {
+      std::cerr << "[OpenGLDepthPacketProcessor] Failed to initialize GLFW.";
+      exit(-1);
+  }
   
   // setup context
   glfwDefaultWindowHints();
@@ -781,6 +789,12 @@ OpenGLDepthPacketProcessor::OpenGLDepthPacketProcessor(void *parent_opengl_conte
   glfwWindowHint(GLFW_VISIBLE, debug ? GL_TRUE : GL_FALSE);
 
   GLFWwindow* window = glfwCreateWindow(1024, 848, "OpenGLDepthPacketProcessor", 0, parent_window);
+
+  if (window == NULL)
+  {
+      std::cerr << "[OpenGLDepthPacketProcessor] Failed to create opengl window.";
+      exit(-1);
+  }
 
   impl_ = new OpenGLDepthPacketProcessorImpl(window, debug);
   impl_->initialize();
