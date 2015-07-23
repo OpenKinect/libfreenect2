@@ -241,8 +241,8 @@ Registration::Registration(Freenect2Device::IrCameraParams depth_p, Freenect2Dev
       // compute the dirstored coordinate for current pixel
       distort(x,y,mx,my);
       // rounding the values and check if the pixel is inside the image
-      ix = roundf(mx);
-      iy = roundf(my);
+      ix = (int)(mx + 0.5f);
+      iy = (int)(my + 0.5f);
       if(ix < 0 || ix >= 512 || iy < 0 || iy >= 424)
         index = -1;
       else
@@ -255,7 +255,7 @@ Registration::Registration(Freenect2Device::IrCameraParams depth_p, Freenect2Dev
       *map_x++ = rx;
       *map_y++ = ry;
       // compute the y offset to minimize later computations
-      *map_yi++ = roundf(ry);
+      *map_yi++ = (int)(ry + 0.5f);
     }
   }
 }
