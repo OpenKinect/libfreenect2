@@ -1,4 +1,4 @@
-#version 330
+#version 140
 
 struct Parameters
 {
@@ -39,12 +39,10 @@ uniform usampler2DRect MaxEdgeTest;
 
 uniform Parameters Params;
 
-in VertexData {
-    vec2 TexCoord;
-} FragmentIn;
+in vec2 TexCoord;
 
-layout(location = 0) out vec4 Debug;
-layout(location = 1) out float FilterDepth;
+/*layout(location = 0)*/ out vec4 Debug;
+/*layout(location = 1)*/ out float FilterDepth;
 
 void applyEdgeAwareFilter(ivec2 uv)
 {
@@ -126,7 +124,7 @@ void applyEdgeAwareFilter(ivec2 uv)
 
 void main(void)
 {
-  ivec2 uv = ivec2(FragmentIn.TexCoord.x, FragmentIn.TexCoord.y);
+  ivec2 uv = ivec2(TexCoord.x, TexCoord.y);
   
   applyEdgeAwareFilter(uv);
   

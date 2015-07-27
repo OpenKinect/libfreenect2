@@ -1,4 +1,4 @@
-#version 330
+#version 140
 
 struct Parameters
 {
@@ -40,14 +40,12 @@ uniform sampler2DRect Norm;
 
 uniform Parameters Params;
 
-in VertexData {
-    vec2 TexCoord;
-} FragmentIn;
+in vec2 TexCoord;
 
-layout(location = 0) out vec4 Debug;
-layout(location = 1) out vec3 FilterA;
-layout(location = 2) out vec3 FilterB;
-layout(location = 3) out uint MaxEdgeTest;
+/*layout(location = 0)*/ out vec4 Debug;
+/*layout(location = 1)*/ out vec3 FilterA;
+/*layout(location = 2)*/ out vec3 FilterB;
+/*layout(location = 3)*/ out uint MaxEdgeTest;
 
 void applyBilateralFilter(ivec2 uv)
 {
@@ -115,7 +113,7 @@ void applyBilateralFilter(ivec2 uv)
 
 void main(void)
 {
-  ivec2 uv = ivec2(FragmentIn.TexCoord.x, FragmentIn.TexCoord.y);
+  ivec2 uv = ivec2(TexCoord.x, TexCoord.y);
     
   applyBilateralFilter(uv);
   

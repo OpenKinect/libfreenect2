@@ -1,14 +1,12 @@
-#version 330
+#version 140
 
-in vec2 Position;
-in vec2 TexCoord;
+in vec2 InputPosition;
+in vec2 InputTexCoord;
 
-out VertexData {
-  vec2 TexCoord;
-} VertexOut;
+out vec2 TexCoord;
 
 void main(void)
 {
-  gl_Position = vec4(Position, 0.0, 1.0);
-  VertexOut.TexCoord = TexCoord;
+  gl_Position = vec4(InputPosition, 0.0, 1.0);
+  TexCoord = InputTexCoord;
 }
