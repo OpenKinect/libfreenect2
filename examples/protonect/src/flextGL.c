@@ -24,8 +24,8 @@ int flextInit(GLFWwindow* window, OpenGLBindings *bindings)
     
     /* --- Check for minimal version and profile --- */
 
-    if (major * 10 + minor < 33) {
-        fprintf(stderr, "Error: OpenGL version 3.3 not supported.\n");
+    if (major * 10 + minor < 31) {
+        fprintf(stderr, "Error: OpenGL version 3.1 not supported.\n");
         fprintf(stderr, "       Your version is %d.%d.\n", major, minor);
         fprintf(stderr, "       Try updating your graphics driver.\n");
         return GL_FALSE;
@@ -306,7 +306,7 @@ void flextLoadOpenGLFunctions(OpenGLBindings *bindings)
     bindings->glUniformBlockBinding = (PFNGLUNIFORMBLOCKBINDING_PROC*)glfwGetProcAddress("glUniformBlockBinding");
 
     /* GL_VERSION_3_2 */
-
+/*
     bindings->glDrawElementsBaseVertex = (PFNGLDRAWELEMENTSBASEVERTEX_PROC*)glfwGetProcAddress("glDrawElementsBaseVertex");
     bindings->glDrawRangeElementsBaseVertex = (PFNGLDRAWRANGEELEMENTSBASEVERTEX_PROC*)glfwGetProcAddress("glDrawRangeElementsBaseVertex");
     bindings->glDrawElementsInstancedBaseVertex = (PFNGLDRAWELEMENTSINSTANCEDBASEVERTEX_PROC*)glfwGetProcAddress("glDrawElementsInstancedBaseVertex");
@@ -326,9 +326,9 @@ void flextLoadOpenGLFunctions(OpenGLBindings *bindings)
     bindings->glTexImage3DMultisample = (PFNGLTEXIMAGE3DMULTISAMPLE_PROC*)glfwGetProcAddress("glTexImage3DMultisample");
     bindings->glGetMultisamplefv = (PFNGLGETMULTISAMPLEFV_PROC*)glfwGetProcAddress("glGetMultisamplefv");
     bindings->glSampleMaski = (PFNGLSAMPLEMASKI_PROC*)glfwGetProcAddress("glSampleMaski");
-
+*/
     /* GL_VERSION_3_3 */
-
+/*
     bindings->glBindFragDataLocationIndexed = (PFNGLBINDFRAGDATALOCATIONINDEXED_PROC*)glfwGetProcAddress("glBindFragDataLocationIndexed");
     bindings->glGetFragDataIndex = (PFNGLGETFRAGDATAINDEX_PROC*)glfwGetProcAddress("glGetFragDataIndex");
     bindings->glGenSamplers = (PFNGLGENSAMPLERS_PROC*)glfwGetProcAddress("glGenSamplers");
@@ -357,7 +357,7 @@ void flextLoadOpenGLFunctions(OpenGLBindings *bindings)
     bindings->glVertexAttribP3uiv = (PFNGLVERTEXATTRIBP3UIV_PROC*)glfwGetProcAddress("glVertexAttribP3uiv");
     bindings->glVertexAttribP4ui = (PFNGLVERTEXATTRIBP4UI_PROC*)glfwGetProcAddress("glVertexAttribP4ui");
     bindings->glVertexAttribP4uiv = (PFNGLVERTEXATTRIBP4UIV_PROC*)glfwGetProcAddress("glVertexAttribP4uiv");
-
+*/
 }
 
 /* ----------------------- Extension flag definitions ---------------------- */

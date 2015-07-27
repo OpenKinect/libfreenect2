@@ -841,7 +841,7 @@ typedef struct __GLsync *GLsync;
 #define GL_INVALID_INDEX 0xFFFFFFFFu
 
 /* GL_VERSION_3_2 */
-
+/*
 #define GL_CONTEXT_CORE_PROFILE_BIT 0x00000001
 #define GL_CONTEXT_COMPATIBILITY_PROFILE_BIT 0x00000002
 #define GL_LINES_ADJACENCY 0x000A
@@ -906,9 +906,9 @@ typedef struct __GLsync *GLsync;
 #define GL_MAX_COLOR_TEXTURE_SAMPLES 0x910E
 #define GL_MAX_DEPTH_TEXTURE_SAMPLES 0x910F
 #define GL_MAX_INTEGER_SAMPLES 0x9110
-
+*/
 /* GL_VERSION_3_3 */
-
+/*
 #define GL_VERTEX_ATTRIB_ARRAY_DIVISOR 0x88FE
 #define GL_SRC1_COLOR 0x88F9
 #define GL_ONE_MINUS_SRC1_COLOR 0x88FA
@@ -925,7 +925,7 @@ typedef struct __GLsync *GLsync;
 #define GL_TIME_ELAPSED 0x88BF
 #define GL_TIMESTAMP 0x8E28
 #define GL_INT_2_10_10_10_REV 0x8D9F
-
+*/
 /* --------------------------- FUNCTION PROTOTYPES --------------------------- */
 
     
@@ -1258,7 +1258,7 @@ typedef void (APIENTRY PFNGLGETACTIVEUNIFORMBLOCKNAME_PROC (GLuint program, GLui
 typedef void (APIENTRY PFNGLUNIFORMBLOCKBINDING_PROC (GLuint program, GLuint uniformBlockIndex, GLuint uniformBlockBinding));
     
 /* GL_VERSION_3_2 */
-  
+/*
 typedef void (APIENTRY PFNGLDRAWELEMENTSBASEVERTEX_PROC (GLenum mode, GLsizei count, GLenum type, const void * indices, GLint basevertex));
 typedef void (APIENTRY PFNGLDRAWRANGEELEMENTSBASEVERTEX_PROC (GLenum mode, GLuint start, GLuint end, GLsizei count, GLenum type, const void * indices, GLint basevertex));
 typedef void (APIENTRY PFNGLDRAWELEMENTSINSTANCEDBASEVERTEX_PROC (GLenum mode, GLsizei count, GLenum type, const void * indices, GLsizei instancecount, GLint basevertex));
@@ -1278,9 +1278,9 @@ typedef void (APIENTRY PFNGLTEXIMAGE2DMULTISAMPLE_PROC (GLenum target, GLsizei s
 typedef void (APIENTRY PFNGLTEXIMAGE3DMULTISAMPLE_PROC (GLenum target, GLsizei samples, GLenum internalformat, GLsizei width, GLsizei height, GLsizei depth, GLboolean fixedsamplelocations));
 typedef void (APIENTRY PFNGLGETMULTISAMPLEFV_PROC (GLenum pname, GLuint index, GLfloat * val));
 typedef void (APIENTRY PFNGLSAMPLEMASKI_PROC (GLuint maskNumber, GLbitfield mask));
-    
+*/
 /* GL_VERSION_3_3 */
-  
+/*
 typedef void (APIENTRY PFNGLBINDFRAGDATALOCATIONINDEXED_PROC (GLuint program, GLuint colorNumber, GLuint index, const GLchar * name));
 typedef GLint (APIENTRY PFNGLGETFRAGDATAINDEX_PROC (GLuint program, const GLchar * name));
 typedef void (APIENTRY PFNGLGENSAMPLERS_PROC (GLsizei count, GLuint * samplers));
@@ -1309,7 +1309,7 @@ typedef void (APIENTRY PFNGLVERTEXATTRIBP3UI_PROC (GLuint index, GLenum type, GL
 typedef void (APIENTRY PFNGLVERTEXATTRIBP3UIV_PROC (GLuint index, GLenum type, GLboolean normalized, const GLuint * value));
 typedef void (APIENTRY PFNGLVERTEXATTRIBP4UI_PROC (GLuint index, GLenum type, GLboolean normalized, GLuint value));
 typedef void (APIENTRY PFNGLVERTEXATTRIBP4UIV_PROC (GLuint index, GLenum type, GLboolean normalized, const GLuint * value));
-        
+*/
 struct OpenGLBindings
 {
     
@@ -1574,7 +1574,7 @@ struct OpenGLBindings
   PFNGLUNIFORMBLOCKBINDING_PROC* glUniformBlockBinding;
     
   /* GL_VERSION_3_2 */
-
+/*
   PFNGLDRAWELEMENTSBASEVERTEX_PROC* glDrawElementsBaseVertex;
   PFNGLDRAWRANGEELEMENTSBASEVERTEX_PROC* glDrawRangeElementsBaseVertex;
   PFNGLDRAWELEMENTSINSTANCEDBASEVERTEX_PROC* glDrawElementsInstancedBaseVertex;
@@ -1594,9 +1594,9 @@ struct OpenGLBindings
   PFNGLTEXIMAGE3DMULTISAMPLE_PROC* glTexImage3DMultisample;
   PFNGLGETMULTISAMPLEFV_PROC* glGetMultisamplefv;
   PFNGLSAMPLEMASKI_PROC* glSampleMaski;
-    
+*/
   /* GL_VERSION_3_3 */
-
+/*
   PFNGLBINDFRAGDATALOCATIONINDEXED_PROC* glBindFragDataLocationIndexed;
   PFNGLGETFRAGDATAINDEX_PROC* glGetFragDataIndex;
   PFNGLGENSAMPLERS_PROC* glGenSamplers;
@@ -1625,6 +1625,7 @@ struct OpenGLBindings
   PFNGLVERTEXATTRIBP3UIV_PROC* glVertexAttribP3uiv;
   PFNGLVERTEXATTRIBP4UI_PROC* glVertexAttribP4ui;
   PFNGLVERTEXATTRIBP4UIV_PROC* glVertexAttribP4uiv;
+*/
 };
 
 typedef struct OpenGLBindings OpenGLBindings;

@@ -1,16 +1,14 @@
-#version 330
+#version 140
 
 uniform sampler2DRect Data;
 
-in VertexData {
-    vec2 TexCoord;
-} FragmentIn;
+in vec2 TexCoord;
 
-layout(location = 0) out vec4 Color;
+out vec4 Color;
 
 void main(void)
 {
-  ivec2 uv = ivec2(FragmentIn.TexCoord.x, FragmentIn.TexCoord.y);
+  ivec2 uv = ivec2(TexCoord.x, TexCoord.y);
   
   Color = texelFetch(Data, uv);
 }
