@@ -8,8 +8,14 @@
 #  LibUSB_LIBRARIES:  the libraries
 
 IF(PKG_CONFIG_FOUND)
-  SET(ENV{PKG_CONFIG_PATH} "${DEPENDS_DIR}/libusb/lib/pkgconfig")
-  PKG_CHECK_MODULES(LibUSB libusb-1.0)
+  IF(${DEPENDS_DIR}) #Otherwise use System pkg-config path
+    SET(ENV{PKG_CONFIG_PATH} "${DEPENDS_DIR}/libusb/lib/pkgconfig")
+  ENDIF()
+  IF(LibUSB_FIND_REQUIRED)
+    PKG_CHECK_MODULES(LibUSB REQUIRED libusb-1.0)
+  ELSE()
+    PKG_CHECK_MODULES(LibUSB libusb-1.0)
+  ENDIF()
   RETURN()
 ENDIF()
 
