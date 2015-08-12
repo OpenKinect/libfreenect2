@@ -8,7 +8,7 @@
 #  LibUSB_LIBRARIES:  the libraries
 
 IF(PKG_CONFIG_FOUND)
-  IF(${DEPENDS_DIR}) #Otherwise use System pkg-config path
+  IF(DEPENDS_DIR) #Otherwise use System pkg-config path
     SET(ENV{PKG_CONFIG_PATH} "${DEPENDS_DIR}/libusb/lib/pkgconfig")
   ENDIF()
   IF(LibUSB_FIND_REQUIRED)
