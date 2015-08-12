@@ -25,7 +25,6 @@
  */
 
 #include <libfreenect2/depth_packet_stream_parser.h>
-#include <iostream>
 #include <memory.h>
 
 namespace libfreenect2
@@ -79,7 +78,7 @@ void DepthPacketStreamParser::onDataReceived(unsigned char* buffer, size_t in_le
 
     if(wb.length + in_length > wb.capacity)
     {
-      std::cerr << "[DepthPacketStreamParser::onDataReceived] subpacket too large" << std::endl;
+      LOG_ERROR << "subpacket too large";
       wb.length = 0;
       return;
     }
@@ -91,7 +90,7 @@ void DepthPacketStreamParser::onDataReceived(unsigned char* buffer, size_t in_le
     {
       if(footer->length != wb.length)
       {
-        std::cerr << "[DepthPacketStreamParser::onDataReceived] image data too short!" << std::endl;
+        LOG_ERROR << "image data too short!";
       }
       else
       {
@@ -113,12 +112,12 @@ void DepthPacketStreamParser::onDataReceived(unsigned char* buffer, size_t in_le
             }
             else
             {
-              std::cerr << "[DepthPacketStreamParser::onDataReceived] skipping depth packet" << std::endl;
+              LOG_WARNING << "skipping depth packet";
             }
           }
           else
           {
-            std::cerr << "[DepthPacketStreamParser::onDataReceived] not all subsequences received " << current_subsequence_ << std::endl;
+            LOG_ERROR << "not all subsequences received " << current_subsequence_;
           }
 
           current_sequence_ = footer->sequence;
@@ -132,7 +131,7 @@ void DepthPacketStreamParser::onDataReceived(unsigned char* buffer, size_t in_le
 
         if(footer->subsequence * footer->length > fb.length)
         {
-          std::cerr << "[DepthPacketStreamParser::onDataReceived] front buffer too short! subsequence number is " << footer->subsequence << std::endl;
+          LOG_ERROR << "front buffer too short! subsequence number is " << footer->subsequence;
         }
         else
         {

@@ -29,6 +29,7 @@
 
 #include <libfreenect2/config.h>
 #include <libfreenect2/frame_listener.hpp>
+#include <libfreenect2/logging.h>
 
 namespace libfreenect2
 {
@@ -95,11 +96,14 @@ public:
 
 class Freenect2Impl;
 
-class LIBFREENECT2_API Freenect2
+class LIBFREENECT2_API Freenect2 : public WithLogger
 {
 public:
   Freenect2(void *usb_context = 0);
   virtual ~Freenect2();
+
+  virtual void setLogger(Logger *logger);
+  virtual Logger *logger();
 
   int enumerateDevices();
 
