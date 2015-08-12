@@ -39,9 +39,12 @@ SET(LIBRARY_OUTPUT_PATH ${MY_DIR}/lib)
 
 # dependencies
 FIND_PACKAGE(PkgConfig)    # try find PKGConfig as it will be used if found
+FIND_PACKAGE(OpenCV)
 FIND_PACKAGE(LibUSB REQUIRED)
-FIND_PACKAGE(OpenCV REQUIRED)
 FIND_PACKAGE(TurboJPEG REQUIRED) #does not provide a package-config file
+IF(OPENCV_FOUND)
+    SET(LIBFREENECT2_OPENCV_FOUND 1)
+ENDIF()
 
 # Add includes
 INCLUDE_DIRECTORIES(
@@ -103,7 +106,6 @@ SET(SOURCES
 )
 
 SET(LIBRARIES
-  ${OpenCV_LIBS}
   ${OpenCV_LIBRARIES}
   ${LibUSB_LIBRARIES}
   ${TurboJPEG_LIBRARIES}
@@ -183,8 +185,21 @@ ENDIF()
 MESSAGE("Linking with these libraries: ${LIBRARIES}")
 TARGET_LINK_LIBRARIES(freenect2shared ${LIBRARIES})
   
+SET(Protonect_src
+    Protonect.cpp
+    )
+    
+IF (ENABLE_OPENGL AND OPENGL_FOUND)
+    LIST(APPEND Protonect_src
+        viewer.h
+        viewer.cpp
+        src/flextGL.c
+        )
+ENDIF()
+  
 ADD_EXECUTABLE(Protonect
-  Protonect.cpp
+  ${Protonect_src}
+
 )
   
 TARGET_LINK_LIBRARIES(Protonect
