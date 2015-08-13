@@ -132,7 +132,7 @@ bool Viewer::render()
             y += height;
         }
 
-        Vertex bl = { -1.0f, -1.0f, 0.0f, 0.0f }, br = { 1.0f, -1.0f, frame->width, 0.0f }, tl = { -1.0f, 1.0f, 0.0f, frame->height }, tr = { 1.0f, 1.0f, frame->width, frame->height };
+        Vertex bl = { -1.0f, -1.0f, 0.0f, 0.0f }, br = { 1.0f, -1.0f, static_cast<float>(frame->width), 0.0f }, tl = { -1.0f, 1.0f, 0.0f, static_cast<float>(frame->height) }, tr = { 1.0f, 1.0f, static_cast<float>(frame->width), static_cast<float>(frame->height) };
         Vertex vertices[] = {
             bl, tl, tr, tr, br, bl
         };

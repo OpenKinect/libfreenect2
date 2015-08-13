@@ -35,10 +35,7 @@
 #include <fstream>
 #include <sstream>
 
-#if defined(WIN32)
-#define _USE_MATH_DEFINES
 #include <math.h>
-#endif
 
 #define __CL_ENABLE_EXCEPTIONS
 #ifdef __APPLE__
