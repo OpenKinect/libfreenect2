@@ -370,7 +370,7 @@ struct OpenGLDepthPacketProcessorImpl : public WithOpenGLBindings
   double timing_acc;
   double timing_acc_n;
 
-  double timing_current_start;
+  Timer timer;
 
   bool do_debug;
 
@@ -392,7 +392,6 @@ struct OpenGLDepthPacketProcessorImpl : public WithOpenGLBindings
     params_need_update(true),
     timing_acc(0),
     timing_acc_n(0),
-    timing_current_start(0),
     do_debug(debug)
   {
   }
@@ -447,12 +446,12 @@ struct OpenGLDepthPacketProcessorImpl : public WithOpenGLBindings
 
   void startTiming()
   {
-    timing_current_start = glfwGetTime();
+    timer.start();
   }
 
   void stopTiming()
   {
-    timing_acc += (glfwGetTime() - timing_current_start);
+    timing_acc += timer.stop();
     timing_acc_n += 1.0;
 
     if(timing_acc_n >= 100.0)

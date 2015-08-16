@@ -45,7 +45,7 @@ public:
   double timing_acc;
   double timing_acc_n;
 
-  double timing_current_start;
+  Timer timer;
 
   TurboJpegRgbPacketProcessorImpl()
   {
@@ -59,7 +59,6 @@ public:
 
     timing_acc = 0.0;
     timing_acc_n = 0.0;
-    timing_current_start = 0.0;
   }
 
   ~TurboJpegRgbPacketProcessorImpl()
@@ -80,15 +79,12 @@ public:
 
   void startTiming()
   {
-#ifdef LIBFREENECT2_OPENCV_FOUND
-    timing_current_start = cv::getTickCount();
-#endif
+    timer.start();
   }
 
   void stopTiming()
   {
-#ifdef LIBFREENECT2_OPENCV_FOUND
-    timing_acc += (cv::getTickCount() - timing_current_start) / cv::getTickFrequency();
+    timing_acc += timer.stop();
     timing_acc_n += 1.0;
 
     if(timing_acc_n >= 100.0)
@@ -98,7 +94,6 @@ public:
       timing_acc = 0.0;
       timing_acc_n = 0.0;
     }
-#endif
   }
 };
 

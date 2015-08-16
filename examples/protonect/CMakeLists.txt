@@ -16,6 +16,7 @@ IF(ENABLE_CXX11)
   CHECK_CXX_COMPILER_FLAG("-std=c++0x" COMPILER_SUPPORTS_CXX0X)
   IF(COMPILER_SUPPORTS_CXX11)
     SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+    SET(LIBFREENECT2_WITH_CXX11_SUPPORT 1)
   ELSEIF(COMPILER_SUPPORTS_CXX0X)
     SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
   ELSE()
@@ -99,6 +100,7 @@ SET(SOURCES
   src/resource.cpp
   src/command_transaction.cpp
   src/registration.cpp
+  src/timer.cpp
   src/libfreenect2.cpp
   
   ${LIBFREENECT2_THREADING_SOURCE}
