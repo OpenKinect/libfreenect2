@@ -25,9 +25,6 @@
  */
 
 #include <libfreenect2/rgb_packet_processor.h>
-#ifdef LIBFREENECT2_OPENCV_FOUND
-    #include <opencv2/opencv.hpp>
-#endif
 #include <turbojpeg.h>
 #include <iostream>
 

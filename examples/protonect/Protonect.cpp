@@ -36,9 +36,6 @@
 #ifdef LIBFREENECT2_WITH_OPENGL_SUPPORT
 #include "viewer.h"
 #endif
-#ifdef LIBFREENECT2_OPENCV_FOUND
-#include <opencv2/opencv.hpp>
-#endif
 
 
 bool protonect_shutdown = false;
@@ -140,7 +137,7 @@ int main(int argc, char *argv[])
 
   libfreenect2::Registration* registration = new libfreenect2::Registration(dev->getIrCameraParams(), dev->getColorCameraParams());
 
-#if defined(LIBFREENECT2_WITH_OPENGL_SUPPORT) && !defined(LIBFREENECT2_OPENCV_FOUND)
+#ifdef LIBFREENECT2_WITH_OPENGL_SUPPORT
   Viewer viewer;
   viewer.initialize();
 #endif
@@ -154,7 +151,7 @@ int main(int argc, char *argv[])
 
     registration->apply(rgb, depth, &undistorted, &registered);
 
-#if defined(LIBFREENECT2_WITH_OPENGL_SUPPORT) && !defined(LIBFREENECT2_OPENCV_FOUND)
+#ifdef LIBFREENECT2_WITH_OPENGL_SUPPORT
     viewer.addFrame("RGB", rgb);
     viewer.addFrame("ir", ir);
     viewer.addFrame("depth", depth);
@@ -162,13 +159,7 @@ int main(int argc, char *argv[])
 
     protonect_shutdown = viewer.render();
 #else
-    cv::imshow("rgb", cv::Mat(rgb->height, rgb->width, CV_8UC4, rgb->data));
-    cv::imshow("ir", cv::Mat(ir->height, ir->width, CV_32FC1, ir->data) / 20000.0f);
-    cv::imshow("depth", cv::Mat(depth->height, depth->width, CV_32FC1, depth->data) / 4500.0f);
-    cv::imshow("undistorted", cv::Mat(undistorted.height, undistorted.width, CV_32FC1, undistorted.data) / 4500.0f);
-    cv::imshow("registered", cv::Mat(registered.height, registered.width, CV_8UC4, registered.data));
-    int key = cv::waitKey(1);
-    protonect_shutdown = protonect_shutdown || (key > 0 && ((key & 0xFF) == 27)); // shutdown on escape
+    protonect_shutdown = true;
 #endif
 
     listener.release(frames);
