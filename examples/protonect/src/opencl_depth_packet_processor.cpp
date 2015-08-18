@@ -28,15 +28,11 @@
 #include <libfreenect2/resource.h>
 #include <libfreenect2/protocol/response.h>
 
-#include <opencv2/opencv.hpp>
 #include <iostream>
 #include <fstream>
 #include <sstream>
 
-#if defined(WIN32)
-#define _USE_MATH_DEFINES
 #include <math.h>
-#endif
 
 #define __CL_ENABLE_EXCEPTIONS
 #ifdef __APPLE__
@@ -84,7 +80,7 @@ public:
   double timing_acc;
   double timing_acc_n;
 
-  double timing_current_start;
+  Timer timer;
 
   Frame *ir_frame, *depth_frame;
 
@@ -152,7 +148,6 @@ public:
 
     timing_acc = 0.0;
     timing_acc_n = 0.0;
-    timing_current_start = 0.0;
     image_size = 512 * 424;
 
     deviceInitialized = initDevice(deviceId);
@@ -545,12 +540,12 @@ public:
 
   void startTiming()
   {
-    timing_current_start = cv::getTickCount();
+    timer.start();
   }
 
   void stopTiming()
   {
-    timing_acc += (cv::getTickCount() - timing_current_start) / cv::getTickFrequency();
+    timing_acc += timer.stop();
     timing_acc_n += 1.0;
 
     if(timing_acc_n >= 100.0)

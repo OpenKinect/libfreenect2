@@ -140,7 +140,6 @@ private:
 #endif // LIBFREENECT2_WITH_OPENGL_SUPPORT
 
 // TODO: push this to some internal namespace
-// use pimpl to hide opencv dependency
 class CpuDepthPacketProcessorImpl;
 
 class LIBFREENECT2_API CpuDepthPacketProcessor : public DepthPacketProcessor

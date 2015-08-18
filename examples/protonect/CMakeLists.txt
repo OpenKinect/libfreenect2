@@ -16,6 +16,7 @@ IF(ENABLE_CXX11)
   CHECK_CXX_COMPILER_FLAG("-std=c++0x" COMPILER_SUPPORTS_CXX0X)
   IF(COMPILER_SUPPORTS_CXX11)
     SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+    SET(LIBFREENECT2_WITH_CXX11_SUPPORT 1)
   ELSEIF(COMPILER_SUPPORTS_CXX0X)
     SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
   ELSE()
@@ -40,14 +41,12 @@ SET(LIBRARY_OUTPUT_PATH ${MY_DIR}/lib)
 # dependencies
 FIND_PACKAGE(PkgConfig)    # try find PKGConfig as it will be used if found
 FIND_PACKAGE(LibUSB REQUIRED)
-FIND_PACKAGE(OpenCV REQUIRED)
 FIND_PACKAGE(TurboJPEG REQUIRED) #does not provide a package-config file
 
 # Add includes
 INCLUDE_DIRECTORIES(
   "${MY_DIR}/include"
   ${LIBFREENECT2_THREADING_INCLUDE_DIR}
-  ${OpenCV_INCLUDE_DIRS}
   ${LibUSB_INCLUDE_DIRS}
   ${TurboJPEG_INCLUDE_DIRS}
 )
@@ -96,6 +95,7 @@ SET(SOURCES
   src/resource.cpp
   src/command_transaction.cpp
   src/registration.cpp
+  src/timer.cpp
   src/libfreenect2.cpp
   
   ${LIBFREENECT2_THREADING_SOURCE}
@@ -103,8 +103,6 @@ SET(SOURCES
 )
 
 SET(LIBRARIES
-  ${OpenCV_LIBS}
-  ${OpenCV_LIBRARIES}
   ${LibUSB_LIBRARIES}
   ${TurboJPEG_LIBRARIES}
   ${LIBFREENECT2_THREADING_LIBRARIES}
@@ -183,8 +181,21 @@ ENDIF()
 MESSAGE("Linking with these libraries: ${LIBRARIES}")
 TARGET_LINK_LIBRARIES(freenect2shared ${LIBRARIES})
   
+SET(Protonect_src
+    Protonect.cpp
+    )
+    
+IF (ENABLE_OPENGL AND OPENGL_FOUND)
+    LIST(APPEND Protonect_src
+        viewer.h
+        viewer.cpp
+        src/flextGL.c
+        )
+ENDIF()
+  
 ADD_EXECUTABLE(Protonect
-  Protonect.cpp
+  ${Protonect_src}
+
 )
   
 TARGET_LINK_LIBRARIES(Protonect

@@ -24,40 +24,28 @@
  * either License.
  */
 
-#ifndef PACKET_PROCESSOR_H_
-#define PACKET_PROCESSOR_H_
+#ifndef TIMER_H_
+#define TIMER_H_
 
-#include <libfreenect2/timer.h>
+#include <libfreenect2/config.h>
 
 namespace libfreenect2
 {
 
-template<typename PacketT>
-class PacketProcessor
-{
-public:
-  virtual ~PacketProcessor() {}
+class TimerImpl;
 
-  virtual bool ready() { return true; }
-  virtual void process(const PacketT &packet) = 0;
+class Timer {
+ public:
+  Timer();
+  virtual ~Timer();
+
+  void start();
+  double stop();
+
+ private:
+  TimerImpl *impl_;
 };
-
-template<typename PacketT>
-class NoopPacketProcessor : public PacketProcessor<PacketT>
-{
-public:
-  NoopPacketProcessor() {}
-  virtual ~NoopPacketProcessor() {}
-
-  virtual void process(const PacketT &packet) {}
-};
-
-template<typename PacketT>
-PacketProcessor<PacketT> *noopProcessor()
-{
-  static NoopPacketProcessor<PacketT> noop_processor_;
-  return &noop_processor_;
-}
 
 } /* namespace libfreenect2 */
-#endif /* PACKET_PROCESSOR_H_ */
+
+#endif /* TIMER_H_ */
