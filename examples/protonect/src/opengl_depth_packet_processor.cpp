@@ -279,6 +279,14 @@ public:
 
   void allocate(size_t new_width, size_t new_height)
   {
+    GLint max_size;
+    glGetIntegerv(GL_MAX_RECTANGLE_TEXTURE_SIZE, &max_size);
+    if (new_width > max_size || new_height > max_size)
+    {
+      LOG_ERROR << "GL_MAX_RECTANGLE_TEXTURE_SIZE is too small: " << max_size;
+      exit(-1);
+    }
+
     width = new_width;
     height = new_height;
     size = height * width * bytes_per_pixel;
@@ -459,7 +467,7 @@ struct OpenGLDepthPacketProcessorImpl : public WithOpenGLBindings, public WithPe
     }
     gl(b);
 
-    input_data.allocate(352, 424 * 10);
+    input_data.allocate(352, 424 * 9);
 
     for(int i = 0; i < 3; ++i)
       stage1_data[i].allocate(512, 424);
@@ -942,7 +950,7 @@ void OpenGLDepthPacketProcessor::process(const DepthPacket &packet)
 
   glfwMakeContextCurrent(impl_->opengl_context_ptr);
 
-  std::copy(packet.buffer, packet.buffer + packet.buffer_length, impl_->input_data.data);
+  std::copy(packet.buffer, packet.buffer + packet.buffer_length/10*9, impl_->input_data.data);
   impl_->input_data.upload();
   impl_->run(has_listener ? &ir : 0, has_listener ? &depth : 0);
 
