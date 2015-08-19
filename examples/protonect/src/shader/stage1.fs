@@ -1,4 +1,4 @@
-#version 330
+#version 140
 
 struct Parameters
 {
@@ -43,16 +43,14 @@ uniform sampler2DRect ZTable;
 
 uniform Parameters Params;
 
-in VertexData {
-    vec2 TexCoord;
-} FragmentIn;
+in vec2 TexCoord;
 
-layout(location = 0) out vec4 Debug;
-
-layout(location = 1) out vec3 A;
-layout(location = 2) out vec3 B;
-layout(location = 3) out vec3 Norm;
-layout(location = 4) out float Infrared;
+/*layout(location = 0)*/ out vec4 Debug;
+/*                    */
+/*layout(location = 1)*/ out vec3 A;
+/*layout(location = 2)*/ out vec3 B;
+/*layout(location = 3)*/ out vec3 Norm;
+/*layout(location = 4)*/ out float Infrared;
 
 #define M_PI 3.1415926535897932384626433832795
 
@@ -97,7 +95,7 @@ vec2 processMeasurementTriple(in ivec2 uv, in usampler2DRect p0table, in int off
 
 void main(void)
 {
-  ivec2 uv = ivec2(FragmentIn.TexCoord.x, FragmentIn.TexCoord.y);
+  ivec2 uv = ivec2(TexCoord.x, TexCoord.y);
     
   bool valid_pixel = 0.0 < texelFetch(ZTable, uv).x;
   bvec3 saturated = bvec3(valid_pixel);

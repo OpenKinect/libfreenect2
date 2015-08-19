@@ -1,4 +1,4 @@
-#version 330
+#version 140
 
 struct Parameters
 {
@@ -41,19 +41,17 @@ uniform sampler2DRect ZTable;
 
 uniform Parameters Params;
 
-in VertexData {
-    vec2 TexCoord;
-} FragmentIn;
+in vec2 TexCoord;
 
-layout(location = 0) out vec4 Debug;
-layout(location = 1) out float Depth;
-layout(location = 2) out vec2 DepthAndIrSum;
+/*layout(location = 0)*/ out vec4 Debug;
+/*layout(location = 1)*/ out float Depth;
+/*layout(location = 2)*/ out vec2 DepthAndIrSum;
 
 #define M_PI 3.1415926535897932384626433832795
 
 void main(void)
 {
-  ivec2 uv = ivec2(FragmentIn.TexCoord.x, FragmentIn.TexCoord.y);
+  ivec2 uv = ivec2(TexCoord.x, TexCoord.y);
       
   vec3 a = texelFetch(A, uv).xyz;
   vec3 b = texelFetch(B, uv).xyz;
