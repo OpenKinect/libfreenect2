@@ -365,10 +365,10 @@ struct OpenGLDepthPacketProcessorImpl : public WithOpenGLBindings, public WithPe
   Texture<U16C1> input_data;
 
   Texture<F32C4> stage1_debug;
-  Texture<F32C3> stage1_data[3];
+  Texture<F32C4> stage1_data[3];
   Texture<F32C1> stage1_infrared;
 
-  Texture<F32C3> filter1_data[2];
+  Texture<F32C4> filter1_data[2];
   Texture<U8C1> filter1_max_edge_test;
   Texture<F32C4> filter1_debug;
 
@@ -455,6 +455,16 @@ struct OpenGLDepthPacketProcessorImpl : public WithOpenGLBindings, public WithPe
     debug.gl(b);
   }
 
+  void checkFBO(GLenum target)
+  {
+    GLenum status = gl()->glCheckFramebufferStatus(target);
+    if (status != GL_FRAMEBUFFER_COMPLETE)
+    {
+      LOG_ERROR << "incomplete FBO " << status;
+      exit(-1);
+    }
+  }
+
   void initialize()
   {
     ChangeCurrentOpenGLContext ctx(opengl_context_ptr);
@@ -539,6 +549,7 @@ struct OpenGLDepthPacketProcessorImpl : public WithOpenGLBindings, public WithPe
     gl()->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_RECTANGLE, stage1_data[1].texture, 0);
     gl()->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT3, GL_TEXTURE_RECTANGLE, stage1_data[2].texture, 0);
     gl()->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT4, GL_TEXTURE_RECTANGLE, stage1_infrared.texture, 0);
+    checkFBO(GL_DRAW_FRAMEBUFFER);
 
     gl()->glGenFramebuffers(1, &filter1_framebuffer);
     gl()->glBindFramebuffer(GL_DRAW_FRAMEBUFFER, filter1_framebuffer);
@@ -550,6 +561,7 @@ struct OpenGLDepthPacketProcessorImpl : public WithOpenGLBindings, public WithPe
     gl()->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_RECTANGLE, filter1_data[0].texture, 0);
     gl()->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_RECTANGLE, filter1_data[1].texture, 0);
     gl()->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT3, GL_TEXTURE_RECTANGLE, filter1_max_edge_test.texture, 0);
+    checkFBO(GL_DRAW_FRAMEBUFFER);
 
     gl()->glGenFramebuffers(1, &stage2_framebuffer);
     gl()->glBindFramebuffer(GL_DRAW_FRAMEBUFFER, stage2_framebuffer);
@@ -560,6 +572,7 @@ struct OpenGLDepthPacketProcessorImpl : public WithOpenGLBindings, public WithPe
     if(do_debug) gl()->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_RECTANGLE, stage2_debug.texture, 0);
     gl()->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_RECTANGLE, stage2_depth.texture, 0);
     gl()->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_RECTANGLE, stage2_depth_and_ir_sum.texture, 0);
+    checkFBO(GL_DRAW_FRAMEBUFFER);
 
     gl()->glGenFramebuffers(1, &filter2_framebuffer);
     gl()->glBindFramebuffer(GL_DRAW_FRAMEBUFFER, filter2_framebuffer);
@@ -569,6 +582,7 @@ struct OpenGLDepthPacketProcessorImpl : public WithOpenGLBindings, public WithPe
 
     if(do_debug) gl()->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_RECTANGLE, filter2_debug.texture, 0);
     gl()->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_RECTANGLE, filter2_depth.texture, 0);
+    checkFBO(GL_DRAW_FRAMEBUFFER);
 
     Vertex bl = {-1.0f, -1.0f, 0.0f, 0.0f }, br = { 1.0f, -1.0f, 512.0f, 0.0f }, tl = {-1.0f, 1.0f, 0.0f, 424.0f }, tr = { 1.0f, 1.0f, 512.0f, 424.0f };
     Vertex vertices[] = {
