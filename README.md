@@ -123,22 +123,16 @@ Joshua Blake provided a Debug version binary: https://www.dropbox.com/s/madoye1a
 * Download 64-bit Windows binaries from http://www.glfw.org/download.html
 * Extract it as `depends/glfw` (rename `glfw-3.x.x.bin.WIN64` to glfw), or anywhere as long as the environment variable `GLFW_ROOT` is set to the installed path.
 
-#### OpenCV
-
-* Download the installer from http://sourceforge.net/projects/opencvlibrary/files/opencv-win
-* Extract it anywhere (maybe also in `depends`)
-
 #### OpenCL
 
 * Intel GPU: Download `intel_sdk_for_ocl_applications_2014_x64_setup.msi` from http://www.softpedia.com/get/Programming/SDK-DDK/Intel-SDK-for-OpenCL-Applications.shtml (SDK official download is replaced by $$$ and no longer available) and install it. Then verify `INTELOCLSDKROOT` is set as an environment variable.
 
 #### Build
 
-You need to specify the location of OpenCV installation in `OpenCV_DIR`.
 ```
 cd example\protonect
 mkdir build && cd build
-cmake .. -G "Visual Studio 12 2013 Win64" -DCMAKE_INSTALL_PREFIX=. -DOpenCV_DIR=%cd%\..\..\..\depends\opencv\build 
+cmake .. -G "Visual Studio 12 2013 Win64" -DCMAKE_INSTALL_PREFIX=.
 cmake --build . --config Release --target install
 ```
 
@@ -150,12 +144,12 @@ Use your favorite package managers (brew, ports, etc.)
 
 1. ``cd`` into a directory where you want to keep libfreenect2 stuff in
 1. Make sure these build tools are available: wget, git, cmake, pkg-config, automake, autoconf, libtool. Xcode may provide some of them. Install the rest via package managers.
-1. Install dependencies: OpenCV, TurboJPEG, GLFW.
+1. Install dependencies: TurboJPEG, GLFW.
 
     ```
 brew update
 brew tap homebrew/science
-brew install opencv jpeg-turbo
+brew install jpeg-turbo
 brew tap homebrew/versions
 brew install glfw3
 ```
@@ -204,7 +198,7 @@ git clone https://github.com/OpenKinect/libfreenect2.git
 1. Install a bunch of dependencies
 
     ```bash
-sudo apt-get install build-essential libturbojpeg libjpeg-turbo8-dev libtool autoconf libudev-dev cmake mesa-common-dev freeglut3-dev libxrandr-dev doxygen libxi-dev libopencv-dev automake
+sudo apt-get install build-essential libturbojpeg libjpeg-turbo8-dev libtool autoconf libudev-dev cmake mesa-common-dev freeglut3-dev libxrandr-dev doxygen libxi-dev automake
 # sudo apt-get install libturbojpeg0-dev (Debian)
 
 cd libfreenect2/depends
