@@ -25,6 +25,7 @@
  */
 
 #include <libfreenect2/depth_packet_stream_parser.h>
+#include <libfreenect2/logging.h>
 #include <memory.h>
 
 namespace libfreenect2

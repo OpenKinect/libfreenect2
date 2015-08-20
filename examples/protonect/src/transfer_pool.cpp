@@ -25,6 +25,7 @@
  */
 
 #include <libfreenect2/usb/transfer_pool.h>
+#include <libfreenect2/logging.h>
 
 namespace libfreenect2
 {

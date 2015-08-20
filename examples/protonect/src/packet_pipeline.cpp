@@ -49,14 +49,6 @@ void BasePacketPipeline::initialize()
   depth_parser_->setPacketProcessor(async_depth_processor_);
 }
 
-void BasePacketPipeline::onLoggerChanged(Logger *logger)
-{
-  rgb_parser_->setLogger(logger);
-  depth_parser_->setLogger(logger);
-  trySetLogger(rgb_processor_, logger);
-  trySetLogger(depth_processor_, logger);
-}
-
 BasePacketPipeline::~BasePacketPipeline()
 {
   delete async_rgb_processor_;

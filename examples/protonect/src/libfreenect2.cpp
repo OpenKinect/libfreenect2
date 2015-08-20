@@ -38,6 +38,7 @@
 #include <libfreenect2/protocol/command.h>
 #include <libfreenect2/protocol/response.h>
 #include <libfreenect2/protocol/command_transaction.h>
+#include <libfreenect2/logging.h>
 
 namespace libfreenect2
 {
@@ -45,7 +46,7 @@ using namespace libfreenect2;
 using namespace libfreenect2::usb;
 using namespace libfreenect2::protocol;
 
-class Freenect2DeviceImpl : public Freenect2Device, public WithLoggerImpl
+class Freenect2DeviceImpl : public Freenect2Device
 {
 private:
   enum State
@@ -74,8 +75,6 @@ private:
   std::string serial_, firmware_;
   Freenect2Device::IrCameraParams ir_camera_params_;
   Freenect2Device::ColorCameraParams rgb_camera_params_;
-protected:
-  virtual void onLoggerChanged(Logger *logger);
 public:
   Freenect2DeviceImpl(Freenect2Impl *context, const PacketPipeline *pipeline, libusb_device *usb_device, libusb_device_handle *usb_device_handle, const std::string &serial);
   virtual ~Freenect2DeviceImpl();
@@ -112,7 +111,7 @@ std::ostream &operator<<(std::ostream &out, const PrintBusAndDevice& dev)
   return out;
 }
 
-class Freenect2Impl : public WithLoggerImpl
+class Freenect2Impl
 {
 private:
   bool managed_usb_context_;
@@ -136,8 +135,6 @@ public:
     usb_context_(reinterpret_cast<libusb_context *>(usb_context)),
     has_device_enumeration_(false)
   {
-    logger_ = createConsoleLoggerWithDefaultLevel();
-
     if(managed_usb_context_)
     {
       int r = libusb_init(&usb_context_);
@@ -151,7 +148,7 @@ public:
     usb_event_loop_.start(usb_context_);
   }
 
-  virtual ~Freenect2Impl()
+  ~Freenect2Impl()
   {
     clearDevices();
     clearDeviceEnumeration();
@@ -164,32 +161,10 @@ public:
       usb_context_ = 0;
     }
 
-    setLoggerInternal(0);
-  }
-
-  void setLoggerInternal(Logger *logger)
-  {
-    Logger *old_logger = logger_;
-    WithLoggerImpl::setLogger(logger);
-    delete old_logger;
-  }
-
-  virtual void setLogger(Logger *logger)
-  {
-    setLoggerInternal(logger != 0 ? logger : createNoopLogger());
-  }
-
-  virtual void onLoggerChanged(Logger *logger)
-  {
-    for(DeviceVector::iterator it = devices_.begin(); it != devices_.end(); ++it)
-    {
-      (*it)->setLogger(logger);
-    }
   }
 
   void addDevice(Freenect2DeviceImpl *device)
   {
-    device->setLogger(logger_);
     devices_.push_back(device);
   }
 
@@ -200,7 +175,6 @@ public:
     if(it != devices_.end())
     {
       devices_.erase(it);
-      device->setLogger(0);
     }
     else
     {
@@ -364,17 +338,6 @@ Freenect2DeviceImpl::~Freenect2DeviceImpl()
   context_->removeDevice(this);
 
   delete pipeline_;
-}
-
-void Freenect2DeviceImpl::onLoggerChanged(Logger *logger)
-{
-  rgb_transfer_pool_.setLogger(logger);
-  ir_transfer_pool_.setLogger(logger);
-  usb_control_.setLogger(logger);
-  command_tx_.setLogger(logger);
-
-  // TODO: is this ok?
-  trySetLogger(const_cast<PacketPipeline *>(pipeline_), logger);
 }
 
 int Freenect2DeviceImpl::nextCommandSeq()
@@ -684,16 +647,6 @@ Freenect2::Freenect2(void *usb_context) :
 Freenect2::~Freenect2()
 {
   delete impl_;
-}
-
-void Freenect2::setLogger(Logger *logger)
-{
-  impl_->setLogger(logger);
-}
-
-Logger *Freenect2::logger()
-{
-  return impl_->logger();
 }
 
 int Freenect2::enumerateDevices()

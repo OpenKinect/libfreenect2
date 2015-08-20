@@ -28,7 +28,6 @@
 #define USB_CONTROL_H_
 
 #include <libusb.h>
-#include <libfreenect2/logging.h>
 
 namespace libfreenect2
 {
@@ -62,7 +61,7 @@ namespace protocol
  *
  * The 2. interface can be enabled/disabled by changing its alternate setting to 1/0
  */
-class UsbControl : public WithLoggerImpl
+class UsbControl
 {
 public:
   UsbControl(libusb_device_handle *handle);

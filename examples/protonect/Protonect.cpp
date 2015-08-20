@@ -33,6 +33,7 @@
 #include <libfreenect2/threading.h>
 #include <libfreenect2/registration.h>
 #include <libfreenect2/packet_pipeline.h>
+#include <libfreenect2/logging.h>
 #ifdef LIBFREENECT2_WITH_OPENGL_SUPPORT
 #include "viewer.h"
 #endif
@@ -59,7 +60,7 @@ int main(int argc, char *argv[])
 
   libfreenect2::Freenect2 freenect2;
   // create a console logger with debug level (default is console logger with info level)
-  freenect2.setLogger(libfreenect2::createConsoleLogger(libfreenect2::Logger::Debug));
+  libfreenect2::setGlobalLogger(libfreenect2::createConsoleLogger(libfreenect2::Logger::Debug));
 
   libfreenect2::Freenect2Device *dev = 0;
   libfreenect2::PacketPipeline *pipeline = 0;

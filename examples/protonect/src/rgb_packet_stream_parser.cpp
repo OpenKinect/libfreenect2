@@ -26,6 +26,7 @@
 
 #include <libfreenect2/config.h>
 #include <libfreenect2/rgb_packet_stream_parser.h>
+#include <libfreenect2/logging.h>
 #include <memory.h>
 
 namespace libfreenect2

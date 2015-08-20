@@ -93,7 +93,7 @@ public:
   {
     if(level < level_) return;
 
-    (level >= Warning ? std::cerr : std::cout) << "[" << level2str(level) << "]" << message << std::endl;
+    (level >= Warning ? std::cerr : std::cout) << "[" << level2str(level) << "] " << message << std::endl;
   }
 };
 
@@ -130,9 +130,11 @@ LogMessage::LogMessage(Logger *logger, Logger::Level level) : logger_(logger), l
 
 LogMessage::~LogMessage()
 {
-  if(logger_ != 0)
+  if(logger_ != 0 && stream_.good())
   {
-    logger_->log(level_, stream_.str());
+    const std::string &message = stream_.str();
+    if (message.size())
+      logger_->log(level_, message);
   }
 }
 
@@ -141,24 +143,35 @@ std::ostream &LogMessage::stream()
   return stream_;
 }
 
-WithLogger::~WithLogger() {}
+static ConsoleLogger defaultLogger_(Logger::getDefaultLevel());
+static Logger *userLogger_ = &defaultLogger_;
 
-WithLoggerImpl::WithLoggerImpl() : logger_(0)
+Logger *getGlobalLogger()
 {
+  return userLogger_;
 }
 
-WithLoggerImpl::~WithLoggerImpl() {}
-void WithLoggerImpl::onLoggerChanged(Logger *logger) {}
-
-void WithLoggerImpl::setLogger(Logger *logger)
+void setGlobalLogger(Logger *logger)
 {
-  logger_ = logger;
-  onLoggerChanged(logger_);
+  if (userLogger_ != &defaultLogger_)
+    delete userLogger_;
+  userLogger_ = logger;
 }
 
-Logger *WithLoggerImpl::logger()
+std::string getShortName(const char *func)
 {
-  return logger_;
+  std::string src(func);
+  size_t end = src.rfind('(');
+  if (end == std::string::npos)
+    end = src.size();
+  size_t begin = 1 + src.rfind(' ', end);
+  size_t first_ns = src.find("::", begin);
+  if (first_ns != std::string::npos)
+    begin = first_ns + 2;
+  size_t last_ns = src.rfind("::", end);
+  if (last_ns != std::string::npos)
+    end = last_ns;
+  return src.substr(begin, end - begin);
 }
 
 } /* namespace libfreenect2 */

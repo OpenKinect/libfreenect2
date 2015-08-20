@@ -25,6 +25,7 @@
  */
 
 #include <libfreenect2/protocol/usb_control.h>
+#include <libfreenect2/logging.h>
 
 #include <stdint.h>
 #include <iostream>

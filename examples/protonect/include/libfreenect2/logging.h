@@ -60,6 +60,10 @@ LIBFREENECT2_API Logger *createConsoleLogger(Logger::Level level);
 LIBFREENECT2_API Logger *createConsoleLoggerWithDefaultLevel();
 LIBFREENECT2_API Logger *createNoopLogger();
 
+//libfreenect2 frees the memory of the logger passed in.
+LIBFREENECT2_API Logger *getGlobalLogger();
+LIBFREENECT2_API void setGlobalLogger(Logger *logger);
+
 class LIBFREENECT2_API LogMessage
 {
 private:
@@ -73,50 +77,22 @@ public:
   std::ostream &stream();
 };
 
-class LIBFREENECT2_API WithLogger
-{
-public:
-  virtual ~WithLogger();
-  virtual void setLogger(Logger *logger) = 0;
-  virtual Logger *logger() = 0;
-};
-
-template<class T>
-void trySetLogger(T *obj, Logger *logger)
-{
-  WithLogger *obj_with_logger = dynamic_cast<WithLogger *>(obj);
-  if(obj_with_logger != 0)
-  {
-    obj_with_logger->setLogger(logger);
-  }
-}
-
-class LIBFREENECT2_API WithLoggerImpl : public WithLogger
-{
-protected:
-  Logger *logger_;
-
-  virtual void onLoggerChanged(Logger *logger);
-public:
-  WithLoggerImpl();
-  virtual ~WithLoggerImpl();
-  virtual void setLogger(Logger *logger);
-  virtual Logger *logger();
-};
+std::string getShortName(const char *func);
 
 } /* namespace libfreenect2 */
 
 #if defined(__GNUC__) or defined(__clang__)
-#define LIBFREENECT2_LOG_SOURCE __PRETTY_FUNCTION__
+#define LIBFREENECT2_LOG_SOURCE ::libfreenect2::getShortName(__PRETTY_FUNCTION__)
 #elif defined(_MSC_VER)
-#define LIBFREENECT2_LOG_SOURCE __FUNCSIG__
+#define LIBFREENECT2_LOG_SOURCE ::libfreenect2::getShortName(__FUNCSIG__)
 #else
 #define LIBFREENECT2_LOG_SOURCE ""
 #endif
 
-#define LOG_DEBUG (::libfreenect2::LogMessage(logger(), ::libfreenect2::Logger::Debug).stream() << "[" << LIBFREENECT2_LOG_SOURCE << "] ")
-#define LOG_INFO (::libfreenect2::LogMessage(logger(), ::libfreenect2::Logger::Info).stream() << "[" << LIBFREENECT2_LOG_SOURCE << "] ")
-#define LOG_WARNING (::libfreenect2::LogMessage(logger(), ::libfreenect2::Logger::Warning).stream() << "[" << LIBFREENECT2_LOG_SOURCE << "] ")
-#define LOG_ERROR (::libfreenect2::LogMessage(logger(), ::libfreenect2::Logger::Error).stream() << "[" << LIBFREENECT2_LOG_SOURCE << "] ")
+#define LOG(LEVEL) (::libfreenect2::LogMessage(::libfreenect2::getGlobalLogger(), ::libfreenect2::Logger::LEVEL).stream() << "[" << LIBFREENECT2_LOG_SOURCE << "] ")
+#define LOG_DEBUG LOG(Debug)
+#define LOG_INFO LOG(Info)
+#define LOG_WARNING LOG(Warning)
+#define LOG_ERROR LOG(Error)
 
 #endif /* LOGGING_H_ */
