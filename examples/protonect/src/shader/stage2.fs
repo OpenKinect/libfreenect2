@@ -1,5 +1,3 @@
-#version 140
-
 struct Parameters
 {
   float ab_multiplier;

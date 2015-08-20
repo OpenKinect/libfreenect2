@@ -34,6 +34,7 @@
 #include <fstream>
 #include <string>
 #include <map>
+#include <cstdlib>
 
 #include <stdint.h>
 
@@ -124,27 +125,53 @@ struct ShaderProgram : public WithOpenGLBindings
 
   char error_buffer[2048];
 
+  std::string defines;
+  bool is_mesa_checked;
+
   ShaderProgram() :
     program(0),
+    is_mesa_checked(false),
     vertex_shader(0),
     fragment_shader(0)
   {
   }
 
+  void checkMesaBug()
+  {
+    if (is_mesa_checked)
+      return;
+    is_mesa_checked = true;
+    std::string ren((const char*)glGetString(GL_RENDERER));
+    std::string ver((const char*)glGetString(GL_VERSION));
+    if (ren.find("Mesa DRI Intel") == 0)
+    {
+      size_t mesa_pos = ver.rfind("Mesa ");
+      if (mesa_pos != std::string::npos)
+      {
+        double mesa_ver = atof(ver.substr(mesa_pos + 5).c_str());
+        if (mesa_ver < 10.3)
+        {
+          defines += "#define MESA_BUGGY_BOOL_CMP\n";
+          LOG_WARNING << "Working around buggy boolean instructions in your Mesa driver. Mesa DRI 10.3+ is recommended.";
+        }
+      }
+    }
+  }
+
   void setVertexShader(const std::string& src)
   {
-    const char* src_ = src.c_str();
-    int length_ = src.length();
+    checkMesaBug();
+    const GLchar *sources[] = {"#version 140\n", defines.c_str(), src.c_str()};
     vertex_shader = gl()->glCreateShader(GL_VERTEX_SHADER);
-    gl()->glShaderSource(vertex_shader, 1, &src_, &length_);
+    gl()->glShaderSource(vertex_shader, 3, sources, NULL);
   }
 
   void setFragmentShader(const std::string& src)
   {
-    const char* src_ = src.c_str();
-    int length_ = src.length();
+    checkMesaBug();
+    const GLchar *sources[] = {"#version 140\n", defines.c_str(), src.c_str()};
     fragment_shader = gl()->glCreateShader(GL_FRAGMENT_SHADER);
-    gl()->glShaderSource(fragment_shader, 1, &src_, &length_);
+    gl()->glShaderSource(fragment_shader, 3, sources, NULL);
   }
 
   void bindFragDataLocation(const std::string &name, int output)

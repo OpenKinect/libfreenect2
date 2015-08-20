@@ -1,5 +1,3 @@
-#version 140
-
 uniform sampler2DRect Data;
 
 in vec2 TexCoord;

@@ -1,5 +1,3 @@
-#version 140
-
 struct Parameters
 {
   float ab_multiplier;
@@ -104,6 +102,9 @@ void main(void)
   vec2 ab1 = processMeasurementTriple(uv, P0Table1, 3, Params.ab_multiplier_per_frq.y, saturated.y);
   vec2 ab2 = processMeasurementTriple(uv, P0Table2, 6, Params.ab_multiplier_per_frq.z, saturated.z);
   
+#ifdef MESA_BUGGY_BOOL_CMP
+  valid_pixel = valid_pixel ? true : false;
+#endif
   bvec3 invalid_pixel = bvec3(!valid_pixel);
   
   A    = mix(vec3(ab0.x, ab1.x, ab2.x), vec3(0.0), invalid_pixel);

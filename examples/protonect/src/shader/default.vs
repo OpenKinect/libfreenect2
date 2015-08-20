@@ -1,5 +1,3 @@
-#version 140
-
 in vec2 InputPosition;
 in vec2 InputTexCoord;
 
