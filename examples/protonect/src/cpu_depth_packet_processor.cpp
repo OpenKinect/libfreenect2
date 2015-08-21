@@ -27,8 +27,8 @@
 #include <libfreenect2/depth_packet_processor.h>
 #include <libfreenect2/resource.h>
 #include <libfreenect2/protocol/response.h>
+#include <libfreenect2/logging.h>
 
-#include <iostream>
 #include <fstream>
 
 #include <limits>
@@ -253,7 +253,7 @@ public:
     if(timing_acc_n >= 100.0)
     {
       double avg = (timing_acc / timing_acc_n);
-      std::cout << "[CpuDepthPacketProcessor] avg. time: " << (avg * 1000) << "ms -> ~" << (1.0/avg) << "Hz" << std::endl;
+      LOG_INFO << "[CpuDepthPacketProcessor] avg. time: " << (avg * 1000) << "ms -> ~" << (1.0/avg) << "Hz";
       timing_acc = 0.0;
       timing_acc_n = 0.0;
     }
@@ -774,7 +774,7 @@ void CpuDepthPacketProcessor::loadP0TablesFromCommandResponse(unsigned char* buf
 
   if(buffer_length < sizeof(libfreenect2::protocol::P0TablesResponse))
   {
-    std::cerr << "[CpuDepthPacketProcessor::loadP0TablesFromCommandResponse] P0Table response too short!" << std::endl;
+    LOG_ERROR << "P0Table response too short!";
     return;
   }
 
@@ -801,19 +801,19 @@ void CpuDepthPacketProcessor::loadP0TablesFromFiles(const char* p0_filename, con
   Mat<uint16_t> p0_table0(424, 512);
   if(!loadBufferFromFile2(p0_filename, p0_table0.buffer(), p0_table0.sizeInBytes()))
   {
-    std::cerr << "[CpuDepthPacketProcessor::loadP0TablesFromFiles] Loading p0table 0 from '" << p0_filename << "' failed!" << std::endl;
+    LOG_ERROR << "Loading p0table 0 from '" << p0_filename << "' failed!";
   }
 
   Mat<uint16_t> p0_table1(424, 512);
   if(!loadBufferFromFile2(p1_filename, p0_table1.buffer(), p0_table1.sizeInBytes()))
   {
-    std::cerr << "[CpuDepthPacketProcessor::loadP0TablesFromFiles] Loading p0table 1 from '" << p1_filename << "' failed!" << std::endl;
+    LOG_ERROR << "Loading p0table 1 from '" << p1_filename << "' failed!";
   }
 
   Mat<uint16_t> p0_table2(424, 512);
   if(!loadBufferFromFile2(p2_filename, p0_table2.buffer(), p0_table2.sizeInBytes()))
   {
-    std::cerr << "[CpuDepthPacketProcessor::loadP0TablesFromFiles] Loading p0table 2 from '" << p2_filename << "' failed!" << std::endl;
+    LOG_ERROR << "Loading p0table 2 from '" << p2_filename << "' failed!";
   }
 
   if(impl_->flip_ptables)
@@ -846,7 +846,7 @@ void CpuDepthPacketProcessor::loadXTableFromFile(const char* filename)
   }
   else
   {
-    std::cerr << "[CpuDepthPacketProcessor::loadXTableFromFile] Loading xtable from resource 'xTable.bin' failed!" << std::endl;
+    LOG_ERROR << "Loading xtable from resource 'xTable.bin' failed!";
   }
 }
 
@@ -863,7 +863,7 @@ void CpuDepthPacketProcessor::loadZTableFromFile(const char* filename)
   }
   else
   {
-    std::cerr << "[CpuDepthPacketProcessor::loadZTableFromFile] Loading ztable from resource 'zTable.bin' failed!" << std::endl;
+    LOG_ERROR << "Loading ztable from resource 'zTable.bin' failed!";
   }
 }
 
@@ -878,7 +878,7 @@ void CpuDepthPacketProcessor::load11To16LutFromFile(const char* filename)
   }
   else
   {
-    std::cerr << "[CpuDepthPacketProcessor::load11To16LutFromFile] Loading 11to16 lut from resource '11to16.bin' failed!" << std::endl;
+    LOG_ERROR << "Loading 11to16 lut from resource '11to16.bin' failed!";
   }
 }
 

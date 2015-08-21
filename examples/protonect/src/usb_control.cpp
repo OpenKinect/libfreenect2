@@ -28,7 +28,6 @@
 #include <libfreenect2/logging.h>
 
 #include <stdint.h>
-#include <iostream>
 
 namespace libfreenect2
 {

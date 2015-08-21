@@ -1,10 +1,9 @@
 #ifndef VIEWER_H
 #define VIEWER_H
 
-#include <iostream>
-
 #include <libfreenect2/config.h>
 #include <libfreenect2/frame_listener.hpp>
+#include <libfreenect2/logging.h>
 #include <string>
 #include <map>
 
@@ -190,8 +189,7 @@ struct ShaderProgram : public WithOpenGLBindings
         {
             gl()->glGetShaderInfoLog(vertex_shader, sizeof(error_buffer), NULL, error_buffer);
 
-            std::cerr << "[ShaderProgram::build] failed to compile vertex shader!" << std::endl;
-            std::cerr << error_buffer << std::endl;
+            LOG_ERROR << "failed to compile vertex shader!" << std::endl << error_buffer;
         }
 
         gl()->glCompileShader(fragment_shader);
@@ -201,8 +199,7 @@ struct ShaderProgram : public WithOpenGLBindings
         {
             gl()->glGetShaderInfoLog(fragment_shader, sizeof(error_buffer), NULL, error_buffer);
 
-            std::cerr << "[ShaderProgram::build] failed to compile fragment shader!" << std::endl;
-            std::cerr << error_buffer << std::endl;
+            LOG_ERROR << "failed to compile fragment shader!" << std::endl << error_buffer;
         }
 
         program = gl()->glCreateProgram();
@@ -216,8 +213,7 @@ struct ShaderProgram : public WithOpenGLBindings
         if (status != GL_TRUE)
         {
             gl()->glGetProgramInfoLog(program, sizeof(error_buffer), NULL, error_buffer);
-            std::cerr << "[ShaderProgram::build] failed to link shader program!" << std::endl;
-            std::cerr << error_buffer << std::endl;
+            LOG_ERROR << "failed to link shader program!" << std::endl << error_buffer;
         }
     }
 

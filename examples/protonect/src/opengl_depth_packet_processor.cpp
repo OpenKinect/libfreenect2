@@ -27,10 +27,10 @@
 #include <libfreenect2/depth_packet_processor.h>
 #include <libfreenect2/resource.h>
 #include <libfreenect2/protocol/response.h>
+#include <libfreenect2/logging.h>
 #include "flextGL.h"
 #include <GLFW/glfw3.h>
 
-#include <iostream>
 #include <fstream>
 
 
@@ -55,7 +55,7 @@ ChangeCurrentOpenGLContext::ChangeCurrentOpenGLContext(GLFWwindow *new_context)
 
 ChangeCurrentOpenGLContext::~ChangeCurrentOpenGLContext()
 {
-  //std::cerr << "[ChangeCurrentOpenGLContext] restoring context!" << std::endl;
+  //LOG_INFO << "restoring context!";
   if(last_ctx != 0)
   {
     glfwMakeContextCurrent(last_ctx);
@@ -95,7 +95,7 @@ std::string loadShaderSource(const std::string& filename)
 
   if(!loadResource(filename, &data, &length))
   {
-    std::cerr << "[loadShaderSource] failed to load shader source!" << std::endl;
+    LOG_ERROR << "failed to load shader source!";
     return "";
   }
 
@@ -155,8 +155,7 @@ struct ShaderProgram : public WithOpenGLBindings
     {
       gl()->glGetShaderInfoLog(vertex_shader, sizeof(error_buffer), NULL, error_buffer);
 
-      std::cerr << "[ShaderProgram::build] failed to compile vertex shader!" << std::endl;
-      std::cerr << error_buffer << std::endl;
+      LOG_ERROR << "failed to compile vertex shader!" << std::endl << error_buffer;
     }
 
     gl()->glCompileShader(fragment_shader);
@@ -166,8 +165,7 @@ struct ShaderProgram : public WithOpenGLBindings
     {
       gl()->glGetShaderInfoLog(fragment_shader, sizeof(error_buffer), NULL, error_buffer);
 
-      std::cerr << "[ShaderProgram::build] failed to compile fragment shader!" << std::endl;
-      std::cerr << error_buffer << std::endl;
+      LOG_ERROR << "failed to compile fragment shader!" << std::endl << error_buffer;
     }
 
     program = gl()->glCreateProgram();
@@ -181,8 +179,7 @@ struct ShaderProgram : public WithOpenGLBindings
     if(status != GL_TRUE)
     {
       gl()->glGetProgramInfoLog(program, sizeof(error_buffer), NULL, error_buffer);
-      std::cerr << "[ShaderProgram::build] failed to link shader program!" << std::endl;
-      std::cerr << error_buffer << std::endl;
+      LOG_ERROR << "failed to link shader program!" << std::endl << error_buffer;
     }
   }
 
@@ -457,7 +454,7 @@ struct OpenGLDepthPacketProcessorImpl : public WithOpenGLBindings
     if(timing_acc_n >= 100.0)
     {
       double avg = (timing_acc / timing_acc_n);
-      std::cout << "[OpenGLDepthPacketProcessor] avg. time: " << (avg * 1000) << "ms -> ~" << (1.0/avg) << "Hz" << std::endl;
+      LOG_INFO << "[OpenGLDepthPacketProcessor] avg. time: " << (avg * 1000) << "ms -> ~" << (1.0/avg) << "Hz";
       timing_acc = 0.0;
       timing_acc_n = 0.0;
     }
@@ -470,7 +467,7 @@ struct OpenGLDepthPacketProcessorImpl : public WithOpenGLBindings
     OpenGLBindings *b = new OpenGLBindings();
     if (flextInit(opengl_context_ptr, b) == 0)
     {
-        std::cerr << "[OpenGLDepthPacketProcessor] Failed to initialize flextGL.";
+        LOG_ERROR << "Failed to initialize flextGL.";
         exit(-1);
     }
     gl(b);
@@ -773,7 +770,7 @@ OpenGLDepthPacketProcessor::OpenGLDepthPacketProcessor(void *parent_opengl_conte
   // init glfw - if already initialized nothing happens
   if (glfwInit() == GL_FALSE)
   {
-      std::cerr << "[OpenGLDepthPacketProcessor] Failed to initialize GLFW.";
+      LOG_ERROR << "Failed to initialize GLFW.";
       exit(-1);
   }
   
@@ -791,7 +788,7 @@ OpenGLDepthPacketProcessor::OpenGLDepthPacketProcessor(void *parent_opengl_conte
 
   if (window == NULL)
   {
-      std::cerr << "[OpenGLDepthPacketProcessor] Failed to create opengl window.";
+      LOG_ERROR << "Failed to create opengl window.";
       exit(-1);
   }
 
@@ -851,7 +848,7 @@ void OpenGLDepthPacketProcessor::loadP0TablesFromFiles(const char* p0_filename, 
   }
   else
   {
-    std::cerr << "[OpenGLDepthPacketProcessor::loadP0TablesFromFiles] Loading p0table 0 from '" << p0_filename << "' failed!" << std::endl;
+    LOG_ERROR << "Loading p0table 0 from '" << p0_filename << "' failed!";
   }
 
   impl_->p0table[1].allocate(512, 424);
@@ -861,7 +858,7 @@ void OpenGLDepthPacketProcessor::loadP0TablesFromFiles(const char* p0_filename, 
   }
   else
   {
-    std::cerr << "[OpenGLDepthPacketProcessor::loadP0TablesFromFiles] Loading p0table 1 from '" << p1_filename << "' failed!" << std::endl;
+    LOG_ERROR << "Loading p0table 1 from '" << p1_filename << "' failed!";
   }
 
   impl_->p0table[2].allocate(512, 424);
@@ -871,7 +868,7 @@ void OpenGLDepthPacketProcessor::loadP0TablesFromFiles(const char* p0_filename, 
   }
   else
   {
-    std::cerr << "[OpenGLDepthPacketProcessor::loadP0TablesFromFiles] Loading p0table 2 from '" << p2_filename << "' failed!" << std::endl;
+    LOG_ERROR << "Loading p0table 2 from '" << p2_filename << "' failed!";
   }
 }
 
@@ -890,7 +887,7 @@ void OpenGLDepthPacketProcessor::loadXTableFromFile(const char* filename)
   }
   else
   {
-    std::cerr << "[OpenGLDepthPacketProcessor::loadXTableFromFile] Loading xtable from resource 'xTable.bin' failed!" << std::endl;
+    LOG_ERROR << "Loading xtable from resource 'xTable.bin' failed!";
   }
 }
 
@@ -910,7 +907,7 @@ void OpenGLDepthPacketProcessor::loadZTableFromFile(const char* filename)
   }
   else
   {
-    std::cerr << "[OpenGLDepthPacketProcessor::loadZTableFromFile] Loading ztable from resource 'zTable.bin' failed!" << std::endl;
+    LOG_ERROR << "Loading ztable from resource 'zTable.bin' failed!";
   }
 }
 
@@ -930,7 +927,7 @@ void OpenGLDepthPacketProcessor::load11To16LutFromFile(const char* filename)
   }
   else
   {
-    std::cerr << "[OpenGLDepthPacketProcessor::load11To16LutFromFile] Loading 11to16 lut from resource '11to16.bin' failed!" << std::endl;
+    LOG_ERROR << "Loading 11to16 lut from resource '11to16.bin' failed!";
   }
 }
 

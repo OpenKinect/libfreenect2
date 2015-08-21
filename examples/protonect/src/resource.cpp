@@ -25,9 +25,9 @@
  */
 
 #include <libfreenect2/resource.h>
+#include <libfreenect2/logging.h>
 #include <string>
 #include <cstring>
-#include <iostream>
 
 namespace libfreenect2
 {
@@ -69,13 +69,13 @@ bool loadBufferFromResources(const std::string &filename, unsigned char *buffer,
 
   if(!loadResource(filename, &data, &length))
   {
-    std::cerr << "loadBufferFromResources: failed to load resource: " << filename << std::endl;
+    LOG_ERROR << "failed to load resource: " << filename;
     return false;
   }
 
   if(length != n)
   {
-    std::cerr << "loadBufferFromResources: wrong size of resource: " << filename << std::endl;
+    LOG_ERROR << "wrong size of resource: " << filename;
     return false;
   }
 

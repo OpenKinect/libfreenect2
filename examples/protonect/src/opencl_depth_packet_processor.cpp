@@ -27,9 +27,8 @@
 #include <libfreenect2/depth_packet_processor.h>
 #include <libfreenect2/resource.h>
 #include <libfreenect2/protocol/response.h>
+#include <libfreenect2/logging.h>
 
-#include <iostream>
-#include <fstream>
 #include <sstream>
 
 #define _USE_MATH_DEFINES
@@ -49,8 +48,6 @@
 #define REG_OPENCL_FILE ""
 #endif
 
-#define OUT_NAME(FUNCTION) "[OpenCLDepthPacketProcessor::" FUNCTION "] "
-
 namespace libfreenect2
 {
 
@@ -61,7 +58,7 @@ std::string loadCLSource(const std::string &filename)
 
   if(!loadResource(filename, &data, &length))
   {
-    std::cerr << OUT_NAME("loadCLSource") "failed to load cl source!" << std::endl;
+    LOG_ERROR << "failed to load cl source!";
     return "";
   }
 
@@ -226,7 +223,7 @@ public:
 
   void listDevice(std::vector<cl::Device> &devices)
   {
-    std::cout << OUT_NAME("listDevice") " devices:" << std::endl;
+    LOG_INFO << " devices:";
     for(size_t i = 0; i < devices.size(); ++i)
     {
       cl::Device &dev = devices[i];
@@ -254,7 +251,7 @@ public:
         devType = "UNKNOWN";
       }
 
-      std::cout << "  " << i << ": " << devName << " (" << devType << ")[" << devVendor << ']' << std::endl;
+      LOG_INFO << "  " << i << ": " << devName << " (" << devType << ")[" << devVendor << ']';
     }
   }
 
@@ -298,12 +295,12 @@ public:
       std::vector<cl::Platform> platforms;
       if(cl::Platform::get(&platforms) != CL_SUCCESS)
       {
-        std::cerr << OUT_NAME("init") "error while getting opencl platforms." << std::endl;
+        LOG_ERROR << "error while getting opencl platforms.";
         return false;
       }
       if(platforms.empty())
       {
-        std::cerr << OUT_NAME("init") "no opencl platforms found." << std::endl;
+        LOG_ERROR << "no opencl platforms found.";
         return false;
       }
 
@@ -335,11 +332,11 @@ public:
         default:
           devType = "UNKNOWN";
         }
-        std::cout << OUT_NAME("init") " selected device: " << devName << " (" << devType << ")[" << devVendor << ']' << std::endl;
+        LOG_INFO << "selected device: " << devName << " (" << devType << ")[" << devVendor << ']';
       }
       else
       {
-        std::cerr << OUT_NAME("init") "could not find any suitable device" << std::endl;
+        LOG_ERROR << "could not find any suitable device";
         return false;
       }
 
@@ -347,7 +344,7 @@ public:
     }
     catch(const cl::Error &err)
     {
-      std::cerr << OUT_NAME("init") "ERROR: " << err.what() << "(" << err.err() << ")" << std::endl;
+      LOG_ERROR << err.what() << "(" << err.err() << ")";
       throw;
     }
 
@@ -451,7 +448,7 @@ public:
     }
     catch(const cl::Error &err)
     {
-      std::cerr << OUT_NAME("init") "ERROR: " << err.what() << "(" << err.err() << ")" << std::endl;
+      LOG_ERROR << err.what() << "(" << err.err() << ")";
       throw;
     }
     programInitialized = true;
@@ -496,7 +493,7 @@ public:
     }
     catch(const cl::Error &err)
     {
-      std::cerr << OUT_NAME("run") "ERROR: " << err.what() << " (" << err.err() << ")" << std::endl;
+      LOG_ERROR << err.what() << " (" << err.err() << ")";
       throw;
     }
   }
@@ -511,7 +508,7 @@ public:
   {
     try
     {
-      std::cout<< OUT_NAME("buildProgram") "building OpenCL program..." <<std::endl;
+      LOG_INFO << "building OpenCL program...";
 
       std::string options;
       generateOptions(options);
@@ -519,17 +516,17 @@ public:
       cl::Program::Sources source(1, std::make_pair(sources.c_str(), sources.length()));
       program = cl::Program(context, source);
       program.build(options.c_str());
-      std::cout<< OUT_NAME("buildProgram") "OpenCL program built successfully" <<std::endl;
+      LOG_INFO << "OpenCL program built successfully";
     }
     catch(const cl::Error &err)
     {
-      std::cerr << OUT_NAME("buildProgram") "ERROR: " << err.what() << "(" << err.err() << ")" << std::endl;
+      LOG_ERROR << err.what() << "(" << err.err() << ")";
 
       if(err.err() == CL_BUILD_PROGRAM_FAILURE)
       {
-        std::cout << OUT_NAME("buildProgram") "Build Status: " << program.getBuildInfo<CL_PROGRAM_BUILD_STATUS>(device) << std::endl;
-        std::cout << OUT_NAME("buildProgram") "Build Options:\t" << program.getBuildInfo<CL_PROGRAM_BUILD_OPTIONS>(device) << std::endl;
-        std::cout << OUT_NAME("buildProgram") "Build Log:\t " << program.getBuildInfo<CL_PROGRAM_BUILD_LOG>(device) << std::endl;
+        LOG_ERROR << "Build Status: " << program.getBuildInfo<CL_PROGRAM_BUILD_STATUS>(device);
+        LOG_ERROR << "Build Options:\t" << program.getBuildInfo<CL_PROGRAM_BUILD_OPTIONS>(device);
+        LOG_ERROR << "Build Log:\t " << program.getBuildInfo<CL_PROGRAM_BUILD_LOG>(device);
       }
 
       programBuilt = false;
@@ -552,7 +549,7 @@ public:
     if(timing_acc_n >= 100.0)
     {
       double avg = (timing_acc / timing_acc_n);
-      std::cout << "[OpenCLDepthPacketProcessor] avg. time: " << (avg * 1000) << "ms -> ~" << (1.0 / avg) << "Hz" << std::endl;
+      LOG_INFO << "[OpenCLDepthPacketProcessor] avg. time: " << (avg * 1000) << "ms -> ~" << (1.0 / avg) << "Hz";
       timing_acc = 0.0;
       timing_acc_n = 0.0;
     }
@@ -626,7 +623,7 @@ void OpenCLDepthPacketProcessor::loadP0TablesFromCommandResponse(unsigned char *
 
   if(buffer_length < sizeof(libfreenect2::protocol::P0TablesResponse))
   {
-    std::cerr << OUT_NAME("loadP0TablesFromCommandResponse") "P0Table response too short!" << std::endl;
+    LOG_ERROR << "P0Table response too short!";
     return;
   }
 
@@ -637,7 +634,7 @@ void OpenCLDepthPacketProcessor::loadXTableFromFile(const char *filename)
 {
   if(!loadBufferFromResources(filename, (unsigned char *)impl_->x_table, impl_->image_size * sizeof(float)))
   {
-    std::cerr << OUT_NAME("loadXTableFromFile") "could not load x table from: " << filename << std::endl;
+    LOG_ERROR << "could not load x table from: " << filename;
   }
 }
 
@@ -645,7 +642,7 @@ void OpenCLDepthPacketProcessor::loadZTableFromFile(const char *filename)
 {
   if(!loadBufferFromResources(filename, (unsigned char *)impl_->z_table, impl_->image_size * sizeof(float)))
   {
-    std::cerr << OUT_NAME("loadZTableFromFile") "could not load z table from: " << filename << std::endl;
+    LOG_ERROR << "could not load z table from: " << filename;
   }
 }
 
@@ -653,7 +650,7 @@ void OpenCLDepthPacketProcessor::load11To16LutFromFile(const char *filename)
 {
   if(!loadBufferFromResources(filename, (unsigned char *)impl_->lut11to16, 2048 * sizeof(cl_ushort)))
   {
-    std::cerr << OUT_NAME("load11To16LutFromFile") "could not load lut table from: " << filename << std::endl;
+    LOG_ERROR << "could not load lut table from: " << filename;
   }
 }
 
@@ -663,7 +660,7 @@ void OpenCLDepthPacketProcessor::process(const DepthPacket &packet)
 
   if(!impl_->programInitialized && !impl_->initProgram())
   {
-    std::cerr << OUT_NAME("process") "could not initialize OpenCLDepthPacketProcessor" << std::endl;
+    LOG_ERROR << "could not initialize OpenCLDepthPacketProcessor";
     return;
   }
 

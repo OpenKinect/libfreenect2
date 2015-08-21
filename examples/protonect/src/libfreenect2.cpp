@@ -24,7 +24,7 @@
  * either License.
  */
 
-#include <iostream>
+#include <string>
 #include <vector>
 #include <algorithm>
 #include <libusb.h>
@@ -446,9 +446,8 @@ void Freenect2DeviceImpl::start()
   firmware_ = FirmwareVersionResponse(firmware_result.data, firmware_result.length).toString();
 
   command_tx_.execute(ReadData0x14Command(nextCommandSeq()), result);
-  LOG_DEBUG
-    << "ReadData0x14 response" << std::endl
-    << GenericResponse(result.data, result.length).toString();
+  LOG_DEBUG << "ReadData0x14 response";
+  LOG_DEBUG << GenericResponse(result.data, result.length).toString();
 
   command_tx_.execute(ReadSerialNumberCommand(nextCommandSeq()), serial_result);
   std::string new_serial = SerialNumberResponse(serial_result.data, serial_result.length).toString();
@@ -509,18 +508,16 @@ void Freenect2DeviceImpl::start()
   rgb_camera_params_.my_x0y0 = rgb_p->my_x0y0; // 1
 
   command_tx_.execute(ReadStatus0x090000Command(nextCommandSeq()), result);
-  LOG_DEBUG
-    << "ReadStatus0x090000 response" << std::endl
-    << GenericResponse(result.data, result.length).toString();
+  LOG_DEBUG << "ReadStatus0x090000 response";
+  LOG_DEBUG << GenericResponse(result.data, result.length).toString();
 
   command_tx_.execute(InitStreamsCommand(nextCommandSeq()), result);
 
   usb_control_.setIrInterfaceState(UsbControl::Enabled);
 
   command_tx_.execute(ReadStatus0x090000Command(nextCommandSeq()), result);
-  LOG_DEBUG
-    << "ReadStatus0x090000 response" << std::endl
-    << GenericResponse(result.data, result.length).toString();
+  LOG_DEBUG << "ReadStatus0x090000 response";
+  LOG_DEBUG << GenericResponse(result.data, result.length).toString();
 
   command_tx_.execute(SetStreamEnabledCommand(nextCommandSeq()), result);
 
