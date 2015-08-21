@@ -5,6 +5,10 @@ Viewer::Viewer() : shader_folder("src/shader/")
     // init glfw - if already initialized nothing happens
     int init = glfwInit();
 
+}
+
+void Viewer::initialize()
+{
     // setup context
     glfwDefaultWindowHints();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -16,10 +20,6 @@ Viewer::Viewer() : shader_folder("src/shader/")
     //glfwWindowHint(GLFW_VISIBLE, debug ? GL_TRUE : GL_FALSE);
 
     window = glfwCreateWindow(1280, 800, "Viewer", 0, NULL);
-}
-
-void Viewer::initialize()
-{
     glfwMakeContextCurrent(window);
     OpenGLBindings *b = new OpenGLBindings();
     flextInit(window, b);
