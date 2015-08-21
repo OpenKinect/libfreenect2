@@ -76,7 +76,6 @@ SET(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
 # dependencies
 FIND_PACKAGE(PkgConfig)    # try find PKGConfig as it will be used if found
 FIND_PACKAGE(LibUSB REQUIRED)
-FIND_PACKAGE(TurboJPEG REQUIRED) #does not provide a package-config file
 
 # Add includes
 INCLUDE_DIRECTORIES(
@@ -85,7 +84,6 @@ INCLUDE_DIRECTORIES(
   ${PROJECT_BINARY_DIR} # for generated headers
   ${LIBFREENECT2_THREADING_INCLUDE_DIR}
   ${LibUSB_INCLUDE_DIRS}
-  ${TurboJPEG_INCLUDE_DIRS}
 )
 
 SET(RESOURCES_INC_FILE "${PROJECT_BINARY_DIR}/resources.inc.h")
@@ -125,7 +123,6 @@ SET(SOURCES
   src/packet_pipeline.cpp
   src/rgb_packet_stream_parser.cpp
   src/rgb_packet_processor.cpp
-  src/turbo_jpeg_rgb_packet_processor.cpp
   src/depth_packet_stream_parser.cpp
   src/depth_packet_processor.cpp
   src/cpu_depth_packet_processor.cpp
@@ -143,14 +140,60 @@ SET(SOURCES
 
 SET(LIBRARIES
   ${LibUSB_LIBRARIES}
-  ${TurboJPEG_LIBRARIES}
   ${LIBFREENECT2_THREADING_LIBRARIES}
 )
 
 SET(LIBFREENECT2_DLLS
   ${LibUSB_DLL}
-  ${TurboJPEG_DLL}
 )
+
+IF(APPLE)
+  FIND_LIBRARY(VIDEOTOOLBOX_LIBRARY VideoToolbox)
+
+  IF(VIDEOTOOLBOX_LIBRARY)
+    SET(LIBFREENECT2_WITH_VT_SUPPORT 1)
+
+    FIND_LIBRARY(COREFOUNDATION_LIBRARY CoreFoundation REQUIRED)
+    FIND_LIBRARY(COREMEDIA_LIBRARY CoreMedia REQUIRED)
+    FIND_LIBRARY(COREVIDEO_LIBRARY CoreVideo REQUIRED)
+
+    LIST(APPEND SOURCES
+      src/vt_rgb_packet_processor.cpp
+    )
+
+    LIST(APPEND LIBRARIES
+      ${VIDEOTOOLBOX_LIBRARY}
+      ${COREFOUNDATION_LIBRARY}
+      ${COREMEDIA_LIBRARY}
+      ${COREVIDEO_LIBRARY}
+    )
+  ENDIF(VIDEOTOOLBOX_LIBRARY)
+ENDIF(APPLE)
+
+IF(LIBFREENECT2_WITH_VT_SUPPORT)
+  FIND_PACKAGE(TurboJPEG)
+ELSE()
+  FIND_PACKAGE(TurboJPEG REQUIRED)
+ENDIF()
+
+IF(TurboJPEG_FOUND)
+  SET(LIBFREENECT2_WITH_TURBOJPEG_SUPPORT 1)
+
+  INCLUDE_DIRECTORIES(${TurboJPEG_INCLUDE_DIRS})
+
+  LIST(APPEND SOURCES
+    src/turbo_jpeg_rgb_packet_processor.cpp
+  )
+
+  LIST(APPEND LIBRARIES
+    ${TurboJPEG_LIBRARIES}
+  )
+
+  LIST(APPEND LIBFREENECT2_DLLS
+   ${TurboJPEG_DLL}
+  )
+
+ENDIF()
 
 IF(ENABLE_OPENGL)
   FIND_PACKAGE(GLFW3)

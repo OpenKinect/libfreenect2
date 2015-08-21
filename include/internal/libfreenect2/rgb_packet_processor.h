@@ -77,6 +77,7 @@ protected:
   virtual void process(const libfreenect2::RgbPacket &packet);
 };
 
+#ifdef LIBFREENECT2_WITH_TURBOJPEG_SUPPORT
 class TurboJpegRgbPacketProcessorImpl;
 
 /** Processor to decode JPEG to image, using TurboJpeg. */
@@ -90,6 +91,22 @@ protected:
 private:
   TurboJpegRgbPacketProcessorImpl *impl_; ///< Decoder implementation.
 };
+#endif
+
+#ifdef LIBFREENECT2_WITH_VT_SUPPORT
+class VTRgbPacketProcessorImpl;
+
+class LIBFREENECT2_API VTRgbPacketProcessor : public RgbPacketProcessor
+{
+public:
+  VTRgbPacketProcessor();
+  virtual ~VTRgbPacketProcessor();
+protected:
+  virtual void process(const libfreenect2::RgbPacket &packet);
+private:
+  VTRgbPacketProcessorImpl *impl_;
+};
+#endif
 
 } /* namespace libfreenect2 */
 #endif /* RGB_PACKET_PROCESSOR_H_ */
