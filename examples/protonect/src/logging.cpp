@@ -74,7 +74,7 @@ Logger::Level Logger::level() const
   return level_;
 }
 
-std::string level2str(const Logger::Level &l)
+std::string Logger::level2str(Level l)
 {
   switch(l)
   {

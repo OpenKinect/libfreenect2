@@ -47,6 +47,7 @@ public:
     Debug = 4,
   };
   static Level getDefaultLevel();
+  static std::string level2str(Level level);
 
   virtual ~Logger();
 
