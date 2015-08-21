@@ -101,7 +101,6 @@ SET(SOURCES
   src/resource.cpp
   src/command_transaction.cpp
   src/registration.cpp
-  src/timer.cpp
   src/logging.cpp
   src/libfreenect2.cpp
   

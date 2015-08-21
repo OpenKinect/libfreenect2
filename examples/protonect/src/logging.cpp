@@ -30,6 +30,14 @@
 #include <string>
 #include <algorithm>
 
+#ifdef LIBFREENECT2_WITH_CXX11_SUPPORT
+#include <chrono>
+#endif
+
+#ifdef LIBFREENECT2_WITH_OPENGL_SUPPORT
+#include <GLFW/glfw3.h>
+#endif
+
 namespace libfreenect2
 {
 Logger::~Logger() {}
@@ -142,6 +150,98 @@ void setGlobalLogger(Logger *logger)
   if (userLogger_ != &defaultLogger_)
     delete userLogger_;
   userLogger_ = logger;
+}
+
+class Timer
+{
+ public:
+  double duration;
+  size_t count;
+
+  Timer()
+  {
+    reset();
+  }
+
+  void reset()
+  {
+    duration = 0;
+    count = 0;
+  }
+
+#ifdef LIBFREENECT2_WITH_CXX11_SUPPORT
+  std::chrono::time_point<std::chrono::high_resolution_clock> time_start;
+
+  void start()
+  {
+    time_start = std::chrono::high_resolution_clock::now();
+  }
+
+  void stop()
+  {
+    duration += std::chrono::duration_cast<std::chrono::duration<double>>(std::chrono::high_resolution_clock::now() - time_start).count();
+    count++;
+  }
+#elif defined(LIBFREENECT2_WITH_OPENGL_SUPPORT)
+  double time_start;
+
+  void start()
+  {
+    time_start = glfwGetTime();
+  }
+
+  void stop()
+  {
+    duration += glfwGetTime() - time_start;
+    count++;
+  }
+#else
+  void start()
+  {
+  }
+
+  void stop()
+  {
+  }
+#endif
+};
+
+class WithPerfLoggingImpl: public Timer
+{
+public:
+  std::ostream &stop(std::ostream &stream)
+  {
+    Timer::stop();
+    if (count < 100)
+    {
+      stream.setstate(std::ios::eofbit);
+      return stream;
+    }
+    double avg = duration / count;
+    reset();
+    stream << "avg. time: " << (avg * 1000) << "ms -> ~" << (1.0/avg) << "Hz";
+    return stream;
+  }
+};
+
+WithPerfLogging::WithPerfLogging()
+  :impl_(new WithPerfLoggingImpl)
+{
+}
+
+WithPerfLogging::~WithPerfLogging()
+{
+  delete impl_;
+}
+
+void WithPerfLogging::startTiming()
+{
+  impl_->start();
+}
+
+std::ostream &WithPerfLogging::stopTiming(std::ostream &stream)
+{
+  impl_->stop(stream);
 }
 
 std::string getShortName(const char *func)

@@ -36,6 +36,19 @@
 namespace libfreenect2
 {
 
+class WithPerfLoggingImpl;
+
+class WithPerfLogging
+{
+public:
+  WithPerfLogging();
+  virtual ~WithPerfLogging();
+  void startTiming();
+  std::ostream &stopTiming(std::ostream &stream);
+private:
+  WithPerfLoggingImpl *impl_;
+};
+
 class LogMessage
 {
 private:

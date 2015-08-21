@@ -65,7 +65,7 @@ std::string loadCLSource(const std::string &filename)
   return std::string(reinterpret_cast<const char *>(data), length);
 }
 
-class OpenCLDepthPacketProcessorImpl
+class OpenCLDepthPacketProcessorImpl: public WithPerfLogging
 {
 public:
   cl_short lut11to16[2048];
@@ -74,11 +74,6 @@ public:
   cl_float3 p0_table[512 * 424];
   libfreenect2::DepthPacketProcessor::Config config;
   DepthPacketProcessor::Parameters params;
-
-  double timing_acc;
-  double timing_acc_n;
-
-  Timer timer;
 
   Frame *ir_frame, *depth_frame;
 
@@ -144,8 +139,6 @@ public:
     newIrFrame();
     newDepthFrame();
 
-    timing_acc = 0.0;
-    timing_acc_n = 0.0;
     image_size = 512 * 424;
 
     deviceInitialized = initDevice(deviceId);
@@ -536,25 +529,6 @@ public:
     return true;
   }
 
-  void startTiming()
-  {
-    timer.start();
-  }
-
-  void stopTiming()
-  {
-    timing_acc += timer.stop();
-    timing_acc_n += 1.0;
-
-    if(timing_acc_n >= 100.0)
-    {
-      double avg = (timing_acc / timing_acc_n);
-      LOG_INFO << "[OpenCLDepthPacketProcessor] avg. time: " << (avg * 1000) << "ms -> ~" << (1.0 / avg) << "Hz";
-      timing_acc = 0.0;
-      timing_acc_n = 0.0;
-    }
-  }
-
   void newIrFrame()
   {
     ir_frame = new Frame(512, 424, 4);
@@ -673,7 +647,7 @@ void OpenCLDepthPacketProcessor::process(const DepthPacket &packet)
 
   impl_->run(packet);
 
-  impl_->stopTiming();
+  impl_->stopTiming(LOG_INFO);
 
   if(has_listener)
   {

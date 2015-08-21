@@ -202,7 +202,7 @@ inline int bfi(int width, int offset, int src2, int src3)
   return ((src2 << offset) & bitmask) | (src3 & ~bitmask);
 }
 
-class CpuDepthPacketProcessorImpl
+class CpuDepthPacketProcessorImpl: public WithPerfLogging
 {
 public:
   Mat<uint16_t> p0_table0, p0_table1, p0_table2;
@@ -213,11 +213,6 @@ public:
   float trig_table0[512*424][6];
   float trig_table1[512*424][6];
   float trig_table2[512*424][6];
-
-  double timing_acc;
-  double timing_acc_n;
-
-  Timer timer;
 
   bool enable_bilateral_filter, enable_edge_filter;
   DepthPacketProcessor::Parameters params;
@@ -231,32 +226,10 @@ public:
     newIrFrame();
     newDepthFrame();
 
-    timing_acc = 0.0;
-    timing_acc_n = 0.0;
-
     enable_bilateral_filter = true;
     enable_edge_filter = true;
 
     flip_ptables = true;
-  }
-
-  void startTiming()
-  {
-    timer.start();
-  }
-
-  void stopTiming()
-  {
-    timing_acc += timer.stop();
-    timing_acc_n += 1.0;
-
-    if(timing_acc_n >= 100.0)
-    {
-      double avg = (timing_acc / timing_acc_n);
-      LOG_INFO << "[CpuDepthPacketProcessor] avg. time: " << (avg * 1000) << "ms -> ~" << (1.0/avg) << "Hz";
-      timing_acc = 0.0;
-      timing_acc_n = 0.0;
-    }
   }
 
   void newIrFrame()
@@ -975,7 +948,7 @@ void CpuDepthPacketProcessor::process(const DepthPacket &packet)
     impl_->newDepthFrame();
   }
 
-  impl_->stopTiming();
+  impl_->stopTiming(LOG_INFO);
 }
 
 } /* namespace libfreenect2 */

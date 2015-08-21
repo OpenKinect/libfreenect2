@@ -330,7 +330,7 @@ public:
   }
 };
 
-struct OpenGLDepthPacketProcessorImpl : public WithOpenGLBindings
+struct OpenGLDepthPacketProcessorImpl : public WithOpenGLBindings, public WithPerfLogging
 {
   GLFWwindow *opengl_context_ptr;
   std::string shader_folder;
@@ -364,11 +364,6 @@ struct OpenGLDepthPacketProcessorImpl : public WithOpenGLBindings
   DepthPacketProcessor::Parameters params;
   bool params_need_update;
 
-  double timing_acc;
-  double timing_acc_n;
-
-  Timer timer;
-
   bool do_debug;
 
   struct Vertex
@@ -387,8 +382,6 @@ struct OpenGLDepthPacketProcessorImpl : public WithOpenGLBindings
     stage2_framebuffer(0),
     filter2_framebuffer(0),
     params_need_update(true),
-    timing_acc(0),
-    timing_acc_n(0),
     do_debug(debug)
   {
   }
@@ -439,25 +432,6 @@ struct OpenGLDepthPacketProcessorImpl : public WithOpenGLBindings
     stage2.gl(b);
     filter2.gl(b);
     debug.gl(b);
-  }
-
-  void startTiming()
-  {
-    timer.start();
-  }
-
-  void stopTiming()
-  {
-    timing_acc += timer.stop();
-    timing_acc_n += 1.0;
-
-    if(timing_acc_n >= 100.0)
-    {
-      double avg = (timing_acc / timing_acc_n);
-      LOG_INFO << "[OpenGLDepthPacketProcessor] avg. time: " << (avg * 1000) << "ms -> ~" << (1.0/avg) << "Hz";
-      timing_acc = 0.0;
-      timing_acc_n = 0.0;
-    }
   }
 
   void initialize()
@@ -946,7 +920,7 @@ void OpenGLDepthPacketProcessor::process(const DepthPacket &packet)
 
   if(impl_->do_debug) glfwSwapBuffers(impl_->opengl_context_ptr);
 
-  impl_->stopTiming();
+  impl_->stopTiming(LOG_INFO);
 
   if(has_listener)
   {
