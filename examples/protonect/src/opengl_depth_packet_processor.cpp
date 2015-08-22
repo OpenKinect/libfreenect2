@@ -519,12 +519,18 @@ struct OpenGLDepthPacketProcessorImpl : public WithOpenGLBindings, public WithPe
   {
     ChangeCurrentOpenGLContext ctx(opengl_context_ptr);
     
-    OpenGLBindings *b = new OpenGLBindings();
-    if (flextInit(opengl_context_ptr, b) == 0)
-    {
-        LOG_ERROR << "Failed to initialize flextGL.";
+    int major = glfwGetWindowAttrib(opengl_context_ptr, GLFW_CONTEXT_VERSION_MAJOR);
+    int minor = glfwGetWindowAttrib(opengl_context_ptr, GLFW_CONTEXT_VERSION_MINOR);
+
+    if (major * 10 + minor < 31) {
+        LOG_ERROR << "OpenGL version 3.1 not supported.";
+        LOG_ERROR << "Your version is " << major << "." << minor;
+        LOG_ERROR << "Try updating your graphics driver.";
         exit(-1);
     }
+
+    OpenGLBindings *b = new OpenGLBindings();
+    flextInit(b);
     gl(b);
 
     input_data.allocate(352, 424 * 9);

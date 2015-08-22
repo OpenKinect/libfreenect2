@@ -22,7 +22,7 @@ void Viewer::initialize()
     window = glfwCreateWindow(1280, 800, "Viewer", 0, NULL);
     glfwMakeContextCurrent(window);
     OpenGLBindings *b = new OpenGLBindings();
-    flextInit(window, b);
+    flextInit(b);
     gl(b);
 
     std::string vertexshadersrc = ""
