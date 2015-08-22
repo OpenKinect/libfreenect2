@@ -33,6 +33,7 @@ namespace libfreenect2
 
 DepthPacketStreamParser::DepthPacketStreamParser() :
     processor_(noopProcessor<DepthPacket>()),
+    processed_packets_(-1),
     current_sequence_(0),
     current_subsequence_(0)
 {
@@ -79,7 +80,7 @@ void DepthPacketStreamParser::onDataReceived(unsigned char* buffer, size_t in_le
 
     if(wb.length + in_length > wb.capacity)
     {
-      LOG_ERROR << "subpacket too large";
+      LOG_DEBUG << "subpacket too large";
       wb.length = 0;
       return;
     }
@@ -91,7 +92,7 @@ void DepthPacketStreamParser::onDataReceived(unsigned char* buffer, size_t in_le
     {
       if(footer->length != wb.length)
       {
-        LOG_ERROR << "image data too short!";
+        LOG_DEBUG << "image data too short!";
       }
       else
       {
@@ -110,15 +111,26 @@ void DepthPacketStreamParser::onDataReceived(unsigned char* buffer, size_t in_le
               packet.buffer_length = buffer_.back().length;
 
               processor_->process(packet);
+
+              processed_packets_++;
+              if (processed_packets_ == 0)
+                processed_packets_ = current_sequence_;
+              int diff = current_sequence_ - processed_packets_;
+              const int interval = 30;
+              if (current_sequence_ % interval == 0 && diff != 0)
+              {
+                LOG_INFO << diff << " of " << interval << " packets were lost";
+                processed_packets_ = current_sequence_;
+              }
             }
             else
             {
-              LOG_WARNING << "skipping depth packet";
+              LOG_DEBUG << "skipping depth packet";
             }
           }
           else
           {
-            LOG_ERROR << "not all subsequences received " << current_subsequence_;
+            LOG_DEBUG << "not all subsequences received " << current_subsequence_;
           }
 
           current_sequence_ = footer->sequence;
@@ -132,7 +144,7 @@ void DepthPacketStreamParser::onDataReceived(unsigned char* buffer, size_t in_le
 
         if(footer->subsequence * footer->length > fb.length)
         {
-          LOG_ERROR << "front buffer too short! subsequence number is " << footer->subsequence;
+          LOG_DEBUG << "front buffer too short! subsequence number is " << footer->subsequence;
         }
         else
         {
