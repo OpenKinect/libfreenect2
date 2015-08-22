@@ -28,6 +28,7 @@
 #include <vector>
 #include <algorithm>
 #include <libusb.h>
+#define WRITE_LIBUSB_ERROR(__RESULT) libusb_error_name(__RESULT) << " " << libusb_strerror((libusb_error)__RESULT)
 
 #include <libfreenect2/libfreenect2.hpp>
 
@@ -101,13 +102,16 @@ public:
 struct PrintBusAndDevice
 {
   libusb_device *dev_;
+  int status_;
 
-  PrintBusAndDevice(libusb_device *dev) : dev_(dev) {}
+  PrintBusAndDevice(libusb_device *dev, int status = 0) : dev_(dev), status_(status) {}
 };
 
 std::ostream &operator<<(std::ostream &out, const PrintBusAndDevice& dev)
 {
   out << "@" << int(libusb_get_bus_number(dev.dev_)) << ":" << int(libusb_get_device_address(dev.dev_));
+  if (dev.status_)
+    out << " " << WRITE_LIBUSB_ERROR(dev.status_);
   return out;
 }
 
@@ -130,26 +134,39 @@ public:
   UsbDeviceVector enumerated_devices_;
   DeviceVector devices_;
 
+  bool initialized;
+
   Freenect2Impl(void *usb_context) :
     managed_usb_context_(usb_context == 0),
     usb_context_(reinterpret_cast<libusb_context *>(usb_context)),
+    initialized(false),
     has_device_enumeration_(false)
   {
+    if (libusb_get_version()->nano < 10952)
+    {
+      LOG_ERROR << "Your libusb does not support large iso buffer!";
+      return;
+    }
+
     if(managed_usb_context_)
     {
       int r = libusb_init(&usb_context_);
-      // TODO: error handling
       if(r != 0)
       {
-        LOG_ERROR << "failed to create usb context!";
+        LOG_ERROR << "failed to create usb context: " << WRITE_LIBUSB_ERROR(r);
+        return;
       }
     }
 
     usb_event_loop_.start(usb_context_);
+    initialized = true;
   }
 
   ~Freenect2Impl()
   {
+    if (!initialized)
+      return;
+
     clearDevices();
     clearDeviceEnumeration();
 
@@ -165,11 +182,17 @@ public:
 
   void addDevice(Freenect2DeviceImpl *device)
   {
+    if (!initialized)
+      return;
+
     devices_.push_back(device);
   }
 
   void removeDevice(Freenect2DeviceImpl *device)
   {
+    if (!initialized)
+      return;
+
     DeviceVector::iterator it = std::find(devices_.begin(), devices_.end(), device);
 
     if(it != devices_.end())
@@ -184,6 +207,9 @@ public:
 
   bool tryGetDevice(libusb_device *usb_device, Freenect2DeviceImpl **device)
   {
+    if (!initialized)
+      return false;
+
     for(DeviceVector::iterator it = devices_.begin(); it != devices_.end(); ++it)
     {
       if((*it)->isSameUsbDevice(usb_device))
@@ -198,6 +224,9 @@ public:
 
   void clearDevices()
   {
+    if (!initialized)
+      return;
+
     DeviceVector devices(devices_.begin(), devices_.end());
 
     for(DeviceVector::iterator it = devices.begin(); it != devices.end(); ++it)
@@ -213,6 +242,9 @@ public:
 
   void clearDeviceEnumeration()
   {
+    if (!initialized)
+      return;
+
     // free enumerated device pointers, this should not affect opened devices
     for(UsbDeviceVector::iterator it = enumerated_devices_.begin(); it != enumerated_devices_.end(); ++it)
     {
@@ -225,6 +257,9 @@ public:
 
   void enumerateDevices()
   {
+    if (!initialized)
+      return;
+
     LOG_INFO << "enumerating devices...";
     libusb_device **device_list;
     int num_devices = libusb_get_device_list(usb_context_, &device_list);
@@ -277,14 +312,14 @@ public:
               }
               else
               {
-                LOG_ERROR << "failed to get serial number of Kinect v2 " << PrintBusAndDevice(dev) << "!";
+                LOG_ERROR << "failed to get serial number of Kinect v2: " << PrintBusAndDevice(dev, r);
               }
 
               libusb_close(dev_handle);
             }
             else
             {
-              LOG_ERROR << "failed to open Kinect v2 " << PrintBusAndDevice(dev) << "!";
+              LOG_ERROR << "failed to open Kinect v2: " << PrintBusAndDevice(dev, r);
             }
           }
         }
@@ -300,6 +335,9 @@ public:
 
   int getNumDevices()
   {
+    if (!initialized)
+      return 0;
+
     if(!has_device_enumeration_)
     {
       enumerateDevices();
@@ -654,6 +692,9 @@ int Freenect2::enumerateDevices()
 
 std::string Freenect2::getDeviceSerialNumber(int idx)
 {
+  if (!impl_->initialized)
+    return std::string();
+
   return impl_->enumerated_devices_[idx].serial;
 }
 
@@ -701,7 +742,7 @@ Freenect2Device *Freenect2::openDevice(int idx, const PacketPipeline *pipeline, 
 
   if(r != LIBUSB_SUCCESS)
   {
-    LOG_ERROR << "failed to open Kinect v2 " << PrintBusAndDevice(dev.dev) << "!";
+    LOG_ERROR << "failed to open Kinect v2: " << PrintBusAndDevice(dev.dev, r);
     delete pipeline;
 
     return device;
@@ -740,7 +781,7 @@ Freenect2Device *Freenect2::openDevice(int idx, const PacketPipeline *pipeline, 
     }
     else if(r != LIBUSB_SUCCESS)
     {
-      LOG_ERROR << "failed to reset Kinect v2 " << PrintBusAndDevice(dev.dev) << "!";
+      LOG_ERROR << "failed to reset Kinect v2: " << PrintBusAndDevice(dev.dev, r);
       delete pipeline;
 
       return device;
@@ -755,7 +796,7 @@ Freenect2Device *Freenect2::openDevice(int idx, const PacketPipeline *pipeline, 
     delete device;
     device = 0;
 
-    LOG_ERROR << "failed to open Kinect v2 " << PrintBusAndDevice(dev.dev) << "!";
+    LOG_ERROR << "failed to open Kinect v2: " << PrintBusAndDevice(dev.dev);
   }
 
   return device;
