@@ -83,7 +83,11 @@ int main(int argc, char **argv)
 
   for(int i = 2; i < argc; ++i)
   {
-    cout << "  { \"" << argv[i] << "\", resource" << (i - 2) << ", " << "sizeof(resource" << (i - 2) << ") }," << endl;
+    string path(argv[i]);
+    size_t last_slash = path.find_last_of("\\/");
+    if (last_slash != std::string::npos)
+      path.erase(0, last_slash + 1);
+    cout << "  { \"" << path << "\", resource" << (i - 2) << ", " << "sizeof(resource" << (i - 2) << ") }," << endl;
   }
 
   cout << "};" << endl;

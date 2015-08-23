@@ -400,7 +400,6 @@ public:
 struct OpenGLDepthPacketProcessorImpl : public WithOpenGLBindings, public WithPerfLogging
 {
   GLFWwindow *opengl_context_ptr;
-  std::string shader_folder;
   libfreenect2::DepthPacketProcessor::Config config;
 
   GLuint square_vbo, square_vao, stage1_framebuffer, filter1_framebuffer, stage2_framebuffer, filter2_framebuffer;
@@ -441,7 +440,6 @@ struct OpenGLDepthPacketProcessorImpl : public WithOpenGLBindings, public WithPe
 
   OpenGLDepthPacketProcessorImpl(GLFWwindow *new_opengl_context_ptr, bool debug) :
     opengl_context_ptr(new_opengl_context_ptr),
-    shader_folder("src/shader/"),
     square_vao(0),
     square_vbo(0),
     stage1_framebuffer(0),
@@ -556,8 +554,8 @@ struct OpenGLDepthPacketProcessorImpl : public WithOpenGLBindings, public WithPe
     if(do_debug) filter2_debug.allocate(512, 424);
     filter2_depth.allocate(512, 424);
 
-    stage1.setVertexShader(loadShaderSource(shader_folder + "default.vs"));
-    stage1.setFragmentShader(loadShaderSource(shader_folder + "stage1.fs"));
+    stage1.setVertexShader(loadShaderSource("default.vs"));
+    stage1.setFragmentShader(loadShaderSource("stage1.fs"));
     stage1.bindFragDataLocation("Debug", 0);
     stage1.bindFragDataLocation("A", 1);
     stage1.bindFragDataLocation("B", 2);
@@ -565,31 +563,31 @@ struct OpenGLDepthPacketProcessorImpl : public WithOpenGLBindings, public WithPe
     stage1.bindFragDataLocation("Infrared", 4);
     stage1.build();
 
-    filter1.setVertexShader(loadShaderSource(shader_folder + "default.vs"));
-    filter1.setFragmentShader(loadShaderSource(shader_folder + "filter1.fs"));
+    filter1.setVertexShader(loadShaderSource("default.vs"));
+    filter1.setFragmentShader(loadShaderSource("filter1.fs"));
     filter1.bindFragDataLocation("Debug", 0);
     filter1.bindFragDataLocation("FilterA", 1);
     filter1.bindFragDataLocation("FilterB", 2);
     filter1.bindFragDataLocation("MaxEdgeTest", 3);
     filter1.build();
 
-    stage2.setVertexShader(loadShaderSource(shader_folder + "default.vs"));
-    stage2.setFragmentShader(loadShaderSource(shader_folder + "stage2.fs"));
+    stage2.setVertexShader(loadShaderSource("default.vs"));
+    stage2.setFragmentShader(loadShaderSource("stage2.fs"));
     stage2.bindFragDataLocation("Debug", 0);
     stage2.bindFragDataLocation("Depth", 1);
     stage2.bindFragDataLocation("DepthAndIrSum", 2);
     stage2.build();
 
-    filter2.setVertexShader(loadShaderSource(shader_folder + "default.vs"));
-    filter2.setFragmentShader(loadShaderSource(shader_folder + "filter2.fs"));
+    filter2.setVertexShader(loadShaderSource("default.vs"));
+    filter2.setFragmentShader(loadShaderSource("filter2.fs"));
     filter2.bindFragDataLocation("Debug", 0);
     filter2.bindFragDataLocation("FilterDepth", 1);
     filter2.build();
 
     if(do_debug)
     {
-      debug.setVertexShader(loadShaderSource(shader_folder + "default.vs"));
-      debug.setFragmentShader(loadShaderSource(shader_folder + "debug.fs"));
+      debug.setVertexShader(loadShaderSource("default.vs"));
+      debug.setFragmentShader(loadShaderSource("debug.fs"));
       debug.bindFragDataLocation("Debug", 0);
       debug.build();
     }
