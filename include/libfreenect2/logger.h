@@ -30,7 +30,6 @@
 #define LIBFREENECT2_LOGGER_H_
 
 #include <string>
-#include <sstream>
 
 #include <libfreenect2/config.h>
 

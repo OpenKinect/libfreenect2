@@ -41,7 +41,7 @@ namespace libfreenect2
 {
 
 /** Parser for getting an RGB packet from the stream. */
-class LIBFREENECT2_API RgbPacketStreamParser : public DataCallback
+class RgbPacketStreamParser : public DataCallback
 {
 public:
   RgbPacketStreamParser();

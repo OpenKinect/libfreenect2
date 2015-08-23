@@ -31,11 +31,10 @@
 
 #include <libfreenect2/libfreenect2.hpp>
 #include <libfreenect2/frame_listener_impl.h>
-#include <libfreenect2/threading.h>
 #include <libfreenect2/registration.h>
 #include <libfreenect2/packet_pipeline.h>
 #include <libfreenect2/logger.h>
-#ifdef LIBFREENECT2_WITH_OPENGL_SUPPORT
+#ifdef EXAMPLES_WITH_OPENGL_SUPPORT
 #include "viewer.h"
 #endif
 
@@ -186,7 +185,7 @@ int main(int argc, char *argv[])
   libfreenect2::Registration* registration = new libfreenect2::Registration(dev->getIrCameraParams(), dev->getColorCameraParams());
 
   size_t framecount = 0;
-#ifdef LIBFREENECT2_WITH_OPENGL_SUPPORT
+#ifdef EXAMPLES_WITH_OPENGL_SUPPORT
   Viewer viewer;
   if (viewer_enabled)
     viewer.initialize();
@@ -212,7 +211,7 @@ int main(int argc, char *argv[])
       continue;
     }
 
-#ifdef LIBFREENECT2_WITH_OPENGL_SUPPORT
+#ifdef EXAMPLES_WITH_OPENGL_SUPPORT
     viewer.addFrame("RGB", rgb);
     viewer.addFrame("ir", ir);
     viewer.addFrame("depth", depth);

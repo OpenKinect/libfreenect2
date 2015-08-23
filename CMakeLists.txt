@@ -17,6 +17,7 @@ SET(MY_DIR ${libfreenect2_SOURCE_DIR})
 SET(DEPENDS_DIR "${MY_DIR}/depends" CACHE STRING "dependency directory must be set to 'false' if external deps are used")
 
 OPTION(BUILD_SHARED_LIBS "Build shared (ON) or static (OFF) libraries" ON)
+OPTION(BUILD_EXAMPLES "Build examples" ON)
 OPTION(ENABLE_CXX11 "Enable C++11 support" OFF)
 OPTION(ENABLE_OPENCL "Enable OpenCL support" ON)
 OPTION(ENABLE_OPENGL "Enable OpenGL support" ON)
@@ -57,6 +58,7 @@ FIND_PACKAGE(TurboJPEG REQUIRED) #does not provide a package-config file
 # Add includes
 INCLUDE_DIRECTORIES(
   "${MY_DIR}/include"
+  "${MY_DIR}/include/internal"
   ${PROJECT_BINARY_DIR} # for generated headers
   ${LIBFREENECT2_THREADING_INCLUDE_DIR}
   ${LibUSB_INCLUDE_DIRS}
@@ -69,31 +71,31 @@ SET(RESOURCES_INC_FILE "${PROJECT_BINARY_DIR}/resources.inc.h")
 SET(CONFIG_H_FILE "${PROJECT_BINARY_DIR}/libfreenect2/config.h")
 
 SET(SOURCES
-  include/libfreenect2/protocol/command.h
-  include/libfreenect2/protocol/command_transaction.h
-  include/libfreenect2/protocol/response.h
-  include/libfreenect2/protocol/usb_control.h
+  include/internal/libfreenect2/protocol/command.h
+  include/internal/libfreenect2/protocol/command_transaction.h
+  include/internal/libfreenect2/protocol/response.h
+  include/internal/libfreenect2/protocol/usb_control.h
 
-  include/libfreenect2/usb/event_loop.h
-  include/libfreenect2/usb/transfer_pool.h
+  include/internal/libfreenect2/usb/event_loop.h
+  include/internal/libfreenect2/usb/transfer_pool.h
 
   include/libfreenect2/logger.h
-  include/libfreenect2/logging.h
+  include/internal/libfreenect2/logging.h
 
-  include/libfreenect2/async_packet_processor.h  
+  include/internal/libfreenect2/async_packet_processor.h
   include/libfreenect2/depth_packet_processor.h
-  include/libfreenect2/depth_packet_stream_parser.h
-  include/libfreenect2/double_buffer.h
+  include/internal/libfreenect2/depth_packet_stream_parser.h
+  include/internal/libfreenect2/double_buffer.h
   include/libfreenect2/frame_listener.hpp
   include/libfreenect2/frame_listener_impl.h
   include/libfreenect2/libfreenect2.hpp
   include/libfreenect2/packet_pipeline.h
   include/libfreenect2/packet_processor.h
   include/libfreenect2/registration.h
-  include/libfreenect2/resource.h
+  include/internal/libfreenect2/resource.h
   include/libfreenect2/rgb_packet_processor.h
-  include/libfreenect2/rgb_packet_stream_parser.h
-  include/libfreenect2/threading.h
+  include/internal/libfreenect2/rgb_packet_stream_parser.h
+  include/internal/libfreenect2/threading.h
 
   src/transfer_pool.cpp
   src/event_loop.cpp
@@ -220,10 +222,12 @@ CONFIGURE_FILE(freenect2.cmake.in "${PROJECT_BINARY_DIR}/freenect2Config.cmake" 
 CONFIGURE_FILE(freenect2.pc.in "${PROJECT_BINARY_DIR}/freenect2.pc" @ONLY)
 
 INSTALL(TARGETS freenect2 DESTINATION lib)
-INSTALL(DIRECTORY "${MY_DIR}/include/" DESTINATION include PATTERN "*.in" EXCLUDE)
+INSTALL(DIRECTORY "${MY_DIR}/include/${PROJECT_NAME}" DESTINATION include PATTERN "*.in" EXCLUDE)
 INSTALL(FILES "${CONFIG_H_FILE}" DESTINATION include/${PROJECT_NAME})
-IF(LIBFREENECT2_THREADING_TINYTHREAD)
-  INSTALL(FILES  "${MY_DIR}/src/tinythread/tinythread.h" DESTINATION include/${PROJECT_NAME}/tinythread/)
-ENDIF(LIBFREENECT2_THREADING_TINYTHREAD)
 INSTALL(FILES "${PROJECT_BINARY_DIR}/freenect2Config.cmake" DESTINATION lib/cmake/freenect2/)
 INSTALL(FILES "${PROJECT_BINARY_DIR}/freenect2.pc" DESTINATION lib/pkgconfig/)
+
+IF(BUILD_EXAMPLES)
+  MESSAGE(STATUS "Configurating examples")
+  ADD_SUBDIRECTORY(${MY_DIR}/examples)
+ENDIF()

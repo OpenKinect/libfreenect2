@@ -36,7 +36,7 @@ namespace libfreenect2
 {
 
 /** Data of a single buffer. */
-struct LIBFREENECT2_API Buffer
+struct Buffer
 {
 public:
   size_t capacity; ///< Capacity of the buffer.
@@ -45,7 +45,7 @@ public:
 };
 
 /** Double bufffer class. */
-class LIBFREENECT2_API DoubleBuffer
+class DoubleBuffer
 {
 public:
   DoubleBuffer();
