@@ -184,7 +184,23 @@ IF(ENABLE_OPENCL)
   ENDIF(OPENCL_FOUND)
 ENDIF(ENABLE_OPENCL)
 
-SET(CMAKE_INSTALL_RPATH ${LibUSB_LIBDIR})
+# RPATH handling for private libusb copies
+# Users have two options:
+# 1. Build libusb in depends/ and leave it there:
+#      Do NOT set CMAKE_INSTALL_RPATH. It works by default.
+# 2. Build libusb and install it somewhere:
+#      Set CMAKE_INSTALL_RPATH to the libusb.so installation directory before compiling.
+# Both command line -DCMAKE_INSTALL_RPATH=... and CMake GUI settings are accepted.
+#
+# Anyway if wrong versions of libusb is used, errors will be reported explicitly.
+IF(NOT DEFINED CMAKE_INSTALL_RPATH)
+  SET(CMAKE_INSTALL_RPATH ${LibUSB_LIBDIR} CACHE STRING "Set RPATH for a private libusb")
+ELSE()
+  SET(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} CACHE STRING "Set RPATH for a private libusb")
+ENDIF()
+IF(DEFINED CMAKE_INSTALL_RPATH)
+  MESSAGE(STATUS "RPATH set to ${CMAKE_INSTALL_RPATH}")
+ENDIF()
 
 CONFIGURE_FILE("${MY_DIR}/include/libfreenect2/config.h.in" "${MY_DIR}/include/libfreenect2/config.h" @ONLY)
 GENERATE_RESOURCES(${RESOURCES_INC_FILE} ${MY_DIR} ${RESOURCES})
