@@ -45,7 +45,8 @@ struct ResourceDescriptor
 #ifdef RESOURCES_INC
 #include "resources.inc.h"
 #else
-ResourceDescriptor resource_descriptors[] = {};
+static ResourceDescriptor resource_descriptors[] = {};
+static int resource_descriptors_length = 0;
 #endif
 
 /**

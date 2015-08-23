@@ -57,6 +57,7 @@ FIND_PACKAGE(TurboJPEG REQUIRED) #does not provide a package-config file
 # Add includes
 INCLUDE_DIRECTORIES(
   "${MY_DIR}/include"
+  ${PROJECT_BINARY_DIR} # for generated headers
   ${LIBFREENECT2_THREADING_INCLUDE_DIR}
   ${LibUSB_INCLUDE_DIRS}
   ${TurboJPEG_INCLUDE_DIRS}
@@ -64,7 +65,8 @@ INCLUDE_DIRECTORIES(
 
 LINK_DIRECTORIES(${LibUSB_LIBRARY_DIRS})
 
-SET(RESOURCES_INC_FILE "${MY_DIR}/src/resources.inc.h")
+SET(RESOURCES_INC_FILE "${PROJECT_BINARY_DIR}/resources.inc.h")
+SET(CONFIG_H_FILE "${PROJECT_BINARY_DIR}/libfreenect2/config.h")
 
 SET(SOURCES
   include/libfreenect2/protocol/command.h
@@ -84,7 +86,6 @@ SET(SOURCES
   include/libfreenect2/double_buffer.h
   include/libfreenect2/frame_listener.hpp
   include/libfreenect2/frame_listener_impl.h
-  include/libfreenect2/config.h
   include/libfreenect2/libfreenect2.hpp
   include/libfreenect2/packet_pipeline.h
   include/libfreenect2/packet_processor.h
@@ -114,6 +115,7 @@ SET(SOURCES
 
   ${LIBFREENECT2_THREADING_SOURCE}
   ${RESOURCES_INC_FILE}
+  ${CONFIG_H_FILE}
 )
 
 SET(LIBRARIES
@@ -202,7 +204,7 @@ IF(DEFINED CMAKE_INSTALL_RPATH)
   MESSAGE(STATUS "RPATH set to ${CMAKE_INSTALL_RPATH}")
 ENDIF()
 
-CONFIGURE_FILE("${MY_DIR}/include/libfreenect2/config.h.in" "${MY_DIR}/include/libfreenect2/config.h" @ONLY)
+CONFIGURE_FILE("${MY_DIR}/include/libfreenect2/config.h.in" "${CONFIG_H_FILE}" @ONLY)
 GENERATE_RESOURCES(${RESOURCES_INC_FILE} ${MY_DIR} ${RESOURCES})
 
 ADD_DEFINITIONS(-DRESOURCES_INC)
@@ -219,6 +221,7 @@ CONFIGURE_FILE(freenect2.pc.in "${PROJECT_BINARY_DIR}/freenect2.pc" @ONLY)
 
 INSTALL(TARGETS freenect2 DESTINATION lib)
 INSTALL(DIRECTORY "${MY_DIR}/include/" DESTINATION include PATTERN "*.in" EXCLUDE)
+INSTALL(FILES "${CONFIG_H_FILE}" DESTINATION include/${PROJECT_NAME})
 IF(LIBFREENECT2_THREADING_TINYTHREAD)
   INSTALL(FILES  "${MY_DIR}/src/tinythread/tinythread.h" DESTINATION include/${PROJECT_NAME}/tinythread/)
 ENDIF(LIBFREENECT2_THREADING_TINYTHREAD)
