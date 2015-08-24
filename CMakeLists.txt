@@ -145,7 +145,7 @@ IF(ENABLE_OPENGL)
     )
   SET(LIBFREENECT2_WITH_OPENGL_SUPPORT 1)
   LIST(APPEND SOURCES
-    src/flextGL.c
+    src/flextGL.cpp
     src/opengl_depth_packet_processor.cpp
   )
 
@@ -210,7 +210,16 @@ CONFIGURE_FILE("${MY_DIR}/include/libfreenect2/config.h.in" "${CONFIG_H_FILE}" @
 GENERATE_RESOURCES(${RESOURCES_INC_FILE} ${MY_DIR} ${RESOURCES})
 
 ADD_DEFINITIONS(-DRESOURCES_INC)
+SET(CMAKE_CXX_VISIBILITY_PRESET hidden)
+SET(CMAKE_C_VISIBILITY_PRESET hidden)
+SET(CMAKE_VISIBILITY_INLINES_HIDDEN 1)
+INCLUDE(GenerateExportHeader)
+
 ADD_LIBRARY(freenect2 ${SOURCES})
+GENERATE_EXPORT_HEADER(freenect2
+  BASE_NAME libfreenect2
+)
+
 IF(MSVC AND NOT BUILD_SHARED_LIBS)
   # MSVC creates freenect2.lib for both dynamic and static by default
   set_target_properties(freenect2 PROPERTIES SUFFIX "static.lib")
@@ -224,6 +233,7 @@ CONFIGURE_FILE(freenect2.pc.in "${PROJECT_BINARY_DIR}/freenect2.pc" @ONLY)
 INSTALL(TARGETS freenect2 DESTINATION lib)
 INSTALL(DIRECTORY "${MY_DIR}/include/${PROJECT_NAME}" DESTINATION include PATTERN "*.in" EXCLUDE)
 INSTALL(FILES "${CONFIG_H_FILE}" DESTINATION include/${PROJECT_NAME})
+INSTALL(FILES "${PROJECT_BINARY_DIR}/libfreenect2_export.h" DESTINATION include/${PROJECT_NAME})
 INSTALL(FILES "${PROJECT_BINARY_DIR}/freenect2Config.cmake" DESTINATION lib/cmake/freenect2/)
 INSTALL(FILES "${PROJECT_BINARY_DIR}/freenect2.pc" DESTINATION lib/pkgconfig/)
 

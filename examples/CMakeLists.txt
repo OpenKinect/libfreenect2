@@ -20,7 +20,7 @@ OPTION(ENABLE_OPENGL "Enable OpenGL support" ON)
 
 # The example build system is standalone and will work out-of-tree with these files copied
 SET(freenect2_ROOT_DIR ${MY_DIR}/..)
-SET(flextGL_SOURCES ${freenect2_ROOT_DIR}/src/flextGL.c)
+SET(flextGL_SOURCES ${freenect2_ROOT_DIR}/src/flextGL.cpp)
 SET(flextGL_INCLUDE_DIRS ${freenect2_ROOT_DIR}/src) # for flextGL.h
 
 FIND_PACKAGE(PkgConfig)    # try find PKGConfig as it will be used if found
