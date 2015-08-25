@@ -24,47 +24,45 @@
  * either License.
  */
 
-#ifndef LOGGING_H_
-#define LOGGING_H_
+#ifndef LIBFREENECT2_LOGGER_H_
+#define LIBFREENECT2_LOGGER_H_
 
 #include <string>
 #include <sstream>
 
 #include <libfreenect2/config.h>
-#include <libfreenect2/logger.h>
 
 namespace libfreenect2
 {
 
-class LogMessage
+class LIBFREENECT2_API Logger
 {
-private:
-  Logger *logger_;
-  Logger::Level level_;
-  std::ostringstream stream_;
 public:
-  LogMessage(Logger *logger, Logger::Level level);
-  ~LogMessage();
+  enum Level
+  {
+    None = 0,
+    Error = 1,
+    Warning = 2,
+    Info = 3,
+    Debug = 4,
+  };
+  static Level getDefaultLevel();
 
-  std::ostream &stream();
+  virtual ~Logger();
+
+  virtual Level level() const;
+
+  virtual void log(Level level, const std::string &message) = 0;
+protected:
+  Level level_;
 };
 
-std::string getShortName(const char *func);
+LIBFREENECT2_API Logger *createConsoleLogger(Logger::Level level);
+LIBFREENECT2_API Logger *createConsoleLoggerWithDefaultLevel();
+
+//libfreenect2 frees the memory of the logger passed in.
+LIBFREENECT2_API Logger *getGlobalLogger();
+LIBFREENECT2_API void setGlobalLogger(Logger *logger);
 
 } /* namespace libfreenect2 */
-
-#if defined(__GNUC__) or defined(__clang__)
-#define LOG_SOURCE ::libfreenect2::getShortName(__PRETTY_FUNCTION__)
-#elif defined(_MSC_VER)
-#define LOG_SOURCE ::libfreenect2::getShortName(__FUNCSIG__)
-#else
-#define LOG_SOURCE ""
-#endif
-
-#define LOG(LEVEL) (::libfreenect2::LogMessage(::libfreenect2::getGlobalLogger(), ::libfreenect2::Logger::LEVEL).stream() << "[" << LOG_SOURCE << "] ")
-#define LOG_DEBUG LOG(Debug)
-#define LOG_INFO LOG(Info)
-#define LOG_WARNING LOG(Warning)
-#define LOG_ERROR LOG(Error)
-
-#endif /* LOGGING_H_ */
+#endif /* LIBFREENECT2_LOGGER_H_ */

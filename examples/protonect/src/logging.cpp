@@ -54,6 +54,8 @@ Logger::Level Logger::getDefaultLevel()
       l = Logger::Warning;
     else if(env_logger_level_str == "error")
       l = Logger::Error;
+    else if(env_logger_level_str == "none")
+      l = Logger::None;
   }
 
   return l;
@@ -91,21 +93,10 @@ public:
   virtual ~ConsoleLogger() {}
   virtual void log(Level level, const std::string &message)
   {
-    if(level < level_) return;
+    if(level > level_) return;
 
     (level >= Warning ? std::cerr : std::cout) << "[" << level2str(level) << "] " << message << std::endl;
   }
-};
-
-class NoopLogger : public Logger
-{
-public:
-  NoopLogger()
-  {
-    level_ = Debug;
-  }
-  virtual ~NoopLogger() {}
-  virtual void log(Level level, const std::string &message) {}
 };
 
 Logger *createConsoleLogger(Logger::Level level)
@@ -116,11 +107,6 @@ Logger *createConsoleLogger(Logger::Level level)
 Logger *createConsoleLoggerWithDefaultLevel()
 {
   return new ConsoleLogger(Logger::getDefaultLevel());
-}
-
-Logger *createNoopLogger()
-{
-  return new NoopLogger();
 }
 
 LogMessage::LogMessage(Logger *logger, Logger::Level level) : logger_(logger), level_(level)
