@@ -163,17 +163,8 @@ void * thread::wrapper_function(void * aArg)
   // Get thread startup information
   _thread_start_info * ti = (_thread_start_info *) aArg;
 
-  try
-  {
     // Call the actual client thread function
     ti->mFunction(ti->mArg);
-  }
-  catch(...)
-  {
-    // Uncaught exceptions will terminate the application (default behavior
-    // according to C++11)
-    std::terminate();
-  }
 
   // The thread is no longer executing
   lock_guard<mutex> guard(ti->mThread->mDataMutex);

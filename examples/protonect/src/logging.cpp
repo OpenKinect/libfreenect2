@@ -97,6 +97,12 @@ public:
   ConsoleLogger(Level level)
   {
     level_ = level;
+    //std::ios_base::unitbuf causes automatic flushing which access
+    //thread local variable via std::uncaught_exception().
+    //This causes deadlock with ocl-icd until its recent update.
+    //Accessing TLS has a slight performance penalty.
+    //log() always flush the ostream so unitbuf is unnecessary anyway.
+    std::nounitbuf(std::cerr);
   }
   virtual ~ConsoleLogger() {}
   virtual void log(Level level, const std::string &message)

@@ -34,7 +34,6 @@
 #define _USE_MATH_DEFINES
 #include <math.h>
 
-#define __CL_ENABLE_EXCEPTIONS
 #ifdef __APPLE__
 #include <OpenCL/cl.hpp>
 #else
@@ -142,6 +141,19 @@ public:
     image_size = 512 * 424;
 
     deviceInitialized = initDevice(deviceId);
+
+    const int CL_ICDL_VERSION = 2;
+    typedef cl_int (*icdloader_func)(int, size_t, void*, size_t*);
+    icdloader_func clGetICDLoaderInfoOCLICD = (icdloader_func)clGetExtensionFunctionAddress("clGetICDLoaderInfoOCLICD");
+    if (clGetICDLoaderInfoOCLICD != NULL)
+    {
+      char buf[16];
+      if (clGetICDLoaderInfoOCLICD(CL_ICDL_VERSION, sizeof(buf), buf, NULL) == CL_SUCCESS)
+      {
+        if (strcmp(buf, "2.2.4") < 0)
+          LOG_WARNING << "Your ocl-icd has deadlock bugs. Update to 2.2.4+ is recommended.";
+      }
+    }
   }
 
   void generateOptions(std::string &options) const
@@ -214,37 +226,41 @@ public:
     }
   }
 
+  std::string deviceString(cl::Device &dev)
+  {
+    std::string devName, devVendor, devType;
+    cl_device_type devTypeID;
+    dev.getInfo(CL_DEVICE_NAME, &devName);
+    dev.getInfo(CL_DEVICE_VENDOR, &devVendor);
+    dev.getInfo(CL_DEVICE_TYPE, &devTypeID);
+
+    switch(devTypeID)
+    {
+    case CL_DEVICE_TYPE_CPU:
+      devType = "CPU";
+      break;
+    case CL_DEVICE_TYPE_GPU:
+      devType = "GPU";
+      break;
+    case CL_DEVICE_TYPE_ACCELERATOR:
+      devType = "ACCELERATOR";
+      break;
+    case CL_DEVICE_TYPE_CUSTOM:
+      devType = "CUSTOM";
+      break;
+    default:
+      devType = "UNKNOWN";
+    }
+
+    return devName + " (" + devType + ")[" + devVendor + ']';
+  }
+
   void listDevice(std::vector<cl::Device> &devices)
   {
     LOG_INFO << " devices:";
     for(size_t i = 0; i < devices.size(); ++i)
     {
-      cl::Device &dev = devices[i];
-      std::string devName, devVendor, devType;
-      cl_device_type devTypeID;
-      dev.getInfo(CL_DEVICE_NAME, &devName);
-      dev.getInfo(CL_DEVICE_VENDOR, &devVendor);
-      dev.getInfo(CL_DEVICE_TYPE, &devTypeID);
-
-      switch(devTypeID)
-      {
-      case CL_DEVICE_TYPE_CPU:
-        devType = "CPU";
-        break;
-      case CL_DEVICE_TYPE_GPU:
-        devType = "GPU";
-        break;
-      case CL_DEVICE_TYPE_ACCELERATOR:
-        devType = "ACCELERATOR";
-        break;
-      case CL_DEVICE_TYPE_CUSTOM:
-        devType = "CUSTOM";
-        break;
-      default:
-        devType = "UNKNOWN";
-      }
-
-      LOG_INFO << "  " << i << ": " << devName << " (" << devType << ")[" << devVendor << ']';
+      LOG_INFO << "  " << i << ": " << deviceString(devices[i]);
     }
   }
 
@@ -262,7 +278,7 @@ public:
     for(size_t i = 0; i < devices.size(); ++i)
     {
       cl::Device &dev = devices[i];
-      cl_device_type devTypeID;
+      cl_device_type devTypeID = 0;
       dev.getInfo(CL_DEVICE_TYPE, &devTypeID);
 
       if(!selected || (selectedType != CL_DEVICE_TYPE_GPU && devTypeID == CL_DEVICE_TYPE_GPU))
@@ -275,6 +291,8 @@ public:
     return selected;
   }
 
+#define CHECK_CL_ERROR(err, str) do {if (err != CL_SUCCESS) {LOG_ERROR << str << " failed: " << err; return false; } } while(0)
+
   bool initDevice(const int deviceId)
   {
     if(!readProgram(sourceCode))
@@ -283,14 +301,11 @@ public:
     }
 
     cl_int err = CL_SUCCESS;
-    try
     {
       std::vector<cl::Platform> platforms;
-      if(cl::Platform::get(&platforms) != CL_SUCCESS)
-      {
-        LOG_ERROR << "error while getting opencl platforms.";
-        return false;
-      }
+      err = cl::Platform::get(&platforms);
+      CHECK_CL_ERROR(err, "cl::Platform::get");
+
       if(platforms.empty())
       {
         LOG_ERROR << "no opencl platforms found.";
@@ -300,45 +315,15 @@ public:
       std::vector<cl::Device> devices;
       getDevices(platforms, devices);
       listDevice(devices);
-      if(selectDevice(devices, deviceId))
-      {
-        std::string devName, devVendor, devType;
-        cl_device_type devTypeID;
-        device.getInfo(CL_DEVICE_NAME, &devName);
-        device.getInfo(CL_DEVICE_VENDOR, &devVendor);
-        device.getInfo(CL_DEVICE_TYPE, &devTypeID);
-
-        switch(devTypeID)
-        {
-        case CL_DEVICE_TYPE_CPU:
-          devType = "CPU";
-          break;
-        case CL_DEVICE_TYPE_GPU:
-          devType = "GPU";
-          break;
-        case CL_DEVICE_TYPE_ACCELERATOR:
-          devType = "ACCELERATOR";
-          break;
-        case CL_DEVICE_TYPE_CUSTOM:
-          devType = "CUSTOM";
-          break;
-        default:
-          devType = "UNKNOWN";
-        }
-        LOG_INFO << "selected device: " << devName << " (" << devType << ")[" << devVendor << ']';
-      }
-      else
+      if(!selectDevice(devices, deviceId))
       {
         LOG_ERROR << "could not find any suitable device";
         return false;
       }
+      LOG_INFO << "selected device: " << deviceString(device);
 
-      context = cl::Context(device);
-    }
-    catch(const cl::Error &err)
-    {
-      LOG_ERROR << err.what() << "(" << err.err() << ")";
-      throw;
+      context = cl::Context(device, NULL, NULL, NULL, &err);
+      CHECK_CL_ERROR(err, "cl::Context");
     }
 
     return buildProgram(sourceCode);
@@ -356,9 +341,9 @@ public:
         return false;
 
     cl_int err = CL_SUCCESS;
-    try
     {
       queue = cl::CommandQueue(context, device, 0, &err);
+      CHECK_CL_ERROR(err, "cl::CommandQueue");
 
       //Read only
       buf_lut11to16_size = 2048 * sizeof(cl_short);
@@ -368,10 +353,15 @@ public:
       buf_packet_size = ((image_size * 11) / 16) * 10 * sizeof(cl_ushort);
 
       buf_lut11to16 = cl::Buffer(context, CL_READ_ONLY_CACHE, buf_lut11to16_size, NULL, &err);
+      CHECK_CL_ERROR(err, "cl::Buffer");
       buf_p0_table = cl::Buffer(context, CL_READ_ONLY_CACHE, buf_p0_table_size, NULL, &err);
+      CHECK_CL_ERROR(err, "cl::Buffer");
       buf_x_table = cl::Buffer(context, CL_READ_ONLY_CACHE, buf_x_table_size, NULL, &err);
+      CHECK_CL_ERROR(err, "cl::Buffer");
       buf_z_table = cl::Buffer(context, CL_READ_ONLY_CACHE, buf_z_table_size, NULL, &err);
+      CHECK_CL_ERROR(err, "cl::Buffer");
       buf_packet = cl::Buffer(context, CL_READ_ONLY_CACHE, buf_packet_size, NULL, &err);
+      CHECK_CL_ERROR(err, "cl::Buffer");
 
       //Read-Write
       buf_a_size = image_size * sizeof(cl_float3);
@@ -386,109 +376,156 @@ public:
       buf_filtered_size = image_size * sizeof(cl_float);
 
       buf_a = cl::Buffer(context, CL_READ_WRITE_CACHE, buf_a_size, NULL, &err);
+      CHECK_CL_ERROR(err, "cl::Buffer");
       buf_b = cl::Buffer(context, CL_READ_WRITE_CACHE, buf_b_size, NULL, &err);
+      CHECK_CL_ERROR(err, "cl::Buffer");
       buf_n = cl::Buffer(context, CL_READ_WRITE_CACHE, buf_n_size, NULL, &err);
+      CHECK_CL_ERROR(err, "cl::Buffer");
       buf_ir = cl::Buffer(context, CL_READ_WRITE_CACHE, buf_ir_size, NULL, &err);
+      CHECK_CL_ERROR(err, "cl::Buffer");
       buf_a_filtered = cl::Buffer(context, CL_READ_WRITE_CACHE, buf_a_filtered_size, NULL, &err);
+      CHECK_CL_ERROR(err, "cl::Buffer");
       buf_b_filtered = cl::Buffer(context, CL_READ_WRITE_CACHE, buf_b_filtered_size, NULL, &err);
+      CHECK_CL_ERROR(err, "cl::Buffer");
       buf_edge_test = cl::Buffer(context, CL_READ_WRITE_CACHE, buf_edge_test_size, NULL, &err);
+      CHECK_CL_ERROR(err, "cl::Buffer");
       buf_depth = cl::Buffer(context, CL_READ_WRITE_CACHE, buf_depth_size, NULL, &err);
+      CHECK_CL_ERROR(err, "cl::Buffer");
       buf_ir_sum = cl::Buffer(context, CL_READ_WRITE_CACHE, buf_ir_sum_size, NULL, &err);
+      CHECK_CL_ERROR(err, "cl::Buffer");
       buf_filtered = cl::Buffer(context, CL_READ_WRITE_CACHE, buf_filtered_size, NULL, &err);
+      CHECK_CL_ERROR(err, "cl::Buffer");
 
       kernel_processPixelStage1 = cl::Kernel(program, "processPixelStage1", &err);
-      kernel_processPixelStage1.setArg(0, buf_lut11to16);
-      kernel_processPixelStage1.setArg(1, buf_z_table);
-      kernel_processPixelStage1.setArg(2, buf_p0_table);
-      kernel_processPixelStage1.setArg(3, buf_packet);
-      kernel_processPixelStage1.setArg(4, buf_a);
-      kernel_processPixelStage1.setArg(5, buf_b);
-      kernel_processPixelStage1.setArg(6, buf_n);
-      kernel_processPixelStage1.setArg(7, buf_ir);
+      CHECK_CL_ERROR(err, "cl::Kernel");
+      err = kernel_processPixelStage1.setArg(0, buf_lut11to16);
+      CHECK_CL_ERROR(err, "setArg");
+      err = kernel_processPixelStage1.setArg(1, buf_z_table);
+      CHECK_CL_ERROR(err, "setArg");
+      err = kernel_processPixelStage1.setArg(2, buf_p0_table);
+      CHECK_CL_ERROR(err, "setArg");
+      err = kernel_processPixelStage1.setArg(3, buf_packet);
+      CHECK_CL_ERROR(err, "setArg");
+      err = kernel_processPixelStage1.setArg(4, buf_a);
+      CHECK_CL_ERROR(err, "setArg");
+      err = kernel_processPixelStage1.setArg(5, buf_b);
+      CHECK_CL_ERROR(err, "setArg");
+      err = kernel_processPixelStage1.setArg(6, buf_n);
+      CHECK_CL_ERROR(err, "setArg");
+      err = kernel_processPixelStage1.setArg(7, buf_ir);
+      CHECK_CL_ERROR(err, "setArg");
 
       kernel_filterPixelStage1 = cl::Kernel(program, "filterPixelStage1", &err);
-      kernel_filterPixelStage1.setArg(0, buf_a);
-      kernel_filterPixelStage1.setArg(1, buf_b);
-      kernel_filterPixelStage1.setArg(2, buf_n);
-      kernel_filterPixelStage1.setArg(3, buf_a_filtered);
-      kernel_filterPixelStage1.setArg(4, buf_b_filtered);
-      kernel_filterPixelStage1.setArg(5, buf_edge_test);
+      CHECK_CL_ERROR(err, "cl::Kernel");
+      err = kernel_filterPixelStage1.setArg(0, buf_a);
+      CHECK_CL_ERROR(err, "setArg");
+      err = kernel_filterPixelStage1.setArg(1, buf_b);
+      CHECK_CL_ERROR(err, "setArg");
+      err = kernel_filterPixelStage1.setArg(2, buf_n);
+      CHECK_CL_ERROR(err, "setArg");
+      err = kernel_filterPixelStage1.setArg(3, buf_a_filtered);
+      CHECK_CL_ERROR(err, "setArg");
+      err = kernel_filterPixelStage1.setArg(4, buf_b_filtered);
+      CHECK_CL_ERROR(err, "setArg");
+      err = kernel_filterPixelStage1.setArg(5, buf_edge_test);
+      CHECK_CL_ERROR(err, "setArg");
 
       kernel_processPixelStage2 = cl::Kernel(program, "processPixelStage2", &err);
-      kernel_processPixelStage2.setArg(0, config.EnableBilateralFilter ? buf_a_filtered : buf_a);
-      kernel_processPixelStage2.setArg(1, config.EnableBilateralFilter ? buf_b_filtered : buf_b);
-      kernel_processPixelStage2.setArg(2, buf_x_table);
-      kernel_processPixelStage2.setArg(3, buf_z_table);
-      kernel_processPixelStage2.setArg(4, buf_depth);
-      kernel_processPixelStage2.setArg(5, buf_ir_sum);
+      CHECK_CL_ERROR(err, "cl::Kernel");
+      err = kernel_processPixelStage2.setArg(0, config.EnableBilateralFilter ? buf_a_filtered : buf_a);
+      CHECK_CL_ERROR(err, "setArg");
+      err = kernel_processPixelStage2.setArg(1, config.EnableBilateralFilter ? buf_b_filtered : buf_b);
+      CHECK_CL_ERROR(err, "setArg");
+      err = kernel_processPixelStage2.setArg(2, buf_x_table);
+      CHECK_CL_ERROR(err, "setArg");
+      err = kernel_processPixelStage2.setArg(3, buf_z_table);
+      CHECK_CL_ERROR(err, "setArg");
+      err = kernel_processPixelStage2.setArg(4, buf_depth);
+      CHECK_CL_ERROR(err, "setArg");
+      err = kernel_processPixelStage2.setArg(5, buf_ir_sum);
+      CHECK_CL_ERROR(err, "setArg");
 
       kernel_filterPixelStage2 = cl::Kernel(program, "filterPixelStage2", &err);
-      kernel_filterPixelStage2.setArg(0, buf_depth);
-      kernel_filterPixelStage2.setArg(1, buf_ir_sum);
-      kernel_filterPixelStage2.setArg(2, buf_edge_test);
-      kernel_filterPixelStage2.setArg(3, buf_filtered);
+      CHECK_CL_ERROR(err, "cl::Kernel");
+      err = kernel_filterPixelStage2.setArg(0, buf_depth);
+      CHECK_CL_ERROR(err, "setArg");
+      err = kernel_filterPixelStage2.setArg(1, buf_ir_sum);
+      CHECK_CL_ERROR(err, "setArg");
+      err = kernel_filterPixelStage2.setArg(2, buf_edge_test);
+      CHECK_CL_ERROR(err, "setArg");
+      err = kernel_filterPixelStage2.setArg(3, buf_filtered);
+      CHECK_CL_ERROR(err, "setArg");
 
       cl::Event event0, event1, event2, event3;
-      queue.enqueueWriteBuffer(buf_lut11to16, CL_FALSE, 0, buf_lut11to16_size, lut11to16, NULL, &event0);
-      queue.enqueueWriteBuffer(buf_p0_table, CL_FALSE, 0, buf_p0_table_size, p0_table, NULL, &event1);
-      queue.enqueueWriteBuffer(buf_x_table, CL_FALSE, 0, buf_x_table_size, x_table, NULL, &event2);
-      queue.enqueueWriteBuffer(buf_z_table, CL_FALSE, 0, buf_z_table_size, z_table, NULL, &event3);
+      err = queue.enqueueWriteBuffer(buf_lut11to16, CL_FALSE, 0, buf_lut11to16_size, lut11to16, NULL, &event0);
+      CHECK_CL_ERROR(err, "enqueueWriteBuffer");
+      err = queue.enqueueWriteBuffer(buf_p0_table, CL_FALSE, 0, buf_p0_table_size, p0_table, NULL, &event1);
+      CHECK_CL_ERROR(err, "enqueueWriteBuffer");
+      err = queue.enqueueWriteBuffer(buf_x_table, CL_FALSE, 0, buf_x_table_size, x_table, NULL, &event2);
+      CHECK_CL_ERROR(err, "enqueueWriteBuffer");
+      err = queue.enqueueWriteBuffer(buf_z_table, CL_FALSE, 0, buf_z_table_size, z_table, NULL, &event3);
+      CHECK_CL_ERROR(err, "enqueueWriteBuffer");
 
-      event0.wait();
-      event1.wait();
-      event2.wait();
-      event3.wait();
+      err = event0.wait();
+      CHECK_CL_ERROR(err, "wait");
+      err = event1.wait();
+      CHECK_CL_ERROR(err, "wait");
+      err = event2.wait();
+      CHECK_CL_ERROR(err, "wait");
+      err = event3.wait();
+      CHECK_CL_ERROR(err, "wait");
     }
-    catch(const cl::Error &err)
-    {
-      LOG_ERROR << err.what() << "(" << err.err() << ")";
-      throw;
-    }
+
     programInitialized = true;
     return true;
   }
 
-  void run(const DepthPacket &packet)
+  bool run(const DepthPacket &packet)
   {
-    try
+    cl_int err;
     {
       std::vector<cl::Event> eventWrite(1), eventPPS1(1), eventFPS1(1), eventPPS2(1), eventFPS2(1);
       cl::Event event0, event1;
 
-      queue.enqueueWriteBuffer(buf_packet, CL_FALSE, 0, buf_packet_size, packet.buffer, NULL, &eventWrite[0]);
+      err = queue.enqueueWriteBuffer(buf_packet, CL_FALSE, 0, buf_packet_size, packet.buffer, NULL, &eventWrite[0]);
+      CHECK_CL_ERROR(err, "enqueueWriteBuffer");
 
-      queue.enqueueNDRangeKernel(kernel_processPixelStage1, cl::NullRange, cl::NDRange(image_size), cl::NullRange, &eventWrite, &eventPPS1[0]);
-      queue.enqueueReadBuffer(buf_ir, CL_FALSE, 0, buf_ir_size, ir_frame->data, &eventPPS1, &event0);
+      err = queue.enqueueNDRangeKernel(kernel_processPixelStage1, cl::NullRange, cl::NDRange(image_size), cl::NullRange, &eventWrite, &eventPPS1[0]);
+      CHECK_CL_ERROR(err, "enqueueNDRangeKernel");
+      err = queue.enqueueReadBuffer(buf_ir, CL_FALSE, 0, buf_ir_size, ir_frame->data, &eventPPS1, &event0);
+      CHECK_CL_ERROR(err, "enqueueReadBuffer");
 
       if(config.EnableBilateralFilter)
       {
-        queue.enqueueNDRangeKernel(kernel_filterPixelStage1, cl::NullRange, cl::NDRange(image_size), cl::NullRange, &eventPPS1, &eventFPS1[0]);
+        err = queue.enqueueNDRangeKernel(kernel_filterPixelStage1, cl::NullRange, cl::NDRange(image_size), cl::NullRange, &eventPPS1, &eventFPS1[0]);
+        CHECK_CL_ERROR(err, "enqueueNDRangeKernel");
       }
       else
       {
         eventFPS1[0] = eventPPS1[0];
       }
 
-      queue.enqueueNDRangeKernel(kernel_processPixelStage2, cl::NullRange, cl::NDRange(image_size), cl::NullRange, &eventFPS1, &eventPPS2[0]);
+      err = queue.enqueueNDRangeKernel(kernel_processPixelStage2, cl::NullRange, cl::NDRange(image_size), cl::NullRange, &eventFPS1, &eventPPS2[0]);
+      CHECK_CL_ERROR(err, "enqueueNDRangeKernel");
 
       if(config.EnableEdgeAwareFilter)
       {
-        queue.enqueueNDRangeKernel(kernel_filterPixelStage2, cl::NullRange, cl::NDRange(image_size), cl::NullRange, &eventPPS2, &eventFPS2[0]);
+        err = queue.enqueueNDRangeKernel(kernel_filterPixelStage2, cl::NullRange, cl::NDRange(image_size), cl::NullRange, &eventPPS2, &eventFPS2[0]);
+        CHECK_CL_ERROR(err, "enqueueWriteBuffer");
       }
       else
       {
         eventFPS2[0] = eventPPS2[0];
       }
 
-      queue.enqueueReadBuffer(config.EnableEdgeAwareFilter ? buf_filtered : buf_depth, CL_FALSE, 0, buf_depth_size, depth_frame->data, &eventFPS2, &event1);
-      event0.wait();
-      event1.wait();
+      err = queue.enqueueReadBuffer(config.EnableEdgeAwareFilter ? buf_filtered : buf_depth, CL_FALSE, 0, buf_depth_size, depth_frame->data, &eventFPS2, &event1);
+      CHECK_CL_ERROR(err, "enqueueReadBuffer");
+      err = event0.wait();
+      CHECK_CL_ERROR(err, "wait");
+      err = event1.wait();
+      CHECK_CL_ERROR(err, "wait");
     }
-    catch(const cl::Error &err)
-    {
-      LOG_ERROR << err.what() << " (" << err.err() << ")";
-      throw;
-    }
+    return true;
   }
 
   bool readProgram(std::string &source) const
@@ -499,7 +536,7 @@ public:
 
   bool buildProgram(const std::string& sources)
   {
-    try
+    cl_int err;
     {
       LOG_INFO << "building OpenCL program...";
 
@@ -507,24 +544,22 @@ public:
       generateOptions(options);
 
       cl::Program::Sources source(1, std::make_pair(sources.c_str(), sources.length()));
-      program = cl::Program(context, source);
-      program.build(options.c_str());
-      LOG_INFO << "OpenCL program built successfully";
-    }
-    catch(const cl::Error &err)
-    {
-      LOG_ERROR << err.what() << "(" << err.err() << ")";
+      program = cl::Program(context, source, &err);
+      CHECK_CL_ERROR(err, "cl::Program");
 
-      if(err.err() == CL_BUILD_PROGRAM_FAILURE)
+      err = program.build(options.c_str());
+      if (err != CL_SUCCESS)
       {
+        LOG_ERROR << "failed to build program: " << err;
         LOG_ERROR << "Build Status: " << program.getBuildInfo<CL_PROGRAM_BUILD_STATUS>(device);
         LOG_ERROR << "Build Options:\t" << program.getBuildInfo<CL_PROGRAM_BUILD_OPTIONS>(device);
         LOG_ERROR << "Build Log:\t " << program.getBuildInfo<CL_PROGRAM_BUILD_LOG>(device);
+        programBuilt = false;
+        return false;
       }
-
-      programBuilt = false;
-      return false;
     }
+
+    LOG_INFO << "OpenCL program built successfully";
     programBuilt = true;
     return true;
   }
@@ -645,11 +680,11 @@ void OpenCLDepthPacketProcessor::process(const DepthPacket &packet)
   impl_->ir_frame->sequence = packet.sequence;
   impl_->depth_frame->sequence = packet.sequence;
 
-  impl_->run(packet);
+  bool r = impl_->run(packet);
 
   impl_->stopTiming(LOG_INFO);
 
-  if(has_listener)
+  if(has_listener && r)
   {
     if(this->listener_->onNewFrame(Frame::Ir, impl_->ir_frame))
     {
