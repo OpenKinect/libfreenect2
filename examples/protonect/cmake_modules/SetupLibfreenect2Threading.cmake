@@ -1,5 +1,6 @@
 INCLUDE(CheckCXXSourceCompiles)
 
+IF(COMPILER_SUPPORTS_CXX0X OR COMPILER_SUPPORTS_CXX11)
 CHECK_CXX_SOURCE_COMPILES("
 #include <thread>
 #include <mutex>
@@ -12,12 +13,13 @@ int main(int argc, char** argv) {
   std::lock_guard<std::mutex> lock_guard(mutex);
   std::unique_lock<std::mutex> unique_lock(mutex);
   std::condition_variable condition_variable;
-  thread_local int i;
+  //thread_local int i; // libfreenect is not using this feature, Mac OSX doesn't support it
   
   return 0;
 }
 
 " LIBFREENECT2_THREADING_STDLIB)
+ENDIF()
 
 IF(LIBFREENECT2_THREADING_STDLIB)
   SET(LIBFREENECT2_THREADING "stdlib")
