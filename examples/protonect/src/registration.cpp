@@ -24,6 +24,7 @@
  * either License.
  */
 
+#define _USE_MATH_DEFINES
 #include <math.h>
 #include <libfreenect2/registration.h>
 
