@@ -638,28 +638,15 @@ void OpenCLDepthPacketProcessor::loadP0TablesFromCommandResponse(unsigned char *
   impl_->fill_trig_table(p0table);
 }
 
-void OpenCLDepthPacketProcessor::loadXTableFromFile(const char *filename)
+void OpenCLDepthPacketProcessor::loadXZTables(const float *xtable, const float *ztable)
 {
-  if(!loadBufferFromResources(filename, (unsigned char *)impl_->x_table, impl_->image_size * sizeof(float)))
-  {
-    LOG_ERROR << "could not load x table from: " << filename;
-  }
+  std::copy(xtable, xtable + TABLE_SIZE, impl_->x_table);
+  std::copy(ztable, ztable + TABLE_SIZE, impl_->z_table);
 }
 
-void OpenCLDepthPacketProcessor::loadZTableFromFile(const char *filename)
+void OpenCLDepthPacketProcessor::loadLookupTable(const short *lut)
 {
-  if(!loadBufferFromResources(filename, (unsigned char *)impl_->z_table, impl_->image_size * sizeof(float)))
-  {
-    LOG_ERROR << "could not load z table from: " << filename;
-  }
-}
-
-void OpenCLDepthPacketProcessor::load11To16LutFromFile(const char *filename)
-{
-  if(!loadBufferFromResources(filename, (unsigned char *)impl_->lut11to16, 2048 * sizeof(cl_ushort)))
-  {
-    LOG_ERROR << "could not load lut table from: " << filename;
-  }
+  std::copy(lut, lut + LUT_SIZE, impl_->lut11to16);
 }
 
 void OpenCLDepthPacketProcessor::process(const DepthPacket &packet)

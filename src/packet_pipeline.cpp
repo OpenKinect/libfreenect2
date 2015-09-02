@@ -94,9 +94,6 @@ CpuPacketPipeline::~CpuPacketPipeline() { }
 DepthPacketProcessor *CpuPacketPipeline::createDepthPacketProcessor()
 {
   CpuDepthPacketProcessor *depth_processor = new CpuDepthPacketProcessor();
-  depth_processor->load11To16LutFromFile("11to16.bin");
-  depth_processor->loadXTableFromFile("xTable.bin");
-  depth_processor->loadZTableFromFile("zTable.bin");
   
   return depth_processor;
 }
@@ -112,9 +109,6 @@ OpenGLPacketPipeline::~OpenGLPacketPipeline() { }
 DepthPacketProcessor *OpenGLPacketPipeline::createDepthPacketProcessor()
 {
   OpenGLDepthPacketProcessor *depth_processor = new OpenGLDepthPacketProcessor(parent_opengl_context_, debug_);
-  depth_processor->load11To16LutFromFile("11to16.bin");
-  depth_processor->loadXTableFromFile("xTable.bin");
-  depth_processor->loadZTableFromFile("zTable.bin");
   
   return depth_processor;
 }
@@ -133,9 +127,6 @@ OpenCLPacketPipeline::~OpenCLPacketPipeline() { }
 DepthPacketProcessor *OpenCLPacketPipeline::createDepthPacketProcessor()
 {
   OpenCLDepthPacketProcessor *depth_processor = new OpenCLDepthPacketProcessor(deviceId);
-  depth_processor->load11To16LutFromFile("11to16.bin");
-  depth_processor->loadXTableFromFile("xTable.bin");
-  depth_processor->loadZTableFromFile("zTable.bin");
   
   return depth_processor;
 }

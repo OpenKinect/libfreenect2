@@ -110,6 +110,12 @@ public:
   virtual void setConfiguration(const libfreenect2::DepthPacketProcessor::Config &config);
 
   virtual void loadP0TablesFromCommandResponse(unsigned char* buffer, size_t buffer_length) = 0;
+
+  static const size_t TABLE_SIZE = 512*424;
+  static const size_t LUT_SIZE = 2048;
+  virtual void loadXZTables(const float *xtable, const float *ztable) = 0;
+  virtual void loadLookupTable(const short *lut) = 0;
+
 protected:
   libfreenect2::DepthPacketProcessor::Config config_;
   libfreenect2::FrameListener *listener_;
@@ -128,17 +134,8 @@ public:
 
   virtual void loadP0TablesFromCommandResponse(unsigned char* buffer, size_t buffer_length);
 
-  void loadP0TablesFromFiles(const char* p0_filename, const char* p1_filename, const char* p2_filename);
-
-  /**
-   * GUESS: the x and z table follow some polynomial, until we know the exact polynom formula and its coefficients
-   * just load them from a memory dump - although they probably vary per camera
-   */
-  void loadXTableFromFile(const char* filename);
-
-  void loadZTableFromFile(const char* filename);
-
-  void load11To16LutFromFile(const char* filename);
+  virtual void loadXZTables(const float *xtable, const float *ztable);
+  virtual void loadLookupTable(const short *lut);
 
   virtual void process(const DepthPacket &packet);
 private:
@@ -159,17 +156,8 @@ public:
 
   virtual void loadP0TablesFromCommandResponse(unsigned char* buffer, size_t buffer_length);
 
-  void loadP0TablesFromFiles(const char* p0_filename, const char* p1_filename, const char* p2_filename);
-
-  /**
-   * GUESS: the x and z table follow some polynomial, until we know the exact polynom formula and its coefficients
-   * just load them from a memory dump - although they probably vary per camera
-   */
-  void loadXTableFromFile(const char* filename);
-
-  void loadZTableFromFile(const char* filename);
-
-  void load11To16LutFromFile(const char* filename);
+  virtual void loadXZTables(const float *xtable, const float *ztable);
+  virtual void loadLookupTable(const short *lut);
 
   virtual void process(const DepthPacket &packet);
 private:
@@ -189,15 +177,8 @@ public:
 
   virtual void loadP0TablesFromCommandResponse(unsigned char* buffer, size_t buffer_length);
 
-  /**
-   * GUESS: the x and z table follow some polynomial, until we know the exact polynom formula and its coefficients
-   * just load them from a memory dump - although they probably vary per camera
-   */
-  void loadXTableFromFile(const char* filename);
-
-  void loadZTableFromFile(const char* filename);
-
-  void load11To16LutFromFile(const char* filename);
+  virtual void loadXZTables(const float *xtable, const float *ztable);
+  virtual void loadLookupTable(const short *lut);
 
   virtual void process(const DepthPacket &packet);
 private:
