@@ -32,6 +32,7 @@
 #include <fstream>
 #include <sstream>
 
+#define _USE_MATH_DEFINES
 #include <math.h>
 
 #define __CL_ENABLE_EXCEPTIONS
