@@ -24,63 +24,60 @@
  * either License.
  */
 
-#include <libfreenect2/resource.h>
-#include <libfreenect2/logging.h>
+#ifndef LOGGING_H_
+#define LOGGING_H_
+
 #include <string>
-#include <cstring>
+#include <sstream>
+
+#include <libfreenect2/config.h>
+#include <libfreenect2/logger.h>
 
 namespace libfreenect2
 {
 
-struct ResourceDescriptor
+class WithPerfLoggingImpl;
+
+class WithPerfLogging
 {
-  const char *filename;
-  const unsigned char *data;
-  size_t length;
+public:
+  WithPerfLogging();
+  virtual ~WithPerfLogging();
+  void startTiming();
+  std::ostream &stopTiming(std::ostream &stream);
+private:
+  WithPerfLoggingImpl *impl_;
 };
 
-#ifdef RESOURCES_INC
-#include "resources.inc.h"
-#else
-ResourceDescriptor resource_descriptors[] = {};
-#endif
-
-bool loadResource(const std::string &name, unsigned char const**data, size_t *length)
+class LogMessage
 {
-  bool result = false;
+private:
+  Logger *logger_;
+  Logger::Level level_;
+  std::ostringstream stream_;
+public:
+  LogMessage(Logger *logger, Logger::Level level);
+  ~LogMessage();
 
-  for(int i = 0; i < resource_descriptors_length; ++i)
-  {
-    if(name.compare(resource_descriptors[i].filename) == 0)
-    {
-      *data = resource_descriptors[i].data;
-      *length = resource_descriptors[i].length;
-      result = true;
-      break;
-    }
-  }
-  return result;
-}
+  std::ostream &stream();
+};
 
-bool loadBufferFromResources(const std::string &filename, unsigned char *buffer, const size_t n)
-{
-  size_t length = 0;
-  const unsigned char *data = NULL;
-
-  if(!loadResource(filename, &data, &length))
-  {
-    LOG_ERROR << "failed to load resource: " << filename;
-    return false;
-  }
-
-  if(length != n)
-  {
-    LOG_ERROR << "wrong size of resource: " << filename;
-    return false;
-  }
-
-  memcpy(buffer, data, length);
-  return true;
-}
+std::string getShortName(const char *func);
 
 } /* namespace libfreenect2 */
+
+#if defined(__GNUC__) or defined(__clang__)
+#define LOG_SOURCE ::libfreenect2::getShortName(__PRETTY_FUNCTION__)
+#elif defined(_MSC_VER)
+#define LOG_SOURCE ::libfreenect2::getShortName(__FUNCSIG__)
+#else
+#define LOG_SOURCE ""
+#endif
+
+#define LOG(LEVEL) (::libfreenect2::LogMessage(::libfreenect2::getGlobalLogger(), ::libfreenect2::Logger::LEVEL).stream() << "[" << LOG_SOURCE << "] ")
+#define LOG_DEBUG LOG(Debug)
+#define LOG_INFO LOG(Info)
+#define LOG_WARNING LOG(Warning)
+#define LOG_ERROR LOG(Error)
+
+#endif /* LOGGING_H_ */

@@ -25,13 +25,13 @@
  */
 
 #include <libfreenect2/rgb_packet_processor.h>
+#include <libfreenect2/logging.h>
 #include <turbojpeg.h>
-#include <iostream>
 
 namespace libfreenect2
 {
 
-class TurboJpegRgbPacketProcessorImpl
+class TurboJpegRgbPacketProcessorImpl: public WithPerfLogging
 {
 public:
 
@@ -39,23 +39,15 @@ public:
 
   Frame *frame;
 
-  double timing_acc;
-  double timing_acc_n;
-
-  Timer timer;
-
   TurboJpegRgbPacketProcessorImpl()
   {
     decompressor = tjInitDecompress();
     if(decompressor == 0)
     {
-      std::cerr << "[TurboJpegRgbPacketProcessorImpl] Failed to initialize TurboJPEG decompressor! TurboJPEG error: '" << tjGetErrorStr() << "'" << std::endl;
+      LOG_ERROR << "Failed to initialize TurboJPEG decompressor! TurboJPEG error: '" << tjGetErrorStr() << "'";
     }
 
     newFrame();
-
-    timing_acc = 0.0;
-    timing_acc_n = 0.0;
   }
 
   ~TurboJpegRgbPacketProcessorImpl()
@@ -64,7 +56,7 @@ public:
     {
       if(tjDestroy(decompressor) == -1)
       {
-        std::cerr << "[~TurboJpegRgbPacketProcessorImpl] Failed to destroy TurboJPEG decompressor! TurboJPEG error: '" << tjGetErrorStr() << "'" << std::endl;
+        LOG_ERROR << "Failed to destroy TurboJPEG decompressor! TurboJPEG error: '" << tjGetErrorStr() << "'";
       }
     }
   }
@@ -72,25 +64,6 @@ public:
   void newFrame()
   {
     frame = new Frame(1920, 1080, tjPixelSize[TJPF_BGRX]);
-  }
-
-  void startTiming()
-  {
-    timer.start();
-  }
-
-  void stopTiming()
-  {
-    timing_acc += timer.stop();
-    timing_acc_n += 1.0;
-
-    if(timing_acc_n >= 100.0)
-    {
-      double avg = (timing_acc / timing_acc_n);
-      std::cout << "[TurboJpegRgbPacketProcessor] avg. time: " << (avg * 1000) << "ms -> ~" << (1.0/avg) << "Hz" << std::endl;
-      timing_acc = 0.0;
-      timing_acc_n = 0.0;
-    }
   }
 };
 
@@ -124,10 +97,10 @@ void TurboJpegRgbPacketProcessor::process(const RgbPacket &packet)
     }
     else
     {
-      std::cerr << "[TurboJpegRgbPacketProcessor::doProcess] Failed to decompress rgb image! TurboJPEG error: '" << tjGetErrorStr() << "'" << std::endl;
+      LOG_ERROR << "Failed to decompress rgb image! TurboJPEG error: '" << tjGetErrorStr() << "'";
     }
 
-    impl_->stopTiming();
+    impl_->stopTiming(LOG_INFO);
   }
 }
 

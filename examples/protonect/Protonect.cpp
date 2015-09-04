@@ -33,6 +33,7 @@
 #include <libfreenect2/threading.h>
 #include <libfreenect2/registration.h>
 #include <libfreenect2/packet_pipeline.h>
+#include <libfreenect2/logger.h>
 #ifdef LIBFREENECT2_WITH_OPENGL_SUPPORT
 #include "viewer.h"
 #endif
@@ -44,6 +45,29 @@ void sigint_handler(int s)
 {
   protonect_shutdown = true;
 }
+
+//The following demostrates how to create a custom logger
+#include <fstream>
+#include <cstdlib>
+class MyFileLogger: public libfreenect2::Logger
+{
+private:
+  std::ofstream logfile_;
+public:
+  MyFileLogger(const char *filename)
+    : logfile_(filename)
+  {
+    level_ = Debug;
+  }
+  bool good()
+  {
+    return logfile_.good();
+  }
+  virtual void log(Level level, const std::string &message)
+  {
+    logfile_ << "[" << libfreenect2::Logger::level2str(level) << "] " << message << std::endl;
+  }
+};
 
 int main(int argc, char *argv[])
 {
@@ -58,6 +82,12 @@ int main(int argc, char *argv[])
   }
 
   libfreenect2::Freenect2 freenect2;
+  // create a console logger with debug level (default is console logger with info level)
+  libfreenect2::setGlobalLogger(libfreenect2::createConsoleLogger(libfreenect2::Logger::Debug));
+  MyFileLogger *filelogger = new MyFileLogger(getenv("LOGFILE"));
+  if (filelogger->good())
+    libfreenect2::setGlobalLogger(filelogger);
+
   libfreenect2::Freenect2Device *dev = 0;
   libfreenect2::PacketPipeline *pipeline = 0;
 
@@ -68,6 +98,8 @@ int main(int argc, char *argv[])
   }
 
   std::string serial = freenect2.getDefaultDeviceSerialNumber();
+
+  bool viewer_enabled = true;
 
   for(int argI = 1; argI < argc; ++argI)
   {
@@ -99,6 +131,10 @@ int main(int argc, char *argv[])
     else if(arg.find_first_not_of("0123456789") == std::string::npos) //check if parameter could be a serial number
     {
       serial = arg;
+    }
+    else if(arg == "-noviewer")
+    {
+      viewer_enabled = false;
     }
     else
     {
@@ -137,9 +173,13 @@ int main(int argc, char *argv[])
 
   libfreenect2::Registration* registration = new libfreenect2::Registration(dev->getIrCameraParams(), dev->getColorCameraParams());
 
+  size_t framecount = 0;
 #ifdef LIBFREENECT2_WITH_OPENGL_SUPPORT
   Viewer viewer;
-  viewer.initialize();
+  if (viewer_enabled)
+    viewer.initialize();
+#else
+  viewer_enabled = false;
 #endif
 
   while(!protonect_shutdown)
@@ -151,15 +191,22 @@ int main(int argc, char *argv[])
 
     registration->apply(rgb, depth, &undistorted, &registered);
 
+    framecount++;
+    if (!viewer_enabled)
+    {
+      if (framecount % 100 == 0)
+        std::cout << "The viewer is turned off. Received " << framecount << " frames. Ctrl-C to stop." << std::endl;
+      listener.release(frames);
+      continue;
+    }
+
 #ifdef LIBFREENECT2_WITH_OPENGL_SUPPORT
     viewer.addFrame("RGB", rgb);
     viewer.addFrame("ir", ir);
     viewer.addFrame("depth", depth);
     viewer.addFrame("registered", &registered);
 
-    protonect_shutdown = viewer.render();
-#else
-    protonect_shutdown = true;
+    protonect_shutdown = protonect_shutdown || viewer.render();
 #endif
 
     listener.release(frames);

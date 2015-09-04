@@ -24,7 +24,7 @@
  * either License.
  */
 
-#include <iostream>
+#include <string>
 #include <vector>
 #include <algorithm>
 #include <libusb.h>
@@ -38,6 +38,7 @@
 #include <libfreenect2/protocol/command.h>
 #include <libfreenect2/protocol/response.h>
 #include <libfreenect2/protocol/command_transaction.h>
+#include <libfreenect2/logging.h>
 
 namespace libfreenect2
 {
@@ -140,7 +141,7 @@ public:
       // TODO: error handling
       if(r != 0)
       {
-        std::cout << "[Freenect2Impl] failed to create usb context!" << std::endl;
+        LOG_ERROR << "failed to create usb context!";
       }
     }
 
@@ -159,6 +160,7 @@ public:
       libusb_exit(usb_context_);
       usb_context_ = 0;
     }
+
   }
 
   void addDevice(Freenect2DeviceImpl *device)
@@ -176,7 +178,7 @@ public:
     }
     else
     {
-      std::cout << "[Freenect2Impl] tried to remove device, which is not in the internal device list!" << std::endl;
+      LOG_WARNING << "tried to remove device, which is not in the internal device list!";
     }
   }
 
@@ -205,7 +207,7 @@ public:
 
     if(!devices_.empty())
     {
-      std::cout << "[Freenect2Impl] after deleting all devices the internal device list should be empty!" << std::endl;
+      LOG_WARNING << "after deleting all devices the internal device list should be empty!";
     }
   }
 
@@ -223,11 +225,11 @@ public:
 
   void enumerateDevices()
   {
-    std::cout << "[Freenect2Impl] enumerating devices..." << std::endl;
+    LOG_INFO << "enumerating devices...";
     libusb_device **device_list;
     int num_devices = libusb_get_device_list(usb_context_, &device_list);
 
-    std::cout << "[Freenect2Impl] " << num_devices << " usb devices connected" << std::endl;
+    LOG_INFO << num_devices << " usb devices connected";
 
     if(num_devices > 0)
     {
@@ -268,21 +270,21 @@ public:
                 dev_with_serial.dev = dev;
                 dev_with_serial.serial = std::string(reinterpret_cast<char *>(buffer), size_t(r));
 
-                std::cout << "[Freenect2Impl] found valid Kinect v2 " << PrintBusAndDevice(dev) << " with serial " << dev_with_serial.serial << std::endl;
+                LOG_INFO << "found valid Kinect v2 " << PrintBusAndDevice(dev) << " with serial " << dev_with_serial.serial;
                 // valid Kinect v2
                 enumerated_devices_.push_back(dev_with_serial);
                 continue;
               }
               else
               {
-                std::cout << "[Freenect2Impl] failed to get serial number of Kinect v2 " << PrintBusAndDevice(dev) << "!" << std::endl;
+                LOG_ERROR << "failed to get serial number of Kinect v2 " << PrintBusAndDevice(dev) << "!";
               }
 
               libusb_close(dev_handle);
             }
             else
             {
-              std::cout << "[Freenect2Impl] failed to open Kinect v2 " << PrintBusAndDevice(dev) << "!" << std::endl;
+              LOG_ERROR << "failed to open Kinect v2 " << PrintBusAndDevice(dev) << "!";
             }
           }
         }
@@ -293,7 +295,7 @@ public:
     libusb_free_device_list(device_list, 0);
     has_device_enumeration_ = true;
 
-    std::cout << "[Freenect2Impl] found " << enumerated_devices_.size() << " devices" << std::endl;
+    LOG_INFO << "found " << enumerated_devices_.size() << " devices";
   }
 
   int getNumDevices()
@@ -397,7 +399,7 @@ void Freenect2DeviceImpl::setIrAndDepthFrameListener(libfreenect2::FrameListener
 
 bool Freenect2DeviceImpl::open()
 {
-  std::cout << "[Freenect2DeviceImpl] opening..." << std::endl;
+  LOG_INFO << "opening...";
 
   if(state_ != Created) return false;
 
@@ -417,7 +419,7 @@ bool Freenect2DeviceImpl::open()
 
   if(max_iso_packet_size < 0x8400)
   {
-    std::cout << "[Freenect2DeviceImpl] max iso packet size for endpoint 0x84 too small! (expected: " << 0x8400 << " got: " << max_iso_packet_size << ")" << std::endl;
+    LOG_ERROR << "max iso packet size for endpoint 0x84 too small! (expected: " << 0x8400 << " got: " << max_iso_packet_size << ")";
     return false;
   }
 
@@ -426,14 +428,14 @@ bool Freenect2DeviceImpl::open()
 
   state_ = Open;
 
-  std::cout << "[Freenect2DeviceImpl] opened" << std::endl;
+  LOG_INFO << "opened";
 
   return true;
 }
 
 void Freenect2DeviceImpl::start()
 {
-  std::cout << "[Freenect2DeviceImpl] starting..." << std::endl;
+  LOG_INFO << "starting...";
   if(state_ != Open) return;
 
   CommandTransaction::Result serial_result, firmware_result, result;
@@ -444,15 +446,15 @@ void Freenect2DeviceImpl::start()
   firmware_ = FirmwareVersionResponse(firmware_result.data, firmware_result.length).toString();
 
   command_tx_.execute(ReadData0x14Command(nextCommandSeq()), result);
-  std::cout << "[Freenect2DeviceImpl] ReadData0x14 response" << std::endl;
-  std::cout << GenericResponse(result.data, result.length).toString() << std::endl;
+  LOG_DEBUG << "ReadData0x14 response";
+  LOG_DEBUG << GenericResponse(result.data, result.length).toString();
 
   command_tx_.execute(ReadSerialNumberCommand(nextCommandSeq()), serial_result);
   std::string new_serial = SerialNumberResponse(serial_result.data, serial_result.length).toString();
 
   if(serial_ != new_serial)
   {
-    std::cout << "[Freenect2DeviceImpl] serial number reported by libusb " << serial_ << " differs from serial number " << new_serial << " in device protocol! " << std::endl;
+    LOG_WARNING << "serial number reported by libusb " << serial_ << " differs from serial number " << new_serial << " in device protocol! ";
   }
 
   command_tx_.execute(ReadDepthCameraParametersCommand(nextCommandSeq()), result);
@@ -506,16 +508,16 @@ void Freenect2DeviceImpl::start()
   rgb_camera_params_.my_x0y0 = rgb_p->my_x0y0; // 1
 
   command_tx_.execute(ReadStatus0x090000Command(nextCommandSeq()), result);
-  std::cout << "[Freenect2DeviceImpl] ReadStatus0x090000 response" << std::endl;
-  std::cout << GenericResponse(result.data, result.length).toString() << std::endl;
+  LOG_DEBUG << "ReadStatus0x090000 response";
+  LOG_DEBUG << GenericResponse(result.data, result.length).toString();
 
   command_tx_.execute(InitStreamsCommand(nextCommandSeq()), result);
 
   usb_control_.setIrInterfaceState(UsbControl::Enabled);
 
   command_tx_.execute(ReadStatus0x090000Command(nextCommandSeq()), result);
-  std::cout << "[Freenect2DeviceImpl] ReadStatus0x090000 response" << std::endl;
-  std::cout << GenericResponse(result.data, result.length).toString() << std::endl;
+  LOG_DEBUG << "ReadStatus0x090000 response";
+  LOG_DEBUG << GenericResponse(result.data, result.length).toString();
 
   command_tx_.execute(SetStreamEnabledCommand(nextCommandSeq()), result);
 
@@ -536,33 +538,33 @@ void Freenect2DeviceImpl::start()
   command_tx_.execute(ReadData0x26Command(nextCommandSeq()), result);
   command_tx_.execute(ReadData0x26Command(nextCommandSeq()), result);
 */
-  std::cout << "[Freenect2DeviceImpl] enabling usb transfer submission..." << std::endl;
+  LOG_INFO << "enabling usb transfer submission...";
   rgb_transfer_pool_.enableSubmission();
   ir_transfer_pool_.enableSubmission();
 
-  std::cout << "[Freenect2DeviceImpl] submitting usb transfers..." << std::endl;
+  LOG_INFO << "submitting usb transfers...";
   rgb_transfer_pool_.submit(20);
   ir_transfer_pool_.submit(60);
 
   state_ = Streaming;
-  std::cout << "[Freenect2DeviceImpl] started" << std::endl;
+  LOG_INFO << "started";
 }
 
 void Freenect2DeviceImpl::stop()
 {
-  std::cout << "[Freenect2DeviceImpl] stopping..." << std::endl;
+  LOG_INFO << "stopping...";
 
   if(state_ != Streaming)
   {
-    std::cout << "[Freenect2DeviceImpl] already stopped, doing nothing" << std::endl;
+    LOG_INFO << "already stopped, doing nothing";
     return;
   }
 
-  std::cout << "[Freenect2DeviceImpl] disabling usb transfer submission..." << std::endl;
+  LOG_INFO << "disabling usb transfer submission...";
   rgb_transfer_pool_.disableSubmission();
   ir_transfer_pool_.disableSubmission();
 
-  std::cout << "[Freenect2DeviceImpl] canceling usb transfers..." << std::endl;
+  LOG_INFO << "canceling usb transfers...";
   rgb_transfer_pool_.cancel();
   ir_transfer_pool_.cancel();
 
@@ -575,16 +577,16 @@ void Freenect2DeviceImpl::stop()
   usb_control_.setVideoTransferFunctionState(UsbControl::Disabled);
 
   state_ = Open;
-  std::cout << "[Freenect2DeviceImpl] stopped" << std::endl;
+  LOG_INFO << "stopped";
 }
 
 void Freenect2DeviceImpl::close()
 {
-  std::cout << "[Freenect2DeviceImpl] closing..." << std::endl;
+  LOG_INFO << "closing...";
 
   if(state_ == Closed)
   {
-    std::cout << "[Freenect2DeviceImpl] already closed, doing nothing" << std::endl;
+    LOG_INFO << "already closed, doing nothing";
     return;
   }
 
@@ -601,24 +603,24 @@ void Freenect2DeviceImpl::close()
 
   if(has_usb_interfaces_)
   {
-    std::cout << "[Freenect2DeviceImpl] releasing usb interfaces..." << std::endl;
+    LOG_INFO << "releasing usb interfaces...";
 
     usb_control_.releaseInterfaces();
     has_usb_interfaces_ = false;
   }
 
-  std::cout << "[Freenect2DeviceImpl] deallocating usb transfer pools..." << std::endl;
+  LOG_INFO << "deallocating usb transfer pools...";
   rgb_transfer_pool_.deallocate();
   ir_transfer_pool_.deallocate();
 
-  std::cout << "[Freenect2DeviceImpl] closing usb device..." << std::endl;
+  LOG_INFO << "closing usb device...";
 
   libusb_close(usb_device_handle_);
   usb_device_handle_ = 0;
   usb_device_ = 0;
 
   state_ = Closed;
-  std::cout << "[Freenect2DeviceImpl] closed" << std::endl;
+  LOG_INFO << "closed";
 }
 
 PacketPipeline *createDefaultPacketPipeline()
@@ -677,8 +679,9 @@ Freenect2Device *Freenect2::openDevice(int idx, const PacketPipeline *pipeline, 
 
   if(idx >= num_devices)
   {
-    std::cout << "[Freenect2Impl] requested device " << idx << " is not connected!" << std::endl;
+    LOG_ERROR << "requested device " << idx << " is not connected!";
     delete pipeline;
+
     return device;
   }
 
@@ -687,9 +690,10 @@ Freenect2Device *Freenect2::openDevice(int idx, const PacketPipeline *pipeline, 
 
   if(impl_->tryGetDevice(dev.dev, &device))
   {
-    std::cout << "[Freenect2Impl] failed to get device " << PrintBusAndDevice(dev.dev)
-        << " (the device may already be open)" << std::endl;
+    LOG_WARNING << "device " << PrintBusAndDevice(dev.dev)
+        << " is already be open!";
     delete pipeline;
+
     return device;
   }
 
@@ -697,8 +701,9 @@ Freenect2Device *Freenect2::openDevice(int idx, const PacketPipeline *pipeline, 
 
   if(r != LIBUSB_SUCCESS)
   {
-    std::cout << "[Freenect2Impl] failed to open Kinect v2 " << PrintBusAndDevice(dev.dev) << "!" << std::endl;
+    LOG_ERROR << "failed to open Kinect v2 " << PrintBusAndDevice(dev.dev) << "!";
     delete pipeline;
+
     return device;
   }
 
@@ -726,7 +731,7 @@ Freenect2Device *Freenect2::openDevice(int idx, const PacketPipeline *pipeline, 
       libfreenect2::this_thread::sleep_for(libfreenect2::chrono::milliseconds(1000));
 
       // reenumerate devices
-      std::cout << "[Freenect2Impl] re-enumerating devices after reset" << std::endl;
+      LOG_INFO << "re-enumerating devices after reset";
       impl_->clearDeviceEnumeration();
       impl_->enumerateDevices();
 
@@ -735,8 +740,9 @@ Freenect2Device *Freenect2::openDevice(int idx, const PacketPipeline *pipeline, 
     }
     else if(r != LIBUSB_SUCCESS)
     {
-      std::cout << "[Freenect2Impl] failed to reset Kinect v2 " << PrintBusAndDevice(dev.dev) << "!" << std::endl;
+      LOG_ERROR << "failed to reset Kinect v2 " << PrintBusAndDevice(dev.dev) << "!";
       delete pipeline;
+
       return device;
     }
   }
@@ -749,7 +755,7 @@ Freenect2Device *Freenect2::openDevice(int idx, const PacketPipeline *pipeline, 
     delete device;
     device = 0;
 
-    std::cout << "[Freenect2DeviceImpl] failed to open Kinect v2 " << PrintBusAndDevice(dev.dev) << "!" << std::endl;
+    LOG_ERROR << "failed to open Kinect v2 " << PrintBusAndDevice(dev.dev) << "!";
   }
 
   return device;

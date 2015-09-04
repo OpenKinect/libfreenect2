@@ -27,8 +27,6 @@
 #ifndef PACKET_PROCESSOR_H_
 #define PACKET_PROCESSOR_H_
 
-#include <libfreenect2/timer.h>
-
 namespace libfreenect2
 {
 

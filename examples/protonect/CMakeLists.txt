@@ -101,7 +101,7 @@ SET(SOURCES
   src/resource.cpp
   src/command_transaction.cpp
   src/registration.cpp
-  src/timer.cpp
+  src/logging.cpp
   src/libfreenect2.cpp
   
   ${LIBFREENECT2_THREADING_SOURCE}
@@ -166,6 +166,13 @@ IF(ENABLE_OPENCL)
     LIST(APPEND RESOURCES
       src/opencl_depth_packet_processor.cl
     )
+
+    # Major Linux distro stable releases have buggy OpenCL ICD loader.
+    # The workaround of disabling exceptions can only be set up during compile time.
+    # Diabling it for all should be harmless. The flag is the same for GCC/Clang/ICC.
+    IF(UNIX AND NOT APPLE)
+      SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-exceptions")
+    ENDIF()
   ENDIF(OPENCL_FOUND)
 ENDIF(ENABLE_OPENCL)
 

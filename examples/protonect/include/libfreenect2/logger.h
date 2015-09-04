@@ -24,28 +24,46 @@
  * either License.
  */
 
-#ifndef TIMER_H_
-#define TIMER_H_
+#ifndef LIBFREENECT2_LOGGER_H_
+#define LIBFREENECT2_LOGGER_H_
+
+#include <string>
+#include <sstream>
 
 #include <libfreenect2/config.h>
 
 namespace libfreenect2
 {
 
-class TimerImpl;
+class LIBFREENECT2_API Logger
+{
+public:
+  enum Level
+  {
+    None = 0,
+    Error = 1,
+    Warning = 2,
+    Info = 3,
+    Debug = 4,
+  };
+  static Level getDefaultLevel();
+  static std::string level2str(Level level);
 
-class Timer {
- public:
-  Timer();
-  virtual ~Timer();
+  virtual ~Logger();
 
-  void start();
-  double stop();
+  virtual Level level() const;
 
- private:
-  TimerImpl *impl_;
+  virtual void log(Level level, const std::string &message) = 0;
+protected:
+  Level level_;
 };
 
-} /* namespace libfreenect2 */
+LIBFREENECT2_API Logger *createConsoleLogger(Logger::Level level);
+LIBFREENECT2_API Logger *createConsoleLoggerWithDefaultLevel();
 
-#endif /* TIMER_H_ */
+//libfreenect2 frees the memory of the logger passed in.
+LIBFREENECT2_API Logger *getGlobalLogger();
+LIBFREENECT2_API void setGlobalLogger(Logger *logger);
+
+} /* namespace libfreenect2 */
+#endif /* LIBFREENECT2_LOGGER_H_ */
