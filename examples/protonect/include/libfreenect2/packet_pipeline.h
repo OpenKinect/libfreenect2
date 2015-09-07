@@ -24,6 +24,8 @@
  * either License.
  */
 
+/** @file packet_pipeline.h Packet pipe line definitions. */
+
 #ifndef PACKET_PIPELINE_H_
 #define PACKET_PIPELINE_H_
 
@@ -37,6 +39,7 @@
 namespace libfreenect2
 {
 
+/** Packet pipeline for data processing of the device. */
 class LIBFREENECT2_API PacketPipeline
 {
 public:
@@ -50,6 +53,7 @@ public:
   virtual DepthPacketProcessor *getDepthPacketProcessor() const = 0;
 };
 
+/** Front of the pipeline, RGB and Depth parsing and processing. */
 class LIBFREENECT2_API BasePacketPipeline : public PacketPipeline
 {
 protected:
@@ -73,6 +77,7 @@ public:
   virtual DepthPacketProcessor *getDepthPacketProcessor() const;
 };
 
+/** Complete pipe line with depth processing by the CPU. */
 class LIBFREENECT2_API CpuPacketPipeline : public BasePacketPipeline
 {
 protected:
@@ -83,6 +88,7 @@ public:
 };
 
 #ifdef LIBFREENECT2_WITH_OPENGL_SUPPORT
+/** Complete pipe line with depth processing with OpenGL. */
 class LIBFREENECT2_API OpenGLPacketPipeline : public BasePacketPipeline
 {
 protected:
@@ -96,6 +102,7 @@ public:
 #endif // LIBFREENECT2_WITH_OPENGL_SUPPORT
 
 #ifdef LIBFREENECT2_WITH_OPENCL_SUPPORT
+/** Complete pipe line with depth processing with OpenCL. */
 class LIBFREENECT2_API OpenCLPacketPipeline : public BasePacketPipeline
 {
 protected:

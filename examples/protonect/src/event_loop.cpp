@@ -24,6 +24,8 @@
  * either License.
  */
 
+/** @file event_loop.cpp Event handling. */
+
 #include <libfreenect2/usb/event_loop.h>
 
 #include <libusb.h>
@@ -38,6 +40,10 @@ namespace libfreenect2
 namespace usb
 {
 
+/**
+ * Execute the given event loop.
+ * @param cookie Event loop to run.
+ */
 void EventLoop::static_execute(void *cookie)
 {
   static_cast<EventLoop *>(cookie)->execute();
@@ -55,6 +61,10 @@ EventLoop::~EventLoop()
   stop();
 }
 
+/**
+ * Start the event-loop thread.
+ * @param usb_context Context.
+ */
 void EventLoop::start(void *usb_context)
 {
   if(thread_ == 0)
@@ -65,6 +75,7 @@ void EventLoop::start(void *usb_context)
   }
 }
 
+/** Stop the thread. */
 void EventLoop::stop()
 {
   if(thread_ != 0)
@@ -77,6 +88,7 @@ void EventLoop::stop()
   }
 }
 
+/** Execute the job, until shut down. */
 void EventLoop::execute()
 {
   timeval t;

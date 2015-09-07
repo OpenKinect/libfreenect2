@@ -24,6 +24,8 @@
  * either License.
  */
 
+/** @file libfreenect2.h Frrenect2 library file. */
+
 #pragma once
 
 #include <stdint.h>
@@ -40,24 +42,28 @@ extern "C" {
 #endif
 
 
-/// A struct used in enumeration to give access to serial numbers, so you can
-/// open a particular device by serial rather than depending on index.  This
-/// is most useful if you have more than one Kinect.
+/**
+ * A struct used in enumeration to give access to serial numbers, so you can
+ * open a particular device by serial rather than depending on index.  This
+ * is most useful if you have more than one Kinect.
+ */
 struct freenect2_device_attributes;
 struct freenect2_device_attributes {
 	const char* camera_serial; /**< Serial number of this device's camera subdevice */
 };
 
-/// Enumeration of available resolutions.
-/// Not all available resolutions are actually supported for all video formats.
-/// Frame modes may not perfectly match resolutions.
+/**
+ * Enumeration of available resolutions.
+ * Not all available resolutions are actually supported for all video formats.
+ * Frame modes may not perfectly match resolutions.
+ */
 typedef enum {
 	FREENECT2_RESOLUTION_512x424 = 0,
 	FREENECT2_RESOLUTION_1920x1080 = 1,
 	FREENECT2_RESOLUTION_DUMMY  = 2147483647, /**< Dummy value to force enum to be 32 bits wide */
 } freenect2_resolution;
 
-/// Enumeration of video frame formats
+/** Enumeration of video frame formats. */
 typedef enum {
 	FREENECT2_VIDEO_RGB             = 0, /**< Decompressed RGB mode */
 	FREENECT2_VIDEO_YUV             = 0, /**< Decompressed YUV mode */
@@ -65,34 +71,36 @@ typedef enum {
 	FREENECT2_VIDEO_DUMMY           = 2147483647, /**< Dummy value to force enum to be 32 bits wide */
 } freenect2_video_format;
 
-/// Enumeration of ir frame formats
+/** Enumeration of ir frame formats. */
 typedef enum {
 	FREENECT2_IR_RAW           = 5, /**< raw infrared data */
 	FREENECT2_IR_DUMMY         = 2147483647, /**< Dummy value to force enum to be 32 bits wide */
 } freenect2_ir_format;
 
-/// Enumeration of depth frame formats
+/** Enumeration of depth frame formats. */
 typedef enum {
 	FREENECT2_DEPTH_MM           = 5, /**< depth to each pixel in mm, but left unaligned to RGB image */
 	FREENECT2_DEPTH_DUMMY        = 2147483647, /**< Dummy value to force enum to be 32 bits wide */
 } freenect2_depth_format;
 
-/// Enumeration of flags to toggle features with freenect2_set_flag()
+/** Enumeration of flags to toggle features with #freenect2_set_flag(). */
 typedef enum {
 	// arbitrary bitfields to support flag combination
 	FREENECT2_MIRROR_DEPTH       = 1 << 16,
 	FREENECT2_MIRROR_VIDEO       = 1 << 17,
 } freenect2_flag;
 
-/// Possible values for setting each `freenect2_flag`
+/** Possible values for setting each `freenect2_flag`. */
 typedef enum {
 	FREENECT2_OFF = 0,
 	FREENECT2_ON  = 1,
 } freenect2_flag_value;
 
-/// Structure to give information about the width, height, bitrate,
-/// framerate, and buffer size of a frame in a particular mode, as
-/// well as the total number of bytes needed to hold a single frame.
+/**
+ * Structure to give information about the width, height, bitrate,
+ * framerate, and buffer size of a frame in a particular mode, as
+ * well as the total number of bytes needed to hold a single frame.
+ */
 typedef struct {
 	uint32_t reserved;              /**< unique ID used internally.  The meaning of values may change without notice.  Don't touch or depend on the contents of this field.  We mean it. */
 	freenect2_resolution resolution; /**< Resolution this freenect2_frame_mode describes, should you want to find it again with freenect2_find_*_frame_mode(). */
@@ -135,7 +143,7 @@ typedef void freenect2_usb_context; /**< Holds libusb-1.0 context */
   #endif
 #endif
 
-/// Enumeration of message logging levels
+/** Enumeration of message logging levels. */
 typedef enum {
 	FREENECT2_LOG_FATAL = 0,     /**< Log for crashing/non-recoverable errors */
 	FREENECT2_LOG_ERROR,         /**< Log for major errors */
@@ -167,7 +175,7 @@ FREENECT2API int freenect2_init(freenect2_context **ctx, freenect2_usb_context *
  */
 FREENECT2API int freenect2_shutdown(freenect2_context *ctx);
 
-/// Typedef for logging callback functions
+/** Typedef for logging callback functions */
 typedef void (*freenect2_log_cb)(freenect2_context *dev, freenect2_loglevel level, const char *msg);
 
 /**
@@ -242,11 +250,11 @@ FREENECT2API int freenect2_open_device_by_camera_serial(freenect2_context *ctx, 
  */
 FREENECT2API int freenect2_close_device(freenect2_device *dev);
 
-/// Typedef for depth image received event callbacks
+/** Typedef for depth image received event callbacks. */
 typedef void (*freenect2_depth_cb)(freenect2_device *dev, uint32_t timestamp, void *depth, void *user);
-/// Typedef for ir image received event callbacks
+/** Typedef for ir image received event callbacks. */
 typedef void (*freenect2_ir_cb)(freenect2_device *dev, uint32_t timestamp, void *ir, void *user);
-/// Typedef for video image received event callbacks
+/** Typedef for video image received event callbacks. */
 typedef void (*freenect2_video_cb)(freenect2_device *dev, uint32_t timestamp, void *video, void *user);
 
 /**

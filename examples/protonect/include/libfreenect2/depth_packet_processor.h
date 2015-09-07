@@ -24,6 +24,8 @@
  * either License.
  */
 
+/** @file depth_packet_processor.h Depth processor definitions. */
+
 #ifndef DEPTH_PACKET_PROCESSOR_H_
 #define DEPTH_PACKET_PROCESSOR_H_
 
@@ -37,30 +39,34 @@
 namespace libfreenect2
 {
 
+/** Data packet with depth information. */
 struct LIBFREENECT2_API DepthPacket
 {
   uint32_t sequence;
   uint32_t timestamp;
-  unsigned char *buffer;
-  size_t buffer_length;
+  unsigned char *buffer; ///< Depth data.
+  size_t buffer_length;  ///< Size of depth data.
 };
 
+/** Class for processing depth information. */
 typedef PacketProcessor<DepthPacket> BaseDepthPacketProcessor;
 
 class LIBFREENECT2_API DepthPacketProcessor : public BaseDepthPacketProcessor
 {
 public:
+  /** Configuration of depth processing. */
   struct LIBFREENECT2_API Config
   {
     float MinDepth;
     float MaxDepth;
-    
-    bool EnableBilateralFilter;
-    bool EnableEdgeAwareFilter;
-    
+
+    bool EnableBilateralFilter; ///< Whether to run the bilateral filter.
+    bool EnableEdgeAwareFilter; ///< Whether to run the edge aware filter.
+
     Config();
   };
 
+  /** Parameters of depth processing. */
   struct LIBFREENECT2_API Parameters
   {
     float ab_multiplier;
@@ -112,6 +118,7 @@ protected:
 #ifdef LIBFREENECT2_WITH_OPENGL_SUPPORT
 class OpenGLDepthPacketProcessorImpl;
 
+/** Depth packet processor using OpenGL. */
 class LIBFREENECT2_API OpenGLDepthPacketProcessor : public DepthPacketProcessor
 {
 public:
@@ -142,6 +149,7 @@ private:
 // TODO: push this to some internal namespace
 class CpuDepthPacketProcessorImpl;
 
+/** Depth packet processor using the CPU. */
 class LIBFREENECT2_API CpuDepthPacketProcessor : public DepthPacketProcessor
 {
 public:
@@ -171,6 +179,7 @@ private:
 #ifdef LIBFREENECT2_WITH_OPENCL_SUPPORT
 class OpenCLDepthPacketProcessorImpl;
 
+/** Depth packet processor using OpenCL. */
 class LIBFREENECT2_API OpenCLDepthPacketProcessor : public DepthPacketProcessor
 {
 public:

@@ -24,6 +24,8 @@
  * either License.
  */
 
+/** @file turbo_jpeg_rgb_packet_processor.cpp JPEG decoder with Turbo Jpeg. */
+
 #include <libfreenect2/rgb_packet_processor.h>
 #include <libfreenect2/logging.h>
 #include <turbojpeg.h>
@@ -31,6 +33,7 @@
 namespace libfreenect2
 {
 
+/** Implementation of the Turbo-Jpeg decoder processor. */
 class TurboJpegRgbPacketProcessorImpl: public WithPerfLogging
 {
 public:

@@ -24,6 +24,8 @@
  * either License.
  */
 
+/** @file rgb_packet_processor.cpp Implementation of generic color packet processors. */
+
 #include <libfreenect2/rgb_packet_processor.h>
 #include <libfreenect2/async_packet_processor.h>
 

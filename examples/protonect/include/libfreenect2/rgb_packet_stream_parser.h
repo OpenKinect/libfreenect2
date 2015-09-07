@@ -24,6 +24,8 @@
  * either License.
  */
 
+/** @file rgb_packet_stream_parser.h Parser classes for getting RGB packets from the stream. */
+
 #ifndef RGB_PACKET_STREAM_PARSER_H_
 #define RGB_PACKET_STREAM_PARSER_H_
 
@@ -38,6 +40,7 @@
 namespace libfreenect2
 {
 
+/** Parser for getting an RGB packet from the stream. */
 class LIBFREENECT2_API RgbPacketStreamParser : public DataCallback
 {
 public:
@@ -48,8 +51,8 @@ public:
 
   virtual void onDataReceived(unsigned char* buffer, size_t length);
 private:
-  libfreenect2::DoubleBuffer buffer_;
-  BaseRgbPacketProcessor *processor_;
+  libfreenect2::DoubleBuffer buffer_; ///< Buffers for storage.
+  BaseRgbPacketProcessor *processor_; ///< Parser implementation.
 };
 
 } /* namespace libfreenect2 */

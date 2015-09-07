@@ -24,6 +24,8 @@
  * either License.
  */
 
+/** @file usb_control.cpp USB control using libusb. */
+
 #include <libfreenect2/protocol/usb_control.h>
 #include <libfreenect2/logging.h>
 

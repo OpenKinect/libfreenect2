@@ -24,6 +24,8 @@
  * either License.
  */
 
+/** @file command_transaction.cpp Protocol transactions for device. */
+
 #include <libfreenect2/protocol/command_transaction.h>
 #include <libfreenect2/logging.h>
 

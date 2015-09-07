@@ -24,6 +24,8 @@
  * either License.
  */
 
+/** @file resource.cpp Implementation of resource loading (from file or in-program). */
+
 #include <libfreenect2/resource.h>
 #include <libfreenect2/logging.h>
 #include <string>
@@ -32,6 +34,7 @@
 namespace libfreenect2
 {
 
+/** Meta information of an in-program resource. */
 struct ResourceDescriptor
 {
   const char *filename;
@@ -45,6 +48,13 @@ struct ResourceDescriptor
 ResourceDescriptor resource_descriptors[] = {};
 #endif
 
+/**
+ * Find data of a requested resource.
+ * @param name Name of the resource to retrieve.
+ * @param [out] data Address of the resource data, if found.
+ * @param [out] Length of the resource data, if found.
+ * @return Whether the resource could be retrieved.
+ */
 bool loadResource(const std::string &name, unsigned char const**data, size_t *length)
 {
   bool result = false;
@@ -62,6 +72,13 @@ bool loadResource(const std::string &name, unsigned char const**data, size_t *le
   return result;
 }
 
+/**
+ * Get resource data into a supplied buffer.
+ * @param filename Name of the file to get.
+ * @param buffer Buffer to use as target storage.
+ * @param n Size of the supplied buffer.
+ * @return Whether the requested resource could be loaded (copied) into the supplied buffer.
+ */
 bool loadBufferFromResources(const std::string &filename, unsigned char *buffer, const size_t n)
 {
   size_t length = 0;

@@ -23,8 +23,9 @@
  * Binary distributions must follow the binary distribution requirements of
  * either License.
  */
- 
- 
+
+/** @file data_callback.h Callback interface on arrival of new data. */
+
 #ifndef DATA_CALLBACK_H_
 #define DATA_CALLBACK_H_
 
@@ -37,6 +38,11 @@ namespace libfreenect2
 class LIBFREENECT2_API DataCallback
 {
 public:
+  /**
+   * Callback that new data has arrived.
+   * @param buffer Buffer with new data.
+   * @param n Size of the new data.
+   */
   virtual void onDataReceived(unsigned char *buffer, size_t n) = 0;
 };
 

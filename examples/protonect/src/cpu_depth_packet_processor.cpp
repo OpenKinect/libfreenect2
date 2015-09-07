@@ -24,6 +24,8 @@
  * either License.
  */
 
+/** @file cpu_depth_packet_processor.cpp Depth processor implementation for the CPU. */
+
 #include <libfreenect2/depth_packet_processor.h>
 #include <libfreenect2/resource.h>
 #include <libfreenect2/protocol/response.h>
@@ -39,20 +41,39 @@
 #include <cmath>
 #include <limits>
 
+/**
+ * Vector class.
+ * @tparam ScalarT Type of the elements.
+ * @tparam Size Number of elements in the vector.
+ */
 template<typename ScalarT, int Size>
 struct Vec
 {
   ScalarT val[Size];
 };
 
+/**
+ * Matrix class.
+ * @tparam ScalarT Eelement type of the matrix.
+ */
 template<typename ScalarT>
 struct Mat
 {
 private:
-  bool owns_buffer;
-  unsigned char *buffer_, *buffer_end_;
-  int width_, height_, x_step, y_step;
+  bool owns_buffer; ///< Whether the matrix owns the data buffer (and should dispose it when deleted).
+  unsigned char *buffer_; ///< Data buffer of the matrix (row major).
+  unsigned char *buffer_end_; ///< End of the buffer (just after the last element).
+  int width_;  ///< Number of elements in the matrix.
+  int height_; ///< Number of rows in the matrix.
+  int x_step;  ///< Number of bytes in one element.
+  int y_step;  ///< Number of bytes in one row.
 
+  /**
+   * Allocate a buffer.
+   * @param width Width of the matrix.
+   * @param height Height of the matrix.
+   * @param external_buffer If not \c null, use the provided buffer, else make a new one.
+   */
   void allocate(int width, int height, unsigned char *external_buffer = 0)
   {
     this->width_ = width;
@@ -85,53 +106,96 @@ private:
   }
 
 public:
+  /** Default constructor. */
   Mat()
   {
   }
 
+  /**
+   * Constructor with locally allocated buffer.
+   * @param height Height of the image.
+   * @param width Width of the image.
+   */
   Mat(int height, int width) : owns_buffer(false), buffer_(0)
   {
     create(height, width);
   }
 
+  /**
+   * Constructor with external buffer.
+   * @tparam DataT Type of data of the buffer.
+   * @param height Height of the image.
+   * @param width Width of the image.
+   * @param external_buffer Provided buffer.
+   */
   template<typename DataT>
   Mat(int height, int width, DataT *external_buffer)
   {
     allocate(width, height, reinterpret_cast<unsigned char *>(external_buffer));
   }
 
+  /** Destructor. */
   ~Mat()
   {
     deallocate();
   }
 
+  /**
+   * Get the width of the image.
+   * @return Width of the image.
+   */
   int width() const
   {
     return width_;
   }
-  
+
+  /**
+   * Get the height of the image.
+   * @return height of the image.
+   */
   int height() const
   {
     return height_;
   }
 
+  /**
+   * Construct a new image buffer
+   * @param height Height of the new image.
+   * @param width Width of the new image.
+   */
   void create(int height, int width)
   {
     deallocate();
     allocate(width, height);
   }
 
+  /**
+   * Copy image data to the provided matrix.
+   * @param other Destination to copy to.
+   */
   void copyTo(Mat<ScalarT> &other) const
   {
     other.create(height(), width());
     std::copy(buffer_, buffer_end_, other.buffer_);
   }
 
+  /**
+   * Get the image data at the requested point \a x, \a y.
+   * @param y Vertical (row) position.
+   * @param x Horizontal position.
+   * @return Data at the given position.
+   */
   const ScalarT &at(int y, int x) const
   {
     return *ptr(y, x);
   }
 
+  /**
+   * Get a reference to the image data at the requested point \a x, \a y.
+   * @param y Vertical (row) position.
+   * @param x Horizontal position.
+   * @return Reference to the data at the given position.
+   */
   ScalarT &at(int y, int x)
   {
     return *ptr(y, x);
@@ -147,17 +211,31 @@ public:
     return reinterpret_cast<ScalarT *>(buffer_ + y_step * y + x_step * x);
   }
 
+  /**
+   * Get the buffer.
+   * @return The buffer.
+   */
   unsigned char* buffer()
   {
     return buffer_;
   }
 
+  /**
+   * Get the size of the buffer.
+   * @return Number of bytes in the buffer.
+   */
   int sizeInBytes() const
   {
     return buffer_end_ - buffer_;
   }
 };
 
+/**
+ * Copy and flip buffer upside-down (upper part to bottom, bottom part to top).
+ * @tparam ScalarT Type of the element of the buffer.
+ * @param in Source buffer.
+ * @param [out] out Destination buffer to be filled with flipped \a in data.
+ */
 template<typename ScalarT>
 void flipHorizontal(const Mat<ScalarT> &in, Mat<ScalarT>& out)
 {
@@ -183,6 +261,13 @@ void flipHorizontal(const Mat<ScalarT> &in, Mat<ScalarT>& out)
 namespace libfreenect2
 {
 
+/**
+ * Load a buffer from data of a file.
+ * @param filename Name of the file to load.
+ * @param buffer Start of the buffer to load.
+ * @param n Size of the buffer to load.
+ * @return Whether loading succeeded.
+ */
 bool loadBufferFromFile2(const std::string& filename, unsigned char *buffer, size_t n)
 {
   bool success;
@@ -232,12 +317,14 @@ public:
     flip_ptables = true;
   }
 
+  /** Allocate a new IR frame. */
   void newIrFrame()
   {
     ir_frame = new Frame(512, 424, 4);
     //ir_frame = new Frame(512, 424, 12);
   }
 
+  /** Allocate a new depth frame. */
   void newDepthFrame()
   {
     depth_frame = new Frame(512, 424, 4);
@@ -306,6 +393,11 @@ public:
     return lut11to16[((i1 | i2) & 2047)];
   }
 
+  /**
+   * Initialize cos and sin trigonometry tables for each of the three #phase_in_rad parameters.
+   * @param p0table Angle at every (x, y) position.
+   * @param [out] trig_tables (3 cos tables, followed by 3 sin tables for the three phases.
+   */
   void fillTrigTable(Mat<uint16_t> &p0table, float trig_table[512*424][6])
   {
     int i = 0;
@@ -329,6 +421,15 @@ public:
       }
   }
 
+  /**
+   * Process measurement (all three layers).
+   * @param [in] trig_table Trigonometry tables.
+   * @param abMultiplierPerFrq Multiplier.
+   * @param x X position in the image.
+   * @param y Y position in the image.
+   * @param m Measurement.
+   * @param [out] m_out Processed measurement (IR a, IR b, IR amplitude).
+   */
   void processMeasurementTriple(float trig_table[512*424][6], float abMultiplierPerFrq, int x, int y, const int32_t* m, float* m_out)
   {
     int offset = y * 512 + x;
@@ -371,6 +472,10 @@ public:
     m_out[2] = tmp5; // ir amplitude
   }
 
+  /**
+   * Transform measurement.
+   * @param [in, out] m Measurement.
+   */
   void transformMeasurements(float* m)
   {
     float tmp0 = std::atan2((m[1]), (m[0]));
@@ -383,6 +488,15 @@ public:
     m[1] = tmp1; // ir amplitude - (possibly bilateral filtered)
   }
 
+  /**
+   * Process first pixel stage.
+   * @param x Horizontal position.
+   * @param y Vertical position.
+   * @param data
+   * @param [out] m0_out First layer output.
+   * @param [out] m1_out Second layer output.
+   * @param [out] m2_out Third layer output.
+   */
   void processPixelStage1(int x, int y, unsigned char* data, float *m0_out, float *m1_out, float *m2_out)
   {
     int32_t m0_raw[3], m1_raw[3], m2_raw[3];
@@ -402,6 +516,14 @@ public:
     processMeasurementTriple(trig_table2, params.ab_multiplier_per_frq[2], x, y, m2_raw, m2_out);
   }
 
+  /**
+   * Filter pixels in stage 1.
+   * @param x Horizontal position.
+   * @param y Vertical position.
+   * @param m Input data?
+   * @param [out] Output data.
+   * @param [out] bilateral_max_edge_test Whether the accumulated distance of each image stayed within limits.
+   */
   void filterPixelStage1(int x, int y, const Mat<Vec<float, 9> >& m, float* m_out, bool& bilateral_max_edge_test)
   {
     const float *m_ptr = (m.ptr(y, x)->val);
@@ -740,6 +862,11 @@ void CpuDepthPacketProcessor::setConfiguration(const libfreenect2::DepthPacketPr
   impl_->enable_edge_filter = config.EnableEdgeAwareFilter;
 }
 
+/**
+ * Load p0 tables from a command response,
+ * @param buffer Buffer containing the response.
+ * @param buffer_length Length of the response data.
+ */
 void CpuDepthPacketProcessor::loadP0TablesFromCommandResponse(unsigned char* buffer, size_t buffer_length)
 {
   // TODO: check known header fields (headersize, tablesize)
@@ -769,6 +896,13 @@ void CpuDepthPacketProcessor::loadP0TablesFromCommandResponse(unsigned char* buf
   impl_->fillTrigTable(impl_->p0_table1, impl_->trig_table1);
   impl_->fillTrigTable(impl_->p0_table2, impl_->trig_table2);
 }
+
+/**
+ * Load p0 tables.
+ * @param p0_filename Filename of the first p0 table.
+ * @param p1_filename Filename of the second p0 table.
+ * @param p2_filename Filename of the third p0 table.
+ */
 void CpuDepthPacketProcessor::loadP0TablesFromFiles(const char* p0_filename, const char* p1_filename, const char* p2_filename)
 {
   Mat<uint16_t> p0_table0(424, 512);
@@ -807,6 +941,11 @@ void CpuDepthPacketProcessor::loadP0TablesFromFiles(const char* p0_filename, con
   }
 }
 
+/**
+ * Load the X table from the resources.
+ * @param filename Name of the file to load.
+ * @note Filename is not actually used!
+ */
 void CpuDepthPacketProcessor::loadXTableFromFile(const char* filename)
 {
   impl_->x_table.create(424, 512);
@@ -823,6 +962,11 @@ void CpuDepthPacketProcessor::loadXTableFromFile(const char* filename)
   }
 }
 
+/**
+ * Load the Z table from the resources.
+ * @param filename Name of the file to load.
+ * @note Filename is not actually used!
+ */
 void CpuDepthPacketProcessor::loadZTableFromFile(const char* filename)
 {
   impl_->z_table.create(424, 512);
@@ -840,6 +984,11 @@ void CpuDepthPacketProcessor::loadZTableFromFile(const char* filename)
   }
 }
 
+/**
+ * Load the lookup table from 11 to 16 from the resources.
+ * @param filename Name of the file to load.
+ * @note Filename is not actually used!
+ */
 void CpuDepthPacketProcessor::load11To16LutFromFile(const char* filename)
 {
   const unsigned char *data;
@@ -855,6 +1004,10 @@ void CpuDepthPacketProcessor::load11To16LutFromFile(const char* filename)
   }
 }
 
+/**
+ * Process a packet.
+ * @param packet Packet to process.
+ */
 void CpuDepthPacketProcessor::process(const DepthPacket &packet)
 {
   if(listener_ == 0) return;

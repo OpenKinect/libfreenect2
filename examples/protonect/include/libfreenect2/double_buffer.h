@@ -24,6 +24,8 @@
  * either License.
  */
 
+/** @file double_buffer.h Double buffer implementation. */
+
 #ifndef DOUBLE_BUFFER_H_
 #define DOUBLE_BUFFER_H_
 
@@ -33,14 +35,16 @@
 namespace libfreenect2
 {
 
+/** Data of a single buffer. */
 struct LIBFREENECT2_API Buffer
 {
 public:
-  size_t capacity;
-  size_t length;
-  unsigned char* data;
+  size_t capacity; ///< Capacity of the buffer.
+  size_t length;   ///< Used length of the buffer.
+  unsigned char* data; ///< Start address of the buffer.
 };
 
+/** Double bufffer class. */
 class LIBFREENECT2_API DoubleBuffer
 {
 public:
@@ -55,10 +59,10 @@ public:
 
   Buffer& back();
 private:
-  Buffer buffer_[2];
-  unsigned char front_buffer_index_;
+  Buffer buffer_[2]; // Both data buffers.
+  unsigned char front_buffer_index_; ///< Index of the front buffer.
 
-  unsigned char* buffer_data_;
+  unsigned char* buffer_data_; ///< Memory holding both buffers.
 };
 
 } /* namespace libfreenect2 */

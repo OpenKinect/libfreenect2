@@ -24,6 +24,8 @@
  * either License.
  */
 
+/** @file frame_listener_impl.h Implementation of the frame listener classes. */
+
 #ifndef FRAME_LISTENER_IMPL_H_
 #define FRAME_LISTENER_IMPL_H_
 
@@ -35,10 +37,12 @@
 namespace libfreenect2
 {
 
+/** Storage of frames by type. */
 typedef std::map<Frame::Type, Frame*> FrameMap;
 
 class SyncMultiFrameListenerImpl;
 
+/** Class for collecting and combining frames from different sources. */
 class LIBFREENECT2_API SyncMultiFrameListener : public FrameListener
 {
 public:

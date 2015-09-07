@@ -24,11 +24,17 @@
  * either License.
  */
 
+/** @file generate_resources.cpp Generator of the resource file, to load tables from in-program data. */
+
 #include <iostream>
 #include <iomanip>
 #include <fstream>
 #include <string>
 
+/**
+ * Add the content of the given filename to the resources.
+ * @param filename File to add to the resources.
+ */
 void dumpFile(const std::string& filename)
 {
   using namespace std;
@@ -54,6 +60,10 @@ void dumpFile(const std::string& filename)
   cout << dec;
 }
 
+/**
+ * Main application entry point.
+ * Arguments: List of files to add as resource.
+ */
 int main(int argc, char **argv)
 {
   if(argc < 2) return -1;

@@ -24,6 +24,8 @@
  * either License.
  */
 
+/** @file depth_packet_stream_parser.h Parser processor definitions of depth packets. */
+
 #ifndef DEPTH_PACKET_STREAM_PARSER_H_
 #define DEPTH_PACKET_STREAM_PARSER_H_
 
@@ -40,6 +42,7 @@
 namespace libfreenect2
 {
 
+/** Footer of a depth packet. */
 LIBFREENECT2_PACK(struct LIBFREENECT2_API DepthSubPacketFooter
 {
   uint32_t magic0;
@@ -51,6 +54,10 @@ LIBFREENECT2_PACK(struct LIBFREENECT2_API DepthSubPacketFooter
   uint32_t fields[32];
 });
 
+/**
+ * Parser of th depth stream, recognizes valid depth packets in the stream, and
+ * passes them on for further processing.
+ */
 class LIBFREENECT2_API DepthPacketStreamParser : public DataCallback
 {
 public:
