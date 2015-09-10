@@ -27,6 +27,8 @@
 #include <libfreenect2/usb/transfer_pool.h>
 #include <libfreenect2/logging.h>
 
+#define WRITE_LIBUSB_ERROR(__RESULT) libusb_error_name(__RESULT) << " " << libusb_strerror((libusb_error)__RESULT)
+
 namespace libfreenect2
 {
 namespace usb
@@ -84,8 +86,10 @@ void TransferPool::submit(size_t num_parallel_transfers)
   if(transfers_.size() < num_parallel_transfers)
   {
     LOG_ERROR << "too few idle transfers!";
+    return;
   }
 
+  size_t failcount = 0;
   for(size_t i = 0; i < num_parallel_transfers; ++i)
   {
     libusb_transfer *transfer = transfers_[i].transfer;
@@ -95,10 +99,14 @@ void TransferPool::submit(size_t num_parallel_transfers)
 
     if(r != LIBUSB_SUCCESS)
     {
-      LOG_ERROR << "failed to submit transfer: " << libusb_error_name(r);
+      LOG_ERROR << "failed to submit transfer: " << WRITE_LIBUSB_ERROR(r);
       transfers_[i].setStopped(true);
+      failcount++;
     }
   }
+
+  if (failcount == num_parallel_transfers)
+    LOG_ERROR << "all submissions failed. Try debugging with environment variable: LIBUSB_DEBUG=4.";
 }
 
 void TransferPool::cancel()
@@ -109,7 +117,7 @@ void TransferPool::cancel()
 
     if(r != LIBUSB_SUCCESS && r != LIBUSB_ERROR_NOT_FOUND)
     {
-      LOG_ERROR << "failed to cancel transfer: " << libusb_error_name(r);
+      LOG_ERROR << "failed to cancel transfer: " << WRITE_LIBUSB_ERROR(r);
     }
   }
 
@@ -186,7 +194,7 @@ void TransferPool::onTransferComplete(TransferPool::Transfer* t)
 
   if(r != LIBUSB_SUCCESS)
   {
-    LOG_ERROR << "failed to submit transfer: " << libusb_error_name(r);
+    LOG_ERROR << "failed to submit transfer: " << WRITE_LIBUSB_ERROR(r);
     t->setStopped(true);
   }
 }

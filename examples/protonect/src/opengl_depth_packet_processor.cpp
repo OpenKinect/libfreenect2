@@ -32,9 +32,16 @@
 #include <GLFW/glfw3.h>
 
 #include <fstream>
-
+#include <string>
+#include <map>
+#include <cstdlib>
 
 #include <stdint.h>
+
+#define CHECKGL() do { \
+for (GLenum glerror = glGetError(); glerror != GL_NO_ERROR; glerror = glGetError()) \
+  LOG_ERROR << "line " << __LINE__ << ": GL error " << glerror; \
+} while(0)
 
 namespace libfreenect2
 {
@@ -117,31 +124,66 @@ bool loadBufferFromFile(const std::string& filename, unsigned char *buffer, size
 
 struct ShaderProgram : public WithOpenGLBindings
 {
+  typedef std::map<std::string, int> FragDataMap;
+  FragDataMap frag_data_map_;
   GLuint program, vertex_shader, fragment_shader;
 
   char error_buffer[2048];
 
+  std::string defines;
+  bool is_mesa_checked;
+
   ShaderProgram() :
     program(0),
+    is_mesa_checked(false),
     vertex_shader(0),
     fragment_shader(0)
   {
   }
 
+  void checkMesaBug()
+  {
+    if (is_mesa_checked)
+      return;
+    is_mesa_checked = true;
+    std::string ren((const char*)glGetString(GL_RENDERER));
+    std::string ver((const char*)glGetString(GL_VERSION));
+    if (ren.find("Mesa DRI Intel") == 0)
+    {
+      size_t mesa_pos = ver.rfind("Mesa ");
+      if (mesa_pos != std::string::npos)
+      {
+        double mesa_ver = atof(ver.substr(mesa_pos + 5).c_str());
+        if (mesa_ver < 10.3)
+        {
+          defines += "#define MESA_BUGGY_BOOL_CMP\n";
+          LOG_WARNING << "Working around buggy boolean instructions in your Mesa driver. Mesa DRI 10.3+ is recommended.";
+        }
+      }
+    }
+  }
+
   void setVertexShader(const std::string& src)
   {
-    const char* src_ = src.c_str();
-    int length_ = src.length();
+    checkMesaBug();
+    const GLchar *sources[] = {"#version 140\n", defines.c_str(), src.c_str()};
     vertex_shader = gl()->glCreateShader(GL_VERTEX_SHADER);
-    gl()->glShaderSource(vertex_shader, 1, &src_, &length_);
+    gl()->glShaderSource(vertex_shader, 3, sources, NULL);
+    CHECKGL();
   }
 
   void setFragmentShader(const std::string& src)
   {
-    const char* src_ = src.c_str();
-    int length_ = src.length();
+    checkMesaBug();
+    const GLchar *sources[] = {"#version 140\n", defines.c_str(), src.c_str()};
     fragment_shader = gl()->glCreateShader(GL_FRAGMENT_SHADER);
-    gl()->glShaderSource(fragment_shader, 1, &src_, &length_);
+    gl()->glShaderSource(fragment_shader, 3, sources, NULL);
+    CHECKGL();
+  }
+
+  void bindFragDataLocation(const std::string &name, int output)
+  {
+    frag_data_map_[name] = output;
   }
 
   void build()
@@ -172,6 +214,11 @@ struct ShaderProgram : public WithOpenGLBindings
     gl()->glAttachShader(program, vertex_shader);
     gl()->glAttachShader(program, fragment_shader);
 
+    for(FragDataMap::iterator it = frag_data_map_.begin(); it != frag_data_map_.end(); ++it)
+    {
+      gl()->glBindFragDataLocation(program, it->second, it->first.c_str());
+    }
+
     gl()->glLinkProgram(program);
 
     gl()->glGetProgramiv(program, GL_LINK_STATUS, &status);
@@ -181,6 +228,7 @@ struct ShaderProgram : public WithOpenGLBindings
       gl()->glGetProgramInfoLog(program, sizeof(error_buffer), NULL, error_buffer);
       LOG_ERROR << "failed to link shader program!" << std::endl << error_buffer;
     }
+    CHECKGL();
   }
 
   GLint getAttributeLocation(const std::string& name)
@@ -194,6 +242,7 @@ struct ShaderProgram : public WithOpenGLBindings
     if(idx == -1) return;
 
     gl()->glUniform1i(idx, value);
+    CHECKGL();
   }
 
   void setUniform(const std::string& name, GLfloat value)
@@ -202,6 +251,7 @@ struct ShaderProgram : public WithOpenGLBindings
     if(idx == -1) return;
 
     gl()->glUniform1f(idx, value);
+    CHECKGL();
   }
 
   void setUniformVector3(const std::string& name, GLfloat value[3])
@@ -210,6 +260,7 @@ struct ShaderProgram : public WithOpenGLBindings
     if(idx == -1) return;
 
     gl()->glUniform3fv(idx, 1, value);
+    CHECKGL();
   }
 
   void setUniformMatrix3(const std::string& name, GLfloat value[9])
@@ -218,11 +269,13 @@ struct ShaderProgram : public WithOpenGLBindings
     if(idx == -1) return;
 
     gl()->glUniformMatrix3fv(idx, 1, false, value);
+    CHECKGL();
   }
 
   void use()
   {
     gl()->glUseProgram(program);
+    CHECKGL();
   }
 };
 
@@ -262,10 +315,19 @@ public:
   {
     gl()->glActiveTexture(unit);
     glBindTexture(GL_TEXTURE_RECTANGLE, texture);
+    CHECKGL();
   }
 
   void allocate(size_t new_width, size_t new_height)
   {
+    GLint max_size;
+    glGetIntegerv(GL_MAX_RECTANGLE_TEXTURE_SIZE, &max_size);
+    if (new_width > max_size || new_height > max_size)
+    {
+      LOG_ERROR << "GL_MAX_RECTANGLE_TEXTURE_SIZE is too small: " << max_size;
+      exit(-1);
+    }
+
     width = new_width;
     height = new_height;
     size = height * width * bytes_per_pixel;
@@ -278,6 +340,7 @@ public:
     glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexImage2D(GL_TEXTURE_RECTANGLE, 0, FormatT::InternalFormat, width, height, 0, FormatT::Format, FormatT::Type, 0);
+    CHECKGL();
   }
 
   void upload()
@@ -285,6 +348,7 @@ public:
     bindToUnit(GL_TEXTURE0);
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     glTexSubImage2D(GL_TEXTURE_RECTANGLE, /*level*/0, /*xoffset*/0, /*yoffset*/0, width, height, FormatT::Format, FormatT::Type, data);
+    CHECKGL();
   }
 
   void download()
@@ -295,6 +359,7 @@ public:
   void downloadToBuffer(unsigned char *data)
   {
     glReadPixels(0, 0, width, height, FormatT::Format, FormatT::Type, data);
+    CHECKGL();
   }
 
   void flipY()
@@ -344,10 +409,10 @@ struct OpenGLDepthPacketProcessorImpl : public WithOpenGLBindings, public WithPe
   Texture<U16C1> input_data;
 
   Texture<F32C4> stage1_debug;
-  Texture<F32C3> stage1_data[3];
+  Texture<F32C4> stage1_data[3];
   Texture<F32C1> stage1_infrared;
 
-  Texture<F32C3> filter1_data[2];
+  Texture<F32C4> filter1_data[2];
   Texture<U8C1> filter1_max_edge_test;
   Texture<F32C4> filter1_debug;
 
@@ -434,19 +499,41 @@ struct OpenGLDepthPacketProcessorImpl : public WithOpenGLBindings, public WithPe
     debug.gl(b);
   }
 
+  static void glfwErrorCallback(int error, const char* description)
+  {
+    LOG_ERROR << "GLFW error " << error << " " << description;
+  }
+
+  void checkFBO(GLenum target)
+  {
+    GLenum status = gl()->glCheckFramebufferStatus(target);
+    if (status != GL_FRAMEBUFFER_COMPLETE)
+    {
+      LOG_ERROR << "incomplete FBO " << status;
+      exit(-1);
+    }
+    CHECKGL();
+  }
+
   void initialize()
   {
     ChangeCurrentOpenGLContext ctx(opengl_context_ptr);
     
-    OpenGLBindings *b = new OpenGLBindings();
-    if (flextInit(opengl_context_ptr, b) == 0)
-    {
-        LOG_ERROR << "Failed to initialize flextGL.";
+    int major = glfwGetWindowAttrib(opengl_context_ptr, GLFW_CONTEXT_VERSION_MAJOR);
+    int minor = glfwGetWindowAttrib(opengl_context_ptr, GLFW_CONTEXT_VERSION_MINOR);
+
+    if (major * 10 + minor < 31) {
+        LOG_ERROR << "OpenGL version 3.1 not supported.";
+        LOG_ERROR << "Your version is " << major << "." << minor;
+        LOG_ERROR << "Try updating your graphics driver.";
         exit(-1);
     }
+
+    OpenGLBindings *b = new OpenGLBindings();
+    flextInit(b);
     gl(b);
 
-    input_data.allocate(352, 424 * 10);
+    input_data.allocate(352, 424 * 9);
 
     for(int i = 0; i < 3; ++i)
       stage1_data[i].allocate(512, 424);
@@ -469,24 +556,39 @@ struct OpenGLDepthPacketProcessorImpl : public WithOpenGLBindings, public WithPe
 
     stage1.setVertexShader(loadShaderSource(shader_folder + "default.vs"));
     stage1.setFragmentShader(loadShaderSource(shader_folder + "stage1.fs"));
+    stage1.bindFragDataLocation("Debug", 0);
+    stage1.bindFragDataLocation("A", 1);
+    stage1.bindFragDataLocation("B", 2);
+    stage1.bindFragDataLocation("Norm", 3);
+    stage1.bindFragDataLocation("Infrared", 4);
     stage1.build();
 
     filter1.setVertexShader(loadShaderSource(shader_folder + "default.vs"));
     filter1.setFragmentShader(loadShaderSource(shader_folder + "filter1.fs"));
+    filter1.bindFragDataLocation("Debug", 0);
+    filter1.bindFragDataLocation("FilterA", 1);
+    filter1.bindFragDataLocation("FilterB", 2);
+    filter1.bindFragDataLocation("MaxEdgeTest", 3);
     filter1.build();
 
     stage2.setVertexShader(loadShaderSource(shader_folder + "default.vs"));
     stage2.setFragmentShader(loadShaderSource(shader_folder + "stage2.fs"));
+    stage2.bindFragDataLocation("Debug", 0);
+    stage2.bindFragDataLocation("Depth", 1);
+    stage2.bindFragDataLocation("DepthAndIrSum", 2);
     stage2.build();
 
     filter2.setVertexShader(loadShaderSource(shader_folder + "default.vs"));
     filter2.setFragmentShader(loadShaderSource(shader_folder + "filter2.fs"));
+    filter2.bindFragDataLocation("Debug", 0);
+    filter2.bindFragDataLocation("FilterDepth", 1);
     filter2.build();
 
     if(do_debug)
     {
       debug.setVertexShader(loadShaderSource(shader_folder + "default.vs"));
       debug.setFragmentShader(loadShaderSource(shader_folder + "debug.fs"));
+      debug.bindFragDataLocation("Debug", 0);
       debug.build();
     }
 
@@ -503,6 +605,7 @@ struct OpenGLDepthPacketProcessorImpl : public WithOpenGLBindings, public WithPe
     gl()->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_RECTANGLE, stage1_data[1].texture, 0);
     gl()->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT3, GL_TEXTURE_RECTANGLE, stage1_data[2].texture, 0);
     gl()->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT4, GL_TEXTURE_RECTANGLE, stage1_infrared.texture, 0);
+    checkFBO(GL_DRAW_FRAMEBUFFER);
 
     gl()->glGenFramebuffers(1, &filter1_framebuffer);
     gl()->glBindFramebuffer(GL_DRAW_FRAMEBUFFER, filter1_framebuffer);
@@ -514,6 +617,7 @@ struct OpenGLDepthPacketProcessorImpl : public WithOpenGLBindings, public WithPe
     gl()->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_RECTANGLE, filter1_data[0].texture, 0);
     gl()->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_RECTANGLE, filter1_data[1].texture, 0);
     gl()->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT3, GL_TEXTURE_RECTANGLE, filter1_max_edge_test.texture, 0);
+    checkFBO(GL_DRAW_FRAMEBUFFER);
 
     gl()->glGenFramebuffers(1, &stage2_framebuffer);
     gl()->glBindFramebuffer(GL_DRAW_FRAMEBUFFER, stage2_framebuffer);
@@ -524,6 +628,7 @@ struct OpenGLDepthPacketProcessorImpl : public WithOpenGLBindings, public WithPe
     if(do_debug) gl()->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_RECTANGLE, stage2_debug.texture, 0);
     gl()->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_RECTANGLE, stage2_depth.texture, 0);
     gl()->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_RECTANGLE, stage2_depth_and_ir_sum.texture, 0);
+    checkFBO(GL_DRAW_FRAMEBUFFER);
 
     gl()->glGenFramebuffers(1, &filter2_framebuffer);
     gl()->glBindFramebuffer(GL_DRAW_FRAMEBUFFER, filter2_framebuffer);
@@ -533,6 +638,7 @@ struct OpenGLDepthPacketProcessorImpl : public WithOpenGLBindings, public WithPe
 
     if(do_debug) gl()->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_RECTANGLE, filter2_debug.texture, 0);
     gl()->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_RECTANGLE, filter2_depth.texture, 0);
+    checkFBO(GL_DRAW_FRAMEBUFFER);
 
     Vertex bl = {-1.0f, -1.0f, 0.0f, 0.0f }, br = { 1.0f, -1.0f, 512.0f, 0.0f }, tl = {-1.0f, 1.0f, 0.0f, 424.0f }, tr = { 1.0f, 1.0f, 512.0f, 424.0f };
     Vertex vertices[] = {
@@ -545,13 +651,14 @@ struct OpenGLDepthPacketProcessorImpl : public WithOpenGLBindings, public WithPe
     gl()->glBindBuffer(GL_ARRAY_BUFFER, square_vbo);
     gl()->glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
-    GLint position_attr = stage1.getAttributeLocation("Position");
+    GLint position_attr = stage1.getAttributeLocation("InputPosition");
     gl()->glVertexAttribPointer(position_attr, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (GLvoid*)0);
     gl()->glEnableVertexAttribArray(position_attr);
 
-    GLint texcoord_attr = stage1.getAttributeLocation("TexCoord");
+    GLint texcoord_attr = stage1.getAttributeLocation("InputTexCoord");
     gl()->glVertexAttribPointer(texcoord_attr, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (GLvoid*)(2 * sizeof(float)));
     gl()->glEnableVertexAttribArray(texcoord_attr);
+    CHECKGL();
   }
 
   void deinitialize()
@@ -619,6 +726,7 @@ struct OpenGLDepthPacketProcessorImpl : public WithOpenGLBindings, public WithPe
 
     gl()->glBindVertexArray(square_vao);
     glDrawArrays(GL_TRIANGLES, 0, 6);
+    CHECKGL();
 
     if(ir != 0)
     {
@@ -652,6 +760,7 @@ struct OpenGLDepthPacketProcessorImpl : public WithOpenGLBindings, public WithPe
 
     stage2.use();
     updateShaderParametersForProgram(stage2);
+    CHECKGL();
 
     if(config.EnableBilateralFilter)
     {
@@ -672,6 +781,7 @@ struct OpenGLDepthPacketProcessorImpl : public WithOpenGLBindings, public WithPe
 
     gl()->glBindVertexArray(square_vao);
     glDrawArrays(GL_TRIANGLES, 0, 6);
+    CHECKGL();
 
     if(config.EnableEdgeAwareFilter)
     {
@@ -705,6 +815,7 @@ struct OpenGLDepthPacketProcessorImpl : public WithOpenGLBindings, public WithPe
         *depth = stage2_depth.downloadToNewFrame();
       }
     }
+    CHECKGL();
 
     if(do_debug)
     {
@@ -732,6 +843,7 @@ struct OpenGLDepthPacketProcessorImpl : public WithOpenGLBindings, public WithPe
 
       glDrawArrays(GL_TRIANGLES, 0, 6);
     }
+    CHECKGL();
 
     params_need_update = false;
   }
@@ -740,6 +852,10 @@ struct OpenGLDepthPacketProcessorImpl : public WithOpenGLBindings, public WithPe
 OpenGLDepthPacketProcessor::OpenGLDepthPacketProcessor(void *parent_opengl_context_ptr, bool debug)
 {
   GLFWwindow* parent_window = (GLFWwindow *)parent_opengl_context_ptr;
+
+  GLFWerrorfun prev_func = glfwSetErrorCallback(&OpenGLDepthPacketProcessorImpl::glfwErrorCallback);
+  if (prev_func)
+    glfwSetErrorCallback(prev_func);
 
   // init glfw - if already initialized nothing happens
   if (glfwInit() == GL_FALSE)
@@ -751,11 +867,11 @@ OpenGLDepthPacketProcessor::OpenGLDepthPacketProcessor(void *parent_opengl_conte
   // setup context
   glfwDefaultWindowHints();
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
   #ifdef __APPLE__
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
   #endif
-  glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+  glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_ANY_PROFILE);
   glfwWindowHint(GLFW_VISIBLE, debug ? GL_TRUE : GL_FALSE);
 
   GLFWwindow* window = glfwCreateWindow(1024, 848, "OpenGLDepthPacketProcessor", 0, parent_window);
@@ -914,7 +1030,7 @@ void OpenGLDepthPacketProcessor::process(const DepthPacket &packet)
 
   glfwMakeContextCurrent(impl_->opengl_context_ptr);
 
-  std::copy(packet.buffer, packet.buffer + packet.buffer_length, impl_->input_data.data);
+  std::copy(packet.buffer, packet.buffer + packet.buffer_length/10*9, impl_->input_data.data);
   impl_->input_data.upload();
   impl_->run(has_listener ? &ir : 0, has_listener ? &depth : 0);
 

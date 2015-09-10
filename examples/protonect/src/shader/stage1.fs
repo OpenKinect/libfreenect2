@@ -1,5 +1,3 @@
-#version 330
-
 struct Parameters
 {
   float ab_multiplier;
@@ -43,16 +41,14 @@ uniform sampler2DRect ZTable;
 
 uniform Parameters Params;
 
-in VertexData {
-    vec2 TexCoord;
-} FragmentIn;
+in vec2 TexCoord;
 
-layout(location = 0) out vec4 Debug;
-
-layout(location = 1) out vec3 A;
-layout(location = 2) out vec3 B;
-layout(location = 3) out vec3 Norm;
-layout(location = 4) out float Infrared;
+/*layout(location = 0)*/ out vec4 Debug;
+/*                    */
+/*layout(location = 1)*/ out vec3 A;
+/*layout(location = 2)*/ out vec3 B;
+/*layout(location = 3)*/ out vec3 Norm;
+/*layout(location = 4)*/ out float Infrared;
 
 #define M_PI 3.1415926535897932384626433832795
 
@@ -97,7 +93,7 @@ vec2 processMeasurementTriple(in ivec2 uv, in usampler2DRect p0table, in int off
 
 void main(void)
 {
-  ivec2 uv = ivec2(FragmentIn.TexCoord.x, FragmentIn.TexCoord.y);
+  ivec2 uv = ivec2(TexCoord.x, TexCoord.y);
     
   bool valid_pixel = 0.0 < texelFetch(ZTable, uv).x;
   bvec3 saturated = bvec3(valid_pixel);
@@ -106,6 +102,9 @@ void main(void)
   vec2 ab1 = processMeasurementTriple(uv, P0Table1, 3, Params.ab_multiplier_per_frq.y, saturated.y);
   vec2 ab2 = processMeasurementTriple(uv, P0Table2, 6, Params.ab_multiplier_per_frq.z, saturated.z);
   
+#ifdef MESA_BUGGY_BOOL_CMP
+  valid_pixel = valid_pixel ? true : false;
+#endif
   bvec3 invalid_pixel = bvec3(!valid_pixel);
   
   A    = mix(vec3(ab0.x, ab1.x, ab2.x), vec3(0.0), invalid_pixel);

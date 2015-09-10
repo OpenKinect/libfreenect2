@@ -29,6 +29,8 @@
 
 #include <stdint.h>
 
+#define WRITE_LIBUSB_ERROR(__RESULT) libusb_error_name(__RESULT) << " " << libusb_strerror((libusb_error)__RESULT)
+
 namespace libfreenect2
 {
 namespace protocol
@@ -135,7 +137,7 @@ CommandTransaction::ResultCode CommandTransaction::send(const CommandBase& comma
 
   if(r != LIBUSB_SUCCESS)
   {
-    LOG_ERROR << "bulk transfer failed! libusb error " << r << ": " << libusb_error_name(r);
+    LOG_ERROR << "bulk transfer failed: " << WRITE_LIBUSB_ERROR(r);
     code = Error;
   }
 
@@ -157,7 +159,7 @@ void CommandTransaction::receive(CommandTransaction::Result& result)
 
   if(r != LIBUSB_SUCCESS)
   {
-    LOG_ERROR << "bulk transfer failed! libusb error " << r << ": " << libusb_error_name(r);
+    LOG_ERROR << "bulk transfer failed: " << WRITE_LIBUSB_ERROR(r);
     result.code = Error;
   }
 }
