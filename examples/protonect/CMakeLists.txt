@@ -70,6 +70,9 @@ SET(SOURCES
   include/libfreenect2/usb/event_loop.h
   include/libfreenect2/usb/transfer_pool.h
 
+  include/libfreenect2/logger.h
+  include/libfreenect2/logging.h
+
   include/libfreenect2/async_packet_processor.h  
   include/libfreenect2/depth_packet_processor.h
   include/libfreenect2/depth_packet_stream_parser.h
