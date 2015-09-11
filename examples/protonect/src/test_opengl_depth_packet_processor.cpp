@@ -24,6 +24,8 @@
  * either License.
  */
 
+/** @file test_opengl_depth_packet_processor.cpp Test program for the OpenGL depth packet processor. */
+
 #include <GLFW/glfw3.h>
 #include <opencv2/opencv.hpp>
 

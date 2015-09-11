@@ -24,6 +24,8 @@
  * either License.
  */
 
+/** @file logging.cpp Logging message handler classes. */
+
 #include <libfreenect2/logging.h>
 #include <iostream>
 #include <cstdlib>
@@ -74,6 +76,11 @@ Logger::Level Logger::level() const
   return level_;
 }
 
+/**
+ * Convert logging level to a human-readable name.
+ * @param l Logging level to convert.
+ * @return Human readable name for the logging level.
+ */
 std::string Logger::level2str(Level l)
 {
   switch(l)
@@ -91,6 +98,7 @@ std::string Logger::level2str(Level l)
   }
 }
 
+/** Logger class to the console (stderr). */
 class ConsoleLogger : public Logger
 {
 public:
@@ -158,6 +166,7 @@ void setGlobalLogger(Logger *logger)
   userLogger_ = logger;
 }
 
+/** Timer for measuring performance. */
 class Timer
 {
  public:

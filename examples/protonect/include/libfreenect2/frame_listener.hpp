@@ -24,6 +24,8 @@
  * either License.
  */
 
+/** @file frame_listener.hpp Classes for frame listeners. */
+
 #ifndef FRAME_LISTENER_HPP_
 #define FRAME_LISTENER_HPP_
 
@@ -34,20 +36,24 @@
 namespace libfreenect2
 {
 
+/** A frame from the stream. */
 class LIBFREENECT2_API Frame
 {
   public:
+  /** Available types of frames. */
   enum Type
   {
-    Color = 1,
-    Ir = 2,
-    Depth = 4
+    Color = 1, ///< RGB frame.
+    Ir = 2,    ///< IR frame.
+    Depth = 4  ///< Depth frame.
   };
 
   uint32_t timestamp;
   uint32_t sequence;
-  size_t width, height, bytes_per_pixel;
-  unsigned char* data;
+  size_t width;           ///< Length of a line (in pixels).
+  size_t height;          ///< Number of lines in the frame.
+  size_t bytes_per_pixel; ///< Number of bytes in a pixel.
+  unsigned char* data;    ///< Data of the frame (aligned).
 
   Frame(size_t width, size_t height, size_t bytes_per_pixel) :
     width(width),
@@ -68,14 +74,20 @@ class LIBFREENECT2_API Frame
   }
 
   protected:
-  unsigned char* rawdata;
+  unsigned char* rawdata; ///< Unaligned start of #data.
 };
 
+/** Callback class for waiting on a new frame. */
 class LIBFREENECT2_API FrameListener
 {
 public:
   virtual ~FrameListener();
 
+  /**
+   * A new frame has arrived, process it.
+   * @param type Type of the new frame.
+   * @param frame Data of the frame.
+   */
   virtual bool onNewFrame(Frame::Type type, Frame *frame) = 0;
 };
 

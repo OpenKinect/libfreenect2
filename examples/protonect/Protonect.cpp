@@ -24,6 +24,7 @@
  * either License.
  */
 
+/** @file Protonect.cpp Main application file. */
 
 #include <iostream>
 #include <signal.h>
@@ -39,7 +40,7 @@
 #endif
 
 
-bool protonect_shutdown = false;
+bool protonect_shutdown = false; ///< Whether the running application should shut down.
 
 void sigint_handler(int s)
 {
@@ -69,6 +70,16 @@ public:
   }
 };
 
+/**
+ * Main application entry point.
+ *
+ * Accepted argumemnts:
+ * - cpu Perform depth processing with the CPU.
+ * - gl  Perform depth processing with OpenGL.
+ * - cl  Perform depth processing with OpenCL.
+ * - <number> Serial number of the device to open.
+ * - -noviewer Disable viewer window.
+ */
 int main(int argc, char *argv[])
 {
   std::string program_path(argv[0]);

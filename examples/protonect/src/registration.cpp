@@ -24,6 +24,8 @@
  * either License.
  */
 
+/** @file Implementation of merging depth and color images. */
+
 #define _USE_MATH_DEFINES
 #include <math.h>
 #include <libfreenect2/registration.h>
@@ -75,6 +77,9 @@ void Registration::depth_to_color(float mx, float my, float& rx, float& ry) cons
   ry = (wy / color_q) + color.cy;
 }
 
+/**
+ * Undistort/register a single depth data point
+ */
 void Registration::apply( int dx, int dy, float dz, float& cx, float &cy) const
 {
   const int index = dx + dy * 512;
@@ -85,6 +90,17 @@ void Registration::apply( int dx, int dy, float dz, float& cx, float &cy) const
   cx = rx * color.fx + color.cx;
 }
 
+/**
+ * Map color pixels onto depth data, giving an \a registered output image.
+ * Optionally, the inverse map can also be obtained through \a bigdepth.
+ * @param rgb RGB color image (1920x1080).
+ * @param depth Depth image (512x424)
+ * @param [out] undistorted Undistorted depth image.
+ * @param [out] registered Image color image for the depth data (512x424).
+ * @param enable_filter Use a depth buffer to remove pixels which are not visible to both cameras.
+ * @param [out] bigdepth If not \c NULL, mapping of depth onto colors (1920x1082 'float' frame).
+ * @note The \a bigdepth frame has a blank top and bottom row.
+ */
 void Registration::apply(const Frame *rgb, const Frame *depth, Frame *undistorted, Frame *registered, const bool enable_filter, Frame *bigdepth) const
 {
   // Check if all frames are valid and have the correct size
@@ -118,7 +134,7 @@ void Registration::apply(const Frame *rgb, const Frame *depth, Frame *undistorte
   // pointer to the beginning of the important data
   float *p_filter_map = NULL;
 
-  // map for storing the color offest for each depth pixel
+  // map for storing the color offset for each depth pixel
   int *depth_to_c_off = new int[size_depth];
   int *map_c_off = depth_to_c_off;
 
@@ -131,6 +147,10 @@ void Registration::apply(const Frame *rgb, const Frame *depth, Frame *undistorte
       *it = 65536.0f;
     }
   }
+
+  /* Fix depth distortion, and compute pixel to use from 'rgb' based on depth measurement,
+   * stored as x/y offset in the rgb data.
+   */
 
   // iterating over all pixels from undistorted depth and registered color image
   // the four maps have the same structure as the images, so their pointers are increased each iteration as well
@@ -189,10 +209,13 @@ void Registration::apply(const Frame *rgb, const Frame *depth, Frame *undistorte
     }
   }
 
+  /* Construct 'registered' image. */
+
   // reseting the pointers to the beginning
   map_c_off = depth_to_c_off;
   undistorted_data = (float*)undistorted->data;
 
+  /* Filter drops duplicate pixels due to aspect of two cameras. */
   if(enable_filter){
     // run through all registered color pixels and set them based on filter results
     for(int i = 0; i < size_depth; ++i, ++map_c_off, ++undistorted_data, ++registered_data){

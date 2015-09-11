@@ -24,6 +24,8 @@
  * either License.
  */
 
+/** @file rgb_packet_processor.h JPEG decoder processors. */
+
 #ifndef RGB_PACKET_PROCESSOR_H_
 #define RGB_PACKET_PROCESSOR_H_
 
@@ -37,17 +39,19 @@
 namespace libfreenect2
 {
 
+/** Packet with JPEG data. */
 struct LIBFREENECT2_API RgbPacket
 {
   uint32_t sequence;
 
   uint32_t timestamp;
-  unsigned char *jpeg_buffer;
-  size_t jpeg_buffer_length;
+  unsigned char *jpeg_buffer; ///< JPEG data.
+  size_t jpeg_buffer_length;  ///< Length of the JPEG data.
 };
 
 typedef PacketProcessor<RgbPacket> BaseRgbPacketProcessor;
 
+/** JPEG processor. */
 class LIBFREENECT2_API RgbPacketProcessor : public BaseRgbPacketProcessor
 {
 public:
@@ -59,6 +63,7 @@ protected:
   libfreenect2::FrameListener *listener_;
 };
 
+/** Class for dumping the JPEG information, eg to file. */
 class LIBFREENECT2_API DumpRgbPacketProcessor : public RgbPacketProcessor
 {
 public:
@@ -70,6 +75,7 @@ protected:
 
 class TurboJpegRgbPacketProcessorImpl;
 
+/** Processor to decode JPEG to image, using TurboJpeg. */
 class LIBFREENECT2_API TurboJpegRgbPacketProcessor : public RgbPacketProcessor
 {
 public:
@@ -78,7 +84,7 @@ public:
 protected:
   virtual void process(const libfreenect2::RgbPacket &packet);
 private:
-  TurboJpegRgbPacketProcessorImpl *impl_;
+  TurboJpegRgbPacketProcessorImpl *impl_; ///< Decoder implementation.
 };
 
 } /* namespace libfreenect2 */

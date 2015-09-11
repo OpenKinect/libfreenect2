@@ -24,6 +24,8 @@
  * either License.
  */
 
+/** @file libfreenect2.hpp Header file of the Freenect2 library. */
+
 #ifndef LIBFREENECT2_HPP_
 #define LIBFREENECT2_HPP_
 
@@ -35,6 +37,7 @@ namespace libfreenect2
 
 class PacketPipeline;
 
+/** Device class. */
 class LIBFREENECT2_API Freenect2Device
 {
 public:
@@ -42,6 +45,7 @@ public:
   static const unsigned int ProductId = 0x02D8;
   static const unsigned int ProductIdPreview = 0x02C4;
 
+  /** Parameters of the color camera. */
   struct ColorCameraParams
   {
     float fx, fy, cx, cy;
@@ -71,6 +75,7 @@ public:
     float my_x0y0; // 1
   };
 
+  /** IR camera parameters. */
   struct IrCameraParams
   {
     float fx, fy, cx, cy, k1, k2, k3, p1, p2;
@@ -95,6 +100,14 @@ public:
 
 class Freenect2Impl;
 
+/**
+ * Device control class.
+ *
+ * Important note:
+ * After passing a PacketPipeline object to libfreenect2 do not use or free the object,
+ * libfreenect2 will take care. If openDevice fails the PacketPipeline object will get
+ * deleted. A new PacketPipeline object has to be created each time a device is opened.
+ */
 class LIBFREENECT2_API Freenect2
 {
 public:
@@ -106,11 +119,6 @@ public:
   std::string getDeviceSerialNumber(int idx);
   std::string getDefaultDeviceSerialNumber();
 
-  /* Important note:
-   * After passing a PacketPipeline object to libfreenect2 do not use or free the object,
-   * libfreenect2 will take care. If openDevice fails the PacketPipeline object will get
-   * deleted. A new PacketPipeline object has to be created each time a device is opened.
-   */
   Freenect2Device *openDevice(int idx);
   Freenect2Device *openDevice(int idx, const PacketPipeline *factory);
   Freenect2Device *openDevice(const std::string &serial);

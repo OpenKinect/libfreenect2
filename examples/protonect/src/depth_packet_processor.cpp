@@ -24,6 +24,8 @@
  * either License.
  */
 
+/** @file depth_packet_processor.cpp Generic part of the depth processors (configuration and parameters). */
+
 #include <libfreenect2/depth_packet_processor.h>
 #include <libfreenect2/async_packet_processor.h>
 

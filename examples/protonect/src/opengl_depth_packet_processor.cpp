@@ -24,6 +24,8 @@
  * either License.
  */
 
+/** @file opengl_depth_packet_processor.cpp Depth packet processor implementation using OpenGL. */
+
 #include <libfreenect2/depth_packet_processor.h>
 #include <libfreenect2/resource.h>
 #include <libfreenect2/protocol/response.h>

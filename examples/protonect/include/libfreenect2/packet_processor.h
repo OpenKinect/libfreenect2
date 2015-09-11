@@ -24,22 +24,41 @@
  * either License.
  */
 
+/** @file packet_processor.h Packet processor definitions. */
+
 #ifndef PACKET_PROCESSOR_H_
 #define PACKET_PROCESSOR_H_
 
 namespace libfreenect2
 {
 
+/**
+ * Processor node in the pipeline.
+ * @tparam PacketT Type of the packet being processed.
+ */
 template<typename PacketT>
 class PacketProcessor
 {
 public:
   virtual ~PacketProcessor() {}
 
+  /**
+   * Test whether the processor is idle.
+   * @return True if the processor is idle, else false.
+   */
   virtual bool ready() { return true; }
+
+  /**
+   * A new packet has arrived, process it.
+   * @param packet Packet to process.
+   */
   virtual void process(const PacketT &packet) = 0;
 };
 
+/**
+ * Dummy processor class.
+ * @tparam PacketT Type of the packet being processed.
+ */
 template<typename PacketT>
 class NoopPacketProcessor : public PacketProcessor<PacketT>
 {
@@ -50,6 +69,11 @@ public:
   virtual void process(const PacketT &packet) {}
 };
 
+/**
+ * Factory function for creating a dummy packet processor.
+ * @tparam PacketT Type of the packet being processed.
+ * @return The dummy (noop) processor.
+ */
 template<typename PacketT>
 PacketProcessor<PacketT> *noopProcessor()
 {

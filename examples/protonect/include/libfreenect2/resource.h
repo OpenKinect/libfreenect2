@@ -24,6 +24,8 @@
  * either License.
  */
 
+/** @file resource.h Resource file loading functions. */
+
 #ifndef RESOURCE_H_
 #define RESOURCE_H_
 

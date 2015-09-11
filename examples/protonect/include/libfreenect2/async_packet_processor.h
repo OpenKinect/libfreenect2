@@ -24,6 +24,8 @@
  * either License.
  */
 
+/** @file async_packet_processor.h Asynchronous processing of packets. */
+
 #ifndef ASYNC_PACKET_PROCESSOR_H_
 #define ASYNC_PACKET_PROCESSOR_H_
 
@@ -33,12 +35,20 @@
 namespace libfreenect2
 {
 
+/**
+ * Packet processor that runs asynchronously.
+ * @tparam PacketT Type of the packet being processed.
+ */
 template<typename PacketT>
 class AsyncPacketProcessor : public PacketProcessor<PacketT>
 {
 public:
   typedef PacketProcessor<PacketT>* PacketProcessorPtr;
 
+  /**
+   * Constructor.
+   * @param processor Object performing the processing.
+   */
   AsyncPacketProcessor(PacketProcessorPtr processor) :
     processor_(processor),
     current_packet_available_(false),
@@ -46,6 +56,7 @@ public:
     thread_(&AsyncPacketProcessor<PacketT>::static_execute, this)
   {
   }
+
   virtual ~AsyncPacketProcessor()
   {
     shutdown_ = true;
@@ -77,20 +88,25 @@ public:
     packet_condition_.notify_one();
   }
 private:
-  PacketProcessorPtr processor_;
-  bool current_packet_available_;
-  PacketT current_packet_;
+  PacketProcessorPtr processor_;  ///< The processing routine, executed in the asynchronous thread.
+  bool current_packet_available_; ///< Whether #current_packet_ still needs processing.
+  PacketT current_packet_;        ///< Packet being processed.
 
   bool shutdown_;
-  libfreenect2::mutex packet_mutex_;
-  libfreenect2::condition_variable packet_condition_;
-  libfreenect2::thread thread_;
+  libfreenect2::mutex packet_mutex_; ///< Mutex indicating a new packet can be stored in #current_packet_.
+  libfreenect2::condition_variable packet_condition_; ///< Mutex indicating processing is blocked on lack of packets.
+  libfreenect2::thread thread_; ///< Asynchronous thread.
 
+  /**
+   * Wrapper function to start the thread.
+   * @param data The #AsyncPacketProcessor object to use.
+   */
   static void static_execute(void *data)
   {
     static_cast<AsyncPacketProcessor<PacketT> *>(data)->execute();
   }
 
+  /** Asynchronously process a provided packet. */
   void execute()
   {
     libfreenect2::unique_lock l(packet_mutex_);

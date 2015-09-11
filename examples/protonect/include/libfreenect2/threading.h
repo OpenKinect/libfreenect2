@@ -24,6 +24,8 @@
  * either License.
  */
 
+/** @file threading.h Threading abstraction definitions. */
+
 #ifndef THREADING_H_
 #define THREADING_H_
 

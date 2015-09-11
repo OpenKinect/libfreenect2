@@ -24,6 +24,8 @@
  * either License.
  */
 
+/** @file logger.h Declaration of logging classes. */
+
 #ifndef LIBFREENECT2_LOGGER_H_
 #define LIBFREENECT2_LOGGER_H_
 
@@ -35,9 +37,11 @@
 namespace libfreenect2
 {
 
+/** Logger class. */
 class LIBFREENECT2_API Logger
 {
 public:
+  /** Available levels of logging, higher is more output. */
   enum Level
   {
     None = 0,

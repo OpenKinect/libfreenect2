@@ -24,6 +24,8 @@
  * either License.
  */
 
+/** @file transfer_pool.cpp Data transfer implementation. */
+
 #include <libfreenect2/usb/transfer_pool.h>
 #include <libfreenect2/logging.h>
 

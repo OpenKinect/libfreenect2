@@ -24,6 +24,8 @@
  * either License.
  */
 
+/** @file packet_pipeline.cpp Packet pipeline implementation. */
+
 #include <libfreenect2/packet_pipeline.h>
 #include <libfreenect2/async_packet_processor.h>
 

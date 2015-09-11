@@ -24,6 +24,8 @@
  * either License.
  */
 
+/** @file double_buffer.cpp Double buffer implementation. */
+
 #include <libfreenect2/double_buffer.h>
 
 namespace libfreenect2
@@ -45,6 +47,10 @@ DoubleBuffer::~DoubleBuffer()
   }
 }
 
+/**
+ * Allocate double buffering of capacity \a buffer_size.
+ * @param buffer_size Capacity of both buffers.
+ */
 void DoubleBuffer::allocate(size_t buffer_size)
 {
   size_t total_buffer_size = 2 * buffer_size;
@@ -59,16 +65,25 @@ void DoubleBuffer::allocate(size_t buffer_size)
   buffer_[1].data = buffer_data_ + buffer_size;
 }
 
+/** Swap back and front buffer. */
 void DoubleBuffer::swap()
 {
   front_buffer_index_ = (front_buffer_index_ + 1) & 1;
 }
 
+/**
+ * Get front buffer.
+ * @return The front buffer.
+ */
 Buffer& DoubleBuffer::front()
 {
   return buffer_[front_buffer_index_ & 1];
 }
 
+/**
+ * Get back buffer.
+ * @return The back buffer.
+ */
 Buffer& DoubleBuffer::back()
 {
   return buffer_[(front_buffer_index_ + 1) & 1];

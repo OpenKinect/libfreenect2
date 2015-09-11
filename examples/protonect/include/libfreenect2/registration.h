@@ -24,6 +24,8 @@
  * either License.
  */
 
+/** @file registration.h Class for merging depth and color frames. */
+
 #ifndef REGISTRATION_H_
 #define REGISTRATION_H_
 
@@ -35,6 +37,7 @@
 namespace libfreenect2
 {
 
+/** Combine frames of depth and color camera. */
 class LIBFREENECT2_API Registration
 {
 public:
@@ -50,8 +53,8 @@ private:
   void distort(int mx, int my, float& dx, float& dy) const;
   void depth_to_color(float mx, float my, float& rx, float& ry) const;
 
-  Freenect2Device::IrCameraParams depth;
-  Freenect2Device::ColorCameraParams color;
+  Freenect2Device::IrCameraParams depth;    ///< Depth camera parameters.
+  Freenect2Device::ColorCameraParams color; ///< Color camera parameters.
 
   int distort_map[512 * 424];
   float depth_to_color_map_x[512 * 424];

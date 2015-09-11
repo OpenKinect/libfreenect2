@@ -24,6 +24,8 @@
  * either License.
  */
 
+/** @file libfreenect2.cpp Freenect2 devices and processing implementation. */
+
 #include <string>
 #include <vector>
 #include <algorithm>
@@ -47,6 +49,7 @@ using namespace libfreenect2;
 using namespace libfreenect2::usb;
 using namespace libfreenect2::protocol;
 
+/** Freenect2 device implementation. */
 class Freenect2DeviceImpl : public Freenect2Device
 {
 private:
@@ -115,6 +118,7 @@ std::ostream &operator<<(std::ostream &out, const PrintBusAndDevice& dev)
   return out;
 }
 
+/** Freenect2 device storage and control. */
 class Freenect2Impl
 {
 private:
@@ -177,7 +181,6 @@ public:
       libusb_exit(usb_context_);
       usb_context_ = 0;
     }
-
   }
 
   void addDevice(Freenect2DeviceImpl *device)

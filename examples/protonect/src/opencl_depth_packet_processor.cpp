@@ -24,6 +24,8 @@
  * either License.
  */
 
+/** @file opencl_depth_packet_processor.cl Implementation of the OpenCL depth packet processor. */
+
 #include <libfreenect2/depth_packet_processor.h>
 #include <libfreenect2/resource.h>
 #include <libfreenect2/protocol/response.h>
