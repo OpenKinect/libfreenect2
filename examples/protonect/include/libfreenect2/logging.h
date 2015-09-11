@@ -49,7 +49,7 @@ private:
   WithPerfLoggingImpl *impl_;
 };
 
-class LogMessage
+class LIBFREENECT2_API LogMessage
 {
 private:
   Logger *logger_;
@@ -62,7 +62,7 @@ public:
   std::ostream &stream();
 };
 
-std::string getShortName(const char *func);
+LIBFREENECT2_API std::string getShortName(const char *func);
 
 } /* namespace libfreenect2 */
 

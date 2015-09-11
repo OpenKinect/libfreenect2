@@ -247,7 +247,7 @@ void WithPerfLogging::startTiming()
 
 std::ostream &WithPerfLogging::stopTiming(std::ostream &stream)
 {
-  impl_->stop(stream);
+  return impl_->stop(stream);
 }
 
 std::string getShortName(const char *func)
