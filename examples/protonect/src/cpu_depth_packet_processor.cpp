@@ -77,9 +77,7 @@ private:
   {
     if(owns_buffer && buffer_ != 0)
     {
-      if (buffer_ != 0){
-        delete[] buffer_;
-      }
+      delete[] buffer_;
       owns_buffer = false;
       buffer_ = 0;
       buffer_end_ = 0;
