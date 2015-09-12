@@ -107,7 +107,7 @@ private:
 
 public:
   /** Default constructor. */
-  Mat()
+  Mat():buffer_(0), buffer_end_(0)
   {
   }
 
@@ -1091,17 +1091,20 @@ void CpuDepthPacketProcessor::process(const DepthPacket &packet)
       }
   }
 
-  if(listener_->onNewFrame(Frame::Ir, impl_->ir_frame))
-  {
-    impl_->newIrFrame();
-  }
-
-  if(listener_->onNewFrame(Frame::Depth, impl_->depth_frame))
-  {
-    impl_->newDepthFrame();
-  }
-
   impl_->stopTiming(LOG_INFO);
+
+  if (listener_ != 0 ){
+    if(listener_->onNewFrame(Frame::Ir, impl_->ir_frame))
+    {
+      impl_->newIrFrame();
+    }
+
+    if(listener_->onNewFrame(Frame::Depth, impl_->depth_frame))
+    {
+      impl_->newDepthFrame();
+    }
+  }
+
 }
 
 } /* namespace libfreenect2 */
