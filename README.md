@@ -136,7 +136,6 @@ Joshua Blake provided a Debug version binary: https://www.dropbox.com/s/madoye1a
 #### Build
 
 ```
-cd example\protonect
 mkdir build && cd build
 cmake .. -G "Visual Studio 12 2013 Win64" -DCMAKE_INSTALL_PREFIX=.
 cmake --build . --config Release --target install
@@ -180,7 +179,6 @@ sh ./depends/install_mac.sh
 1. Build the actual protonect executable
 
     ```
-cd ./examples/protonect/
 mkdir build && cd build
 cmake ..
 make
@@ -221,7 +219,6 @@ sudo dpkg -i libglfw3*_3.0.4-1_*.deb  # Ubuntu 14.04 only
 1. Build the actual protonect executable
 
     ```
-cd ../examples/protonect/
 mkdir build && cd build
 cmake ..
 make
@@ -237,23 +234,6 @@ sudo make install
 ### Other operating systems
 
 I'm not sure, but look for libusbx installation instructions for your OS. Figure out how to attach the driver to the Xbox NUI Sensor composite parent device, VID 045E PID 02C4, then contribute your procedure.
-
-## Building
-
-Make sure you install the driver as describe above first.
-
-1. Follow directions in the ./depends/README.depends.txt to get the dependencies. (Process may be streamlined later.)
-
-### Windows / Visual Studio
-
-	1. Use CMake to generate a solution.
-	2. Build and run.
-
-### Other platforms
-
-2. ?
-3. Build and run.
-4. Contribute your solution for your platform back to the project please.
 
 ## Required notification
 
