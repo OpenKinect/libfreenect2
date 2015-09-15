@@ -56,13 +56,14 @@ private:
   std::ofstream logfile_;
 public:
   MyFileLogger(const char *filename)
-    : logfile_(filename)
   {
+    if (filename)
+      logfile_.open(filename);
     level_ = Debug;
   }
   bool good()
   {
-    return logfile_.good();
+    return logfile_.is_open() && logfile_.good();
   }
   virtual void log(Level level, const std::string &message)
   {
