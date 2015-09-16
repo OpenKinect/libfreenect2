@@ -869,11 +869,14 @@ OpenGLDepthPacketProcessor::OpenGLDepthPacketProcessor(void *parent_opengl_conte
   // setup context
   glfwDefaultWindowHints();
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+#ifdef __APPLE__
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+  glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+  glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+#else
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
-  #ifdef __APPLE__
-    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-  #endif
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_ANY_PROFILE);
+#endif
   glfwWindowHint(GLFW_VISIBLE, debug ? GL_TRUE : GL_FALSE);
 
   GLFWwindow* window = glfwCreateWindow(1024, 848, "OpenGLDepthPacketProcessor", 0, parent_window);
