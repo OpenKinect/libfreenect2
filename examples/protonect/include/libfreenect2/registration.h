@@ -29,10 +29,6 @@
 #ifndef REGISTRATION_H_
 #define REGISTRATION_H_
 
-#ifdef LIBFREENECT2_WITH_CX11_SUPPORT
-#include <array>
-#endif
-
 #include <string>
 #include <libfreenect2/config.h>
 #include <libfreenect2/libfreenect2.hpp>
@@ -40,10 +36,6 @@
 
 namespace libfreenect2
 {
-
-#ifdef LIBFREENECT2_WITH_CX11_SUPPORT
-typedef std::array<float, 512*424> Array;
-#endif
 
 /** Combine frames of depth and color camera. */
 class LIBFREENECT2_API Registration
@@ -57,13 +49,8 @@ public:
   // undistort/register a whole image
   void apply(const Frame* rgb, const Frame* depth, Frame* undistorted, Frame* registered, const bool enable_filter = true, Frame* bigdepth = 0) const;
 
-#ifdef LIBFREENECT2_WITH_CX11_SUPPORT
-  // compute point coordinates and color from undistored and registered frames
-  void computeCoordinatesAndColor (const Frame* undistorted, const Frame* registered, Array& X, Array& Y, Array& Z, Array& RGB) const;
-#else
-  // compute point coordinates and color from undistored and registered frames
-  void computeCoordinatesAndColor (const Frame* undistorted, const Frame* registered, float* X, float* Y, float* Z, float* RGB) const;
-#endif
+  // compute point XYZ RGB from undistored and registered frames
+  void getPointXYZRGB (const Frame* undistorted, const Frame* registered, int r, int c, float& x, float& y, float& z, unsigned int& rgb) const;
 
 private:
   void distort(int mx, int my, float& dx, float& dy) const;

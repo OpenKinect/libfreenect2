@@ -250,98 +250,42 @@ void Registration::apply(const Frame *rgb, const Frame *depth, Frame *undistorte
   delete[] depth_to_c_off;
 }
 
-#ifdef LIBFREENECT2_WITH_CX11_SUPPORT
 /**
- * Computes Euclidean coordinates of pixels and their color from already registered
- * depth and color frames. I.e. constructs a point cloud.
+ * Computes Euclidean coordinates of a pixel and its color from already registered
+ * depth and color frames. I.e. constructs a point to fill a point cloud.
  * @param undistorted Undistorted depth frame from Registration::apply.
  * @param registered Registered color frame from Registration::apply.
- * @param[out] X x coordinates of points.
- * @param[out] Y y coordinates of points.
- * @param[out] Z z coordinates of points.
- * @param[out] RGB associated rgb color of points.
- * @note Available only when C++11 support is enabled.
+ * @param r row index of depth frame this point belong to.
+ * @param c column index of depth frame this point belong to.
+ * @param[out] x x coordinate of point.
+ * @param[out] y y coordinate of point.
+ * @param[out] z z coordinate of point.
+ * @param[out] RGB associated rgb color of point.
  */
-void Registration::computeCoordinatesAndColor (const Frame* undistorted, const Frame* registered, Array& X, Array& Y, Array& Z, Array& RGB) const
+void Registration::getPointXYZRGB (const Frame* undistorted, const Frame* registered, int r, int c, float& x, float& y, float& z, unsigned int& rgb) const
 {
   const float bad_point = std::numeric_limits<float>::quiet_NaN();
   const float cx(depth.cx), cy(depth.cy);
   const float fx(1/depth.fx), fy(1/depth.fy);
   float* undistorted_data = (float *)undistorted->data;
   float* registered_data = (float *)registered->data;
-  size_t idx(0);
-  for (size_t r=0; r<undistorted->height; ++r, ++idx)
+  const float depth_val = undistorted_data[512*r+c]/1000.0f; //scaling factor, so that value of 1 is one meter.
+  if (isnan(depth_val) || depth_val <= 0.001)
   {
-    for (size_t c=0; c<undistorted->width; ++c, ++idx)
-    {
-      const float depth_val = undistorted_data[idx]/1000.0f; //scaling factor, so that value of 1 is one meter.
-      if (isnan(depth_val) || depth_val <= 0.001)
-      {
-        //depth value is not valid
-        X.at(idx) = Y.at(idx) = Z.at(idx) = bad_point;
-        RGB.at(idx) = 0;
-        continue;
-      }
-      const float xu = (c + 0.5 - cx)*fx;
-      const float yu = (r + 0.5 - cy)*fy;
-      X.at(idx) = xu * depth_val;
-      Y.at(idx) = yu * depth_val;
-      Z.at(idx) = depth_val;
-      RGB.at(idx) = registered_data[idx];
-    }
+    //depth value is not valid
+    x = y = z = bad_point;
+    rgb = 0;
+    return;
+  }
+  else
+  {
+    x = (c + 0.5 - cx) * fx * depth_val;
+    y = (r + 0.5 - cy) * fy * depth_val;
+    z = depth_val;
+    rgb = registered_data[512*r+c];
+    return;
   }
 }
-#else
-/**
- * Computes Euclidean coordinates of pixels and their color from already registered
- * depth and color frames. I.e. constructs a point cloud.
- * @param undistorted Undistorted depth frame from Registration::apply.
- * @param registered Registered color frame from Registration::apply.
- * @param[out] X x coordinates of points.
- * @param[out] Y y coordinates of points.
- * @param[out] Z z coordinates of points.
- * @param[out] RGB associated rgb color of points.
- */
-void Registration::computeCoordinatesAndColor (const Frame* undistorted, const Frame* registered, float* X, float* Y, float* Z, float* RGB) const
-{
-  const size_t wid = undistorted->width;
-  const size_t hei = undistorted->height;
-  if (X == 0)
-    X = new float[wid*hei];
-  if (Y == 0)
-    Y = new float[wid*hei];
-  if (Z == 0)
-    Z = new float[wid*hei];
-  if (RGB == 0)
-    RGB = new float[wid*hei];
-  const float bad_point = std::numeric_limits<float>::quiet_NaN();
-  const float cx(depth.cx), cy(depth.cy);
-  const float fx(1/depth.fx), fy(1/depth.fy);
-  float* undistorted_data = (float *)undistorted->data;
-  float* registered_data = (float *)registered->data;
-  size_t idx(0);
-  for (size_t r=0; r<hei; ++r, ++idx)
-  {
-    for (size_t c=0; c<wid; ++c, ++idx)
-    {
-      const float depth_val = undistorted_data[idx]/1000.0f; //scaling factor, so that value of 1 is one meter.
-      if (isnan(depth_val) || depth_val <= 0.001)
-      {
-        //depth value is not valid
-        X[idx] = Y[idx] = Z[idx] = bad_point;
-        RGB[idx] = 0;
-        continue;
-      }
-      const float xu = (c + 0.5 - cx)*fx;
-      const float yu = (r + 0.5 - cy)*fy;
-      X[idx] = xu * depth_val;
-      Y[idx] = yu * depth_val;
-      Z[idx] = depth_val;
-      RGB[idx] = registered_data[idx];
-    }
-  }
-}
-#endif
 
 Registration::Registration(Freenect2Device::IrCameraParams depth_p, Freenect2Device::ColorCameraParams rgb_p):
   depth(depth_p), color(rgb_p), filter_width_half(2), filter_height_half(1), filter_tolerance(0.01f)
