@@ -262,7 +262,7 @@ void Registration::apply(const Frame *rgb, const Frame *depth, Frame *undistorte
  * @param[out] z z coordinate of point.
  * @param[out] RGB associated rgb color of point.
  */
-void Registration::getPointXYZRGB (const Frame* undistorted, const Frame* registered, int r, int c, float& x, float& y, float& z, unsigned int& rgb) const
+void Registration::getPointXYZRGB (const Frame* undistorted, const Frame* registered, int r, int c, float& x, float& y, float& z, float& rgb) const
 {
   const float bad_point = std::numeric_limits<float>::quiet_NaN();
   const float cx(depth.cx), cy(depth.cy);
@@ -282,7 +282,7 @@ void Registration::getPointXYZRGB (const Frame* undistorted, const Frame* regist
     x = (c + 0.5 - cx) * fx * depth_val;
     y = (r + 0.5 - cy) * fy * depth_val;
     z = depth_val;
-    rgb = registered_data[512*r+c];
+    rgb = *reinterpret_cast<float*>(&registered_data[512*r+c]);
     return;
   }
 }
