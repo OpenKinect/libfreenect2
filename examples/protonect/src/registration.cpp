@@ -29,6 +29,7 @@
 #define _USE_MATH_DEFINES
 #include <math.h>
 #include <libfreenect2/registration.h>
+#include <limits>
 
 namespace libfreenect2
 {
@@ -247,6 +248,43 @@ void Registration::apply(const Frame *rgb, const Frame *depth, Frame *undistorte
     }
   }
   delete[] depth_to_c_off;
+}
+
+/**
+ * Computes Euclidean coordinates of a pixel and its color from already registered
+ * depth and color frames. I.e. constructs a point to fill a point cloud.
+ * @param undistorted Undistorted depth frame from Registration::apply.
+ * @param registered Registered color frame from Registration::apply.
+ * @param r row index of depth frame this point belong to.
+ * @param c column index of depth frame this point belong to.
+ * @param[out] x x coordinate of point.
+ * @param[out] y y coordinate of point.
+ * @param[out] z z coordinate of point.
+ * @param[out] RGB associated rgb color of point.
+ */
+void Registration::getPointXYZRGB (const Frame* undistorted, const Frame* registered, int r, int c, float& x, float& y, float& z, float& rgb) const
+{
+  const float bad_point = std::numeric_limits<float>::quiet_NaN();
+  const float cx(depth.cx), cy(depth.cy);
+  const float fx(1/depth.fx), fy(1/depth.fy);
+  float* undistorted_data = (float *)undistorted->data;
+  float* registered_data = (float *)registered->data;
+  const float depth_val = undistorted_data[512*r+c]/1000.0f; //scaling factor, so that value of 1 is one meter.
+  if (isnan(depth_val) || depth_val <= 0.001)
+  {
+    //depth value is not valid
+    x = y = z = bad_point;
+    rgb = 0;
+    return;
+  }
+  else
+  {
+    x = (c + 0.5 - cx) * fx * depth_val;
+    y = (r + 0.5 - cy) * fy * depth_val;
+    z = depth_val;
+    rgb = *reinterpret_cast<float*>(&registered_data[512*r+c]);
+    return;
+  }
 }
 
 Registration::Registration(Freenect2Device::IrCameraParams depth_p, Freenect2Device::ColorCameraParams rgb_p):
