@@ -63,7 +63,7 @@ using namespace std::this_thread;
 
 #ifdef LIBFREENECT2_THREADING_TINYTHREAD
 
-#include <tinythread.h>
+#include <libfreenect2/tinythread/tinythread.h>
 
 // TODO: work around for tinythread incompatibility
 #define WAIT_CONDITION(var, mutex, lock) var.wait(mutex);
