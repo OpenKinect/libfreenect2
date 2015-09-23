@@ -247,11 +247,8 @@ public:
     case CL_DEVICE_TYPE_ACCELERATOR:
       devType = "ACCELERATOR";
       break;
-    case CL_DEVICE_TYPE_CUSTOM:
-      devType = "CUSTOM";
-      break;
     default:
-      devType = "UNKNOWN";
+      devType = "CUSTOM/UNKNOWN";
     }
 
     return devName + " (" + devType + ")[" + devVendor + ']';
