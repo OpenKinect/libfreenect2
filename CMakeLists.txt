@@ -1,4 +1,4 @@
-CMAKE_MINIMUM_REQUIRED(VERSION 2.8.12)
+CMAKE_MINIMUM_REQUIRED(VERSION 2.8.12.1)
 
 if(WIN32 AND NOT MINGW)
   if(NOT DEFINED CMAKE_DEBUG_POSTFIX)
@@ -6,12 +6,18 @@ if(WIN32 AND NOT MINGW)
   endif()
 endif()
 
+IF(NOT DEFINED CMAKE_BUILD_TYPE)
+  # No effect for multi-configuration generators (e.g. for Visual Studio)
+  SET(CMAKE_BUILD_TYPE RelWithDebInfo CACHE STRING "Choose: RelWithDebInfo Release Debug MinSizeRel None")
+ENDIF()
+
 PROJECT(libfreenect2)
-SET(CMAKE_BUILD_TYPE RelWithDebInfo)
 
 SET(MY_DIR ${libfreenect2_SOURCE_DIR})
-SET(DEPENDS_DIR "${MY_DIR}/../../depends" CACHE STRING "dependency directory must be set to 'false' if external deps are used")
+SET(DEPENDS_DIR "${MY_DIR}/depends" CACHE STRING "dependency directory must be set to 'false' if external deps are used")
 
+OPTION(BUILD_SHARED_LIBS "Build shared (ON) or static (OFF) libraries" ON)
+OPTION(BUILD_EXAMPLES "Build examples" ON)
 OPTION(ENABLE_CXX11 "Enable C++11 support" OFF)
 OPTION(ENABLE_OPENCL "Enable OpenCL support" ON)
 OPTION(ENABLE_OPENGL "Enable OpenGL support" ON)
@@ -39,10 +45,10 @@ INCLUDE(SetupLibfreenect2Threading)
 INCLUDE(GenerateResources)
 
 #set the default path for built executables to the "bin" directory
-SET(EXECUTABLE_OUTPUT_PATH ${MY_DIR}/bin)
+SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
 
 #set the default path for built libraries to the "lib" directory
-SET(LIBRARY_OUTPUT_PATH ${MY_DIR}/lib)
+SET(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib)
 
 # dependencies
 FIND_PACKAGE(PkgConfig)    # try find PKGConfig as it will be used if found
@@ -52,6 +58,8 @@ FIND_PACKAGE(TurboJPEG REQUIRED) #does not provide a package-config file
 # Add includes
 INCLUDE_DIRECTORIES(
   "${MY_DIR}/include"
+  "${MY_DIR}/include/internal"
+  ${PROJECT_BINARY_DIR} # for generated headers
   ${LIBFREENECT2_THREADING_INCLUDE_DIR}
   ${LibUSB_INCLUDE_DIRS}
   ${TurboJPEG_INCLUDE_DIRS}
@@ -59,36 +67,36 @@ INCLUDE_DIRECTORIES(
 
 LINK_DIRECTORIES(${LibUSB_LIBRARY_DIRS})
 
-SET(RESOURCES_INC_FILE "${MY_DIR}/src/resources.inc.h")
+SET(RESOURCES_INC_FILE "${PROJECT_BINARY_DIR}/resources.inc.h")
+SET(CONFIG_H_FILE "${PROJECT_BINARY_DIR}/libfreenect2/config.h")
 
 SET(SOURCES
-  include/libfreenect2/protocol/command.h
-  include/libfreenect2/protocol/command_transaction.h
-  include/libfreenect2/protocol/response.h
-  include/libfreenect2/protocol/usb_control.h
-  
-  include/libfreenect2/usb/event_loop.h
-  include/libfreenect2/usb/transfer_pool.h
+  include/internal/libfreenect2/protocol/command.h
+  include/internal/libfreenect2/protocol/command_transaction.h
+  include/internal/libfreenect2/protocol/response.h
+  include/internal/libfreenect2/protocol/usb_control.h
+
+  include/internal/libfreenect2/usb/event_loop.h
+  include/internal/libfreenect2/usb/transfer_pool.h
 
   include/libfreenect2/logger.h
-  include/libfreenect2/logging.h
+  include/internal/libfreenect2/logging.h
 
-  include/libfreenect2/async_packet_processor.h  
+  include/internal/libfreenect2/async_packet_processor.h
   include/libfreenect2/depth_packet_processor.h
-  include/libfreenect2/depth_packet_stream_parser.h
-  include/libfreenect2/double_buffer.h
+  include/internal/libfreenect2/depth_packet_stream_parser.h
+  include/internal/libfreenect2/double_buffer.h
   include/libfreenect2/frame_listener.hpp
   include/libfreenect2/frame_listener_impl.h
-  include/libfreenect2/config.h
   include/libfreenect2/libfreenect2.hpp
   include/libfreenect2/packet_pipeline.h
   include/libfreenect2/packet_processor.h
   include/libfreenect2/registration.h
-  include/libfreenect2/resource.h
+  include/internal/libfreenect2/resource.h
   include/libfreenect2/rgb_packet_processor.h
-  include/libfreenect2/rgb_packet_stream_parser.h
-  include/libfreenect2/threading.h
-  
+  include/internal/libfreenect2/rgb_packet_stream_parser.h
+  include/internal/libfreenect2/threading.h
+
   src/transfer_pool.cpp
   src/event_loop.cpp
   src/usb_control.cpp
@@ -106,9 +114,10 @@ SET(SOURCES
   src/registration.cpp
   src/logging.cpp
   src/libfreenect2.cpp
-  
+
   ${LIBFREENECT2_THREADING_SOURCE}
   ${RESOURCES_INC_FILE}
+  ${CONFIG_H_FILE}
 )
 
 SET(LIBRARIES
@@ -118,9 +127,9 @@ SET(LIBRARIES
 )
 
 SET(RESOURCES
-  11to16.bin 
-  xTable.bin 
-  zTable.bin
+  data/11to16.bin
+  data/xTable.bin
+  data/zTable.bin
 )
 
 IF(ENABLE_OPENGL)
@@ -136,10 +145,10 @@ IF(ENABLE_OPENGL)
     )
   SET(LIBFREENECT2_WITH_OPENGL_SUPPORT 1)
   LIST(APPEND SOURCES
-    src/flextGL.c
+    src/flextGL.cpp
     src/opengl_depth_packet_processor.cpp
   )
-  
+
   LIST(APPEND RESOURCES
     src/shader/debug.fs
     src/shader/default.vs
@@ -154,10 +163,10 @@ ENDIF(ENABLE_OPENGL)
 IF(ENABLE_OPENCL)
   FIND_PACKAGE(OpenCL)
 
-  IF(OPENCL_FOUND)      
+  IF(OPENCL_FOUND)
     SET(LIBFREENECT2_WITH_OPENCL_SUPPORT 1)
     INCLUDE_DIRECTORIES(${OPENCL_INCLUDE_DIRS})
-    
+
     LIST(APPEND SOURCES
       src/opencl_depth_packet_processor.cpp
     )
@@ -165,7 +174,7 @@ IF(ENABLE_OPENCL)
     LIST(APPEND LIBRARIES
       ${OPENCL_LIBRARIES}
     )
-      
+
     LIST(APPEND RESOURCES
       src/opencl_depth_packet_processor.cl
     )
@@ -179,54 +188,56 @@ IF(ENABLE_OPENCL)
   ENDIF(OPENCL_FOUND)
 ENDIF(ENABLE_OPENCL)
 
-SET(CMAKE_INSTALL_RPATH ${LibUSB_LIBDIR})
+# RPATH handling for private libusb copies
+# Users have two options:
+# 1. Build libusb in depends/ and leave it there:
+#      Do NOT set CMAKE_INSTALL_RPATH. It works by default.
+# 2. Build libusb and install it somewhere:
+#      Set CMAKE_INSTALL_RPATH to the libusb.so installation directory before compiling.
+# Both command line -DCMAKE_INSTALL_RPATH=... and CMake GUI settings are accepted.
+#
+# Anyway if wrong versions of libusb is used, errors will be reported explicitly.
+IF(NOT DEFINED CMAKE_INSTALL_RPATH)
+  SET(CMAKE_INSTALL_RPATH ${LibUSB_LIBDIR} CACHE STRING "Set RPATH for a private libusb")
+ELSE()
+  SET(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} CACHE STRING "Set RPATH for a private libusb")
+ENDIF()
+IF(DEFINED CMAKE_INSTALL_RPATH)
+  MESSAGE(STATUS "RPATH set to ${CMAKE_INSTALL_RPATH}")
+ENDIF()
 
-CONFIGURE_FILE("${MY_DIR}/include/libfreenect2/config.h.in" "${MY_DIR}/include/libfreenect2/config.h" @ONLY)
+CONFIGURE_FILE("${MY_DIR}/include/libfreenect2/config.h.in" "${CONFIG_H_FILE}" @ONLY)
 GENERATE_RESOURCES(${RESOURCES_INC_FILE} ${MY_DIR} ${RESOURCES})
 
 ADD_DEFINITIONS(-DRESOURCES_INC)
-ADD_LIBRARY(freenect2 OBJECT ${SOURCES})
-set_target_properties(freenect2 PROPERTIES POSITION_INDEPENDENT_CODE 1)
-ADD_LIBRARY(freenect2shared SHARED $<TARGET_OBJECTS:freenect2>)
-ADD_LIBRARY(freenect2static STATIC $<TARGET_OBJECTS:freenect2>)
-set_target_properties(freenect2shared PROPERTIES OUTPUT_NAME freenect2)
-set_target_properties(freenect2static PROPERTIES OUTPUT_NAME freenect2)
-IF(MSVC)
-  set_target_properties(freenect2static PROPERTIES OUTPUT_NAME freenect2static)
-ENDIF()
-MESSAGE("Linking with these libraries: ${LIBRARIES}")
-TARGET_LINK_LIBRARIES(freenect2shared ${LIBRARIES})
-  
-SET(Protonect_src
-    Protonect.cpp
-    )
-    
-IF (ENABLE_OPENGL AND OPENGL_FOUND)
-    LIST(APPEND Protonect_src
-        viewer.h
-        viewer.cpp
-        src/flextGL.c
-        )
-ENDIF()
-  
-ADD_EXECUTABLE(Protonect
-  ${Protonect_src}
+SET(CMAKE_CXX_VISIBILITY_PRESET hidden)
+SET(CMAKE_C_VISIBILITY_PRESET hidden)
+SET(CMAKE_VISIBILITY_INLINES_HIDDEN 1)
+INCLUDE(GenerateExportHeader)
 
+ADD_LIBRARY(freenect2 ${SOURCES})
+GENERATE_EXPORT_HEADER(freenect2
+  BASE_NAME libfreenect2
 )
-  
-TARGET_LINK_LIBRARIES(Protonect
-  freenect2shared
-)
+
+IF(MSVC AND NOT BUILD_SHARED_LIBS)
+  # MSVC creates freenect2.lib for both dynamic and static by default
+  set_target_properties(freenect2 PROPERTIES SUFFIX "static.lib")
+ENDIF()
+MESSAGE(STATUS "Linking with these libraries: ${LIBRARIES}")
+TARGET_LINK_LIBRARIES(freenect2 ${LIBRARIES})
 
 CONFIGURE_FILE(freenect2.cmake.in "${PROJECT_BINARY_DIR}/freenect2Config.cmake" @ONLY)
 CONFIGURE_FILE(freenect2.pc.in "${PROJECT_BINARY_DIR}/freenect2.pc" @ONLY)
 
-INSTALL(TARGETS freenect2shared DESTINATION lib)
-INSTALL(TARGETS freenect2static DESTINATION lib)
-INSTALL(DIRECTORY "${MY_DIR}/include/" DESTINATION include PATTERN "*.in" EXCLUDE)
-IF(LIBFREENECT2_THREADING_TINYTHREAD)
-  INSTALL(FILES  "${MY_DIR}/src/tinythread/tinythread.h" DESTINATION include/${PROJECT_NAME}/tinythread/)
-ENDIF(LIBFREENECT2_THREADING_TINYTHREAD)
+INSTALL(TARGETS freenect2 DESTINATION lib)
+INSTALL(DIRECTORY "${MY_DIR}/include/${PROJECT_NAME}" DESTINATION include PATTERN "*.in" EXCLUDE)
+INSTALL(FILES "${CONFIG_H_FILE}" DESTINATION include/${PROJECT_NAME})
+INSTALL(FILES "${PROJECT_BINARY_DIR}/libfreenect2_export.h" DESTINATION include/${PROJECT_NAME})
 INSTALL(FILES "${PROJECT_BINARY_DIR}/freenect2Config.cmake" DESTINATION lib/cmake/freenect2/)
 INSTALL(FILES "${PROJECT_BINARY_DIR}/freenect2.pc" DESTINATION lib/pkgconfig/)
-  
+
+IF(BUILD_EXAMPLES)
+  MESSAGE(STATUS "Configurating examples")
+  ADD_SUBDIRECTORY(${MY_DIR}/examples)
+ENDIF()

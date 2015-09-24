@@ -24,50 +24,46 @@
  * either License.
  */
 
-/** @file logger.h Declaration of logging classes. */
+/** @file double_buffer.h Double buffer implementation. */
 
-#ifndef LIBFREENECT2_LOGGER_H_
-#define LIBFREENECT2_LOGGER_H_
+#ifndef DOUBLE_BUFFER_H_
+#define DOUBLE_BUFFER_H_
 
-#include <string>
-#include <sstream>
-
+#include <stddef.h>
 #include <libfreenect2/config.h>
 
 namespace libfreenect2
 {
 
-/** Logger class. */
-class LIBFREENECT2_API Logger
+/** Data of a single buffer. */
+struct Buffer
 {
 public:
-  /** Available levels of logging, higher is more output. */
-  enum Level
-  {
-    None = 0,
-    Error = 1,
-    Warning = 2,
-    Info = 3,
-    Debug = 4,
-  };
-  static Level getDefaultLevel();
-  static std::string level2str(Level level);
-
-  virtual ~Logger();
-
-  virtual Level level() const;
-
-  virtual void log(Level level, const std::string &message) = 0;
-protected:
-  Level level_;
+  size_t capacity; ///< Capacity of the buffer.
+  size_t length;   ///< Used length of the buffer.
+  unsigned char* data; ///< Start address of the buffer.
 };
 
-LIBFREENECT2_API Logger *createConsoleLogger(Logger::Level level);
-LIBFREENECT2_API Logger *createConsoleLoggerWithDefaultLevel();
+/** Double bufffer class. */
+class DoubleBuffer
+{
+public:
+  DoubleBuffer();
+  virtual ~DoubleBuffer();
 
-//libfreenect2 frees the memory of the logger passed in.
-LIBFREENECT2_API Logger *getGlobalLogger();
-LIBFREENECT2_API void setGlobalLogger(Logger *logger);
+  void allocate(size_t buffer_size);
+
+  void swap();
+
+  Buffer& front();
+
+  Buffer& back();
+private:
+  Buffer buffer_[2]; // Both data buffers.
+  unsigned char front_buffer_index_; ///< Index of the front buffer.
+
+  unsigned char* buffer_data_; ///< Memory holding both buffers.
+};
 
 } /* namespace libfreenect2 */
-#endif /* LIBFREENECT2_LOGGER_H_ */
+#endif /* DOUBLE_BUFFER_H_ */

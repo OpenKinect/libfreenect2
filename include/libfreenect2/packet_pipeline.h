@@ -30,14 +30,13 @@
 #define PACKET_PIPELINE_H_
 
 #include <libfreenect2/config.h>
-#include <libfreenect2/data_callback.h>
-#include <libfreenect2/rgb_packet_stream_parser.h>
-#include <libfreenect2/depth_packet_stream_parser.h>
 #include <libfreenect2/depth_packet_processor.h>
 #include <libfreenect2/rgb_packet_processor.h>
 
 namespace libfreenect2
 {
+
+class DataCallback;
 
 /** Packet pipeline for data processing of the device. */
 class LIBFREENECT2_API PacketPipeline
@@ -52,6 +51,9 @@ public:
   virtual RgbPacketProcessor *getRgbPacketProcessor() const = 0;
   virtual DepthPacketProcessor *getDepthPacketProcessor() const = 0;
 };
+
+class RgbPacketStreamParser;
+class DepthPacketStreamParser;
 
 /** Front of the pipeline, RGB and Depth parsing and processing. */
 class LIBFREENECT2_API BasePacketPipeline : public PacketPipeline

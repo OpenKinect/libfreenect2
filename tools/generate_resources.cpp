@@ -74,20 +74,24 @@ int main(int argc, char **argv)
 
   for(int i = 2; i < argc; ++i)
   {
-    cout << "unsigned char resource" << (i - 2) << "[] = {" << endl;
+    cout << "static unsigned char resource" << (i - 2) << "[] = {" << endl;
     dumpFile(basefolder + "/" + argv[i]);
     cout << "};" << endl;
   }
 
-  cout << "ResourceDescriptor resource_descriptors[] = {" << endl;
+  cout << "static ResourceDescriptor resource_descriptors[] = {" << endl;
 
   for(int i = 2; i < argc; ++i)
   {
-    cout << "  { \"" << argv[i] << "\", resource" << (i - 2) << ", " << "sizeof(resource" << (i - 2) << ") }," << endl;
+    string path(argv[i]);
+    size_t last_slash = path.find_last_of("\\/");
+    if (last_slash != std::string::npos)
+      path.erase(0, last_slash + 1);
+    cout << "  { \"" << path << "\", resource" << (i - 2) << ", " << "sizeof(resource" << (i - 2) << ") }," << endl;
   }
 
   cout << "};" << endl;
-  cout << "int resource_descriptors_length = " << (argc - 2) << ";" << endl;
+  cout << "static int resource_descriptors_length = " << (argc - 2) << ";" << endl;
   
   return 0;
 }

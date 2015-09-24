@@ -35,7 +35,7 @@
 namespace libfreenect2
 {
 
-class LIBFREENECT2_API DataCallback
+class DataCallback
 {
 public:
   /**
