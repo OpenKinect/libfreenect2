@@ -33,11 +33,8 @@
 #define LIBFREENECT2_PACK( __Declaration__ ) __Declaration__ __attribute__((__packed__))
 #endif
 
-#ifdef _WIN32
-#define LIBFREENECT2_API __declspec(dllexport)
-#else
-#define LIBFREENECT2_API
-#endif
+#include "libfreenect2_export.h"
+#define LIBFREENECT2_API LIBFREENECT2_EXPORT
 
 #cmakedefine LIBFREENECT2_WITH_OPENGL_SUPPORT
 

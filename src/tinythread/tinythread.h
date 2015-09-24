@@ -158,7 +158,7 @@ namespace tthread {
 /// program may deadlock if the thread that owns a mutex object calls lock()
 /// on that object).
 /// @see recursive_mutex
-class LIBFREENECT2_API mutex {
+class mutex {
   public:
     /// Constructor.
     mutex()
@@ -250,7 +250,7 @@ class LIBFREENECT2_API mutex {
 /// may lock the mutex several times, as long as it unlocks the mutex the same
 /// number of times).
 /// @see mutex
-class LIBFREENECT2_API recursive_mutex {
+class recursive_mutex {
   public:
     /// Constructor.
     recursive_mutex()
@@ -342,7 +342,7 @@ class LIBFREENECT2_API recursive_mutex {
 /// @endcode
 
 template <class T>
-class LIBFREENECT2_API lock_guard {
+class lock_guard {
   public:
     typedef T mutex_type;
 
@@ -391,7 +391,7 @@ class LIBFREENECT2_API lock_guard {
 ///   cond.notify_all();
 /// }
 /// @endcode
-class LIBFREENECT2_API condition_variable {
+class condition_variable {
   public:
     /// Constructor.
 #if defined(_TTHREAD_WIN32_)
@@ -480,7 +480,7 @@ class LIBFREENECT2_API condition_variable {
 
 
 /// Thread class.
-class LIBFREENECT2_API thread {
+class thread {
   public:
 #if defined(_TTHREAD_WIN32_)
     typedef HANDLE native_handle_type;
@@ -571,7 +571,7 @@ class LIBFREENECT2_API thread {
 /// Thread ID.
 /// The thread ID is a unique identifier for each thread.
 /// @see thread::get_id()
-class LIBFREENECT2_API thread::id {
+class thread::id {
   public:
     /// Default constructor.
     /// The default constructed ID is that of thread without a thread of

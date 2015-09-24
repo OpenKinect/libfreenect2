@@ -1,10 +1,4 @@
-# generated config file
-examples/protonect/include/libfreenect2/config.h
-
-# generated resource file
-examples/protonect/src/resources.inc.h
-examples/protonect/build
-examples/protonect/lib
+build
 
 # Dependency folders
 depends/*/

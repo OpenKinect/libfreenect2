@@ -28,6 +28,9 @@
 
 #include <libfreenect2/packet_pipeline.h>
 #include <libfreenect2/async_packet_processor.h>
+#include <libfreenect2/data_callback.h>
+#include <libfreenect2/rgb_packet_stream_parser.h>
+#include <libfreenect2/depth_packet_stream_parser.h>
 
 namespace libfreenect2
 {
