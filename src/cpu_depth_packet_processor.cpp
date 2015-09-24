@@ -432,44 +432,52 @@ public:
    */
   void processMeasurementTriple(float trig_table[512*424][6], float abMultiplierPerFrq, int x, int y, const int32_t* m, float* m_out)
   {
-    int offset = y * 512 + x;
-    float cos_tmp0 = trig_table[offset][0];
-    float cos_tmp1 = trig_table[offset][1];
-    float cos_tmp2 = trig_table[offset][2];
-
-    float sin_negtmp0 = trig_table[offset][3];
-    float sin_negtmp1 = trig_table[offset][4];
-    float sin_negtmp2 = trig_table[offset][5];
-
     float zmultiplier = z_table.at(y, x);
-    bool cond0 = 0 < zmultiplier;
-    bool cond1 = (m[0] == 32767 || m[1] == 32767 || m[2] == 32767) && cond0;
-
-    // formula given in Patent US 8,587,771 B2
-    float tmp3 = cos_tmp0 * m[0] + cos_tmp1 * m[1] + cos_tmp2 * m[2];
-    float tmp4 = sin_negtmp0 * m[0] + sin_negtmp1 * m[1] + sin_negtmp2 * m[2];
-
-    // only if modeMask & 32 != 0;
-    if(true)//(modeMask & 32) != 0)
+    if (0 < zmultiplier)
     {
-        tmp3 *= abMultiplierPerFrq;
-        tmp4 *= abMultiplierPerFrq;
+      bool saturated = (m[0] == 32767 || m[1] == 32767 || m[2] == 32767);
+      if (!saturated)
+      {
+        int offset = y * 512 + x;
+        float cos_tmp0 = trig_table[offset][0];
+        float cos_tmp1 = trig_table[offset][1];
+        float cos_tmp2 = trig_table[offset][2];
+
+        float sin_negtmp0 = trig_table[offset][3];
+        float sin_negtmp1 = trig_table[offset][4];
+        float sin_negtmp2 = trig_table[offset][5];
+
+        // formula given in Patent US 8,587,771 B2
+        float ir_image_a = cos_tmp0 * m[0] + cos_tmp1 * m[1] + cos_tmp2 * m[2];
+        float ir_image_b = sin_negtmp0 * m[0] + sin_negtmp1 * m[1] + sin_negtmp2 * m[2];
+
+        // only if modeMask & 32 != 0;
+        if(true)//(modeMask & 32) != 0)
+        {
+            ir_image_a *= abMultiplierPerFrq;
+            ir_image_b *= abMultiplierPerFrq;
+        }
+        float ir_amplitude = std::sqrt(ir_image_a * ir_image_a + ir_image_b * ir_image_b) * params.ab_multiplier;
+
+        m_out[0] = ir_image_a;
+        m_out[1] = ir_image_b;
+        m_out[2] = ir_amplitude;
+      }
+      else
+      {
+        // Saturated pixel.
+        m_out[0] = 0;
+        m_out[1] = 0;
+        m_out[2] = 65535.0;
+      }
     }
-    float tmp5 = std::sqrt(tmp3 * tmp3 + tmp4 * tmp4) * params.ab_multiplier;
-
-    // invalid pixel because zmultiplier < 0 ??
-    tmp3 = cond0 ? tmp3 : 0;
-    tmp4 = cond0 ? tmp4 : 0;
-    tmp5 = cond0 ? tmp5 : 0;
-
-    // invalid pixel because saturated?
-    tmp3 = !cond1 ? tmp3 : 0;
-    tmp4 = !cond1 ? tmp4 : 0;
-    tmp5 = !cond1 ? tmp5 : 65535.0; // some kind of norm calculated from tmp3 and tmp4
-
-    m_out[0] = tmp3; // ir image a
-    m_out[1] = tmp4; // ir image b
-    m_out[2] = tmp5; // ir amplitude
+    else
+    {
+      // Invalid pixel.
+      m_out[0] = 0;
+      m_out[1] = 0;
+      m_out[2] = 0;
+    }
   }
 
   /**
