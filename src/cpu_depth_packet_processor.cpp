@@ -332,28 +332,33 @@ public:
 
   int32_t decodePixelMeasurement(unsigned char* data, int sub, int x, int y)
   {
-    if (x < 1 || y < 0 || 510 < x || 423 < y)
+    if (x < 0 || y < 0 || 511 < x || 423 < y)
     {
       return lut11to16[0];
     }
 
-    int r1zi = (x >> 2) + ((x & 0x3) << 7); // Range 1..510
-    r1zi = r1zi * 11L; // Range 11..5610
+    int r1zi = (x >> 2) + ((x & 0x3) << 7); // Range 0..511
+    r1zi = r1zi * 11L; // Range 0..5621
 
     // 298496 = 512 * 424 * 11 / 8 = number of bytes per sub image
     uint16_t *ptr = reinterpret_cast<uint16_t *>(data + 298496 * sub);
     int i = y < 212 ? y + 212 : 423 - y;
     ptr += 352*i;
 
-    int r1yi = r1zi >> 4; // Range 0..350
+    int r1yi = r1zi >> 4; // Range 0..351
     r1zi = r1zi & 15;
 
-    int i1 = ptr[r1yi];
-    int i2 = ptr[r1yi + 1];
+    uint16_t i1 = ptr[r1yi];
     i1 = i1 >> r1zi;
-    i2 = i2 << (16 - r1zi);
 
-    return lut11to16[((i1 | i2) & 2047)];
+    if (r1zi > 5) // For x == 511, r1yi == 351 but r1zi == 5.
+    {
+        uint16_t i2 = ptr[r1yi + 1];
+        i2 = i2 << (16 - r1zi);
+        i1 |= i2;
+    }
+
+    return lut11to16[i1 & 2047];
   }
 
   /**
