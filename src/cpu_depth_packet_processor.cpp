@@ -318,34 +318,21 @@ public:
 
   int32_t decodePixelMeasurement(unsigned char* data, int sub, int x, int y)
   {
-    bool r1y = x < 1 || y < 0 || 510 < x || 423 < y;
-    int r1yi = r1y ? 0xffffffff : 0x0;
-    r1yi &= 0x1fffffff;
-
-    int r1zi = (x >> 2) + ((x & 0x3) << 7);
-
-    /*
-    imul null, r1.z, r1.z, l(11)
-    ushr r1.w, r1.z, l(4)
-    r1.y = r1.w + r1.y // iadd
-    r1.w = r1.y + l(1) // iadd
-    r1.z = r1.z & l(15) // and
-    r4.w = -r1.z + l(16) // iadd
-     */
-    r1zi = (r1zi * 11L) & 0xffffffff;
-    int r1wi = r1zi >> 4;
-    r1yi = r1yi + r1wi;
-    r1zi = r1zi & 15;
-
-    if(r1yi > 352)
+    if (x < 1 || y < 0 || 510 < x || 423 < y)
     {
       return lut11to16[0];
     }
+
+    int r1zi = (x >> 2) + ((x & 0x3) << 7); // Range 1..510
+    r1zi = r1zi * 11L; // Range 11..5610
 
     // 298496 = 512 * 424 * 11 / 8 = number of bytes per sub image
     uint16_t *ptr = reinterpret_cast<uint16_t *>(data + 298496 * sub);
     int i = y < 212 ? y + 212 : 423 - y;
     ptr += 352*i;
+
+    int r1yi = r1zi >> 4; // Range 0..350
+    r1zi = r1zi & 15;
 
     int i1 = ptr[r1yi];
     int i2 = ptr[r1yi + 1];
