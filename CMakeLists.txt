@@ -45,10 +45,11 @@ INCLUDE(SetupLibfreenect2Threading)
 INCLUDE(GenerateResources)
 
 #set the default path for built executables to the "bin" directory
-SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
+SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin)
 
 #set the default path for built libraries to the "lib" directory
-SET(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib)
+SET(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
+SET(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
 
 # dependencies
 FIND_PACKAGE(PkgConfig)    # try find PKGConfig as it will be used if found
@@ -223,7 +224,7 @@ TARGET_LINK_LIBRARIES(freenect2 ${LIBRARIES})
 CONFIGURE_FILE(freenect2.cmake.in "${PROJECT_BINARY_DIR}/freenect2Config.cmake" @ONLY)
 CONFIGURE_FILE(freenect2.pc.in "${PROJECT_BINARY_DIR}/freenect2.pc" @ONLY)
 
-INSTALL(TARGETS freenect2 DESTINATION lib)
+INSTALL(TARGETS freenect2 DESTINATION lib RUNTIME DESTINATION bin)
 INSTALL(DIRECTORY "${MY_DIR}/include/${PROJECT_NAME}" DESTINATION include PATTERN "*.in" EXCLUDE)
 INSTALL(DIRECTORY "${PROJECT_BINARY_DIR}/${PROJECT_NAME}" DESTINATION include)
 INSTALL(FILES "${PROJECT_BINARY_DIR}/freenect2Config.cmake" DESTINATION lib/cmake/freenect2/)
