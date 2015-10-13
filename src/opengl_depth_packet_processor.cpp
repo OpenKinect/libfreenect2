@@ -387,8 +387,9 @@ public:
   }
 };
 
-struct OpenGLDepthPacketProcessorImpl : public WithOpenGLBindings, public WithPerfLogging
+class OpenGLDepthPacketProcessorImpl : public WithOpenGLBindings, public WithPerfLogging
 {
+public:
   GLFWwindow *opengl_context_ptr;
   libfreenect2::DepthPacketProcessor::Config config;
 
