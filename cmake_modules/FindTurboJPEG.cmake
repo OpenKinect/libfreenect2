@@ -38,6 +38,20 @@ FIND_LIBRARY(TurboJPEG_LIBRARIES
     lib64
 )
 
+IF(WIN32)
+FIND_FILE(TurboJPEG_DLL
+  turbojpeg.dll
+  DOC "Found TurboJPEG DLL path"
+  PATHS
+    "${DEPENDS_DIR}/libjpeg_turbo"
+    "${DEPENDS_DIR}/libjpeg-turbo64"
+    "C:/libjpeg-turbo64"
+    ENV TurboJPEG_ROOT
+  PATH_SUFFIXES
+    bin
+)
+ENDIF()
+
 IF(TurboJPEG_INCLUDE_DIRS AND TurboJPEG_LIBRARIES)
 INCLUDE(CheckCSourceCompiles)
 set(CMAKE_REQUIRED_INCLUDES ${TurboJPEG_INCLUDE_DIRS})

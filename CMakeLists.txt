@@ -6,6 +6,11 @@ if(WIN32 AND NOT MINGW)
   endif()
 endif()
 
+IF(WIN32)
+  # no permission for the default install prefix %ProgramFiles%
+  SET(CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/install" CACHE STRING "installation path")
+ENDIF()
+
 IF(NOT DEFINED CMAKE_BUILD_TYPE)
   # No effect for multi-configuration generators (e.g. for Visual Studio)
   SET(CMAKE_BUILD_TYPE RelWithDebInfo CACHE STRING "Choose: RelWithDebInfo Release Debug MinSizeRel None")
@@ -125,12 +130,18 @@ SET(LIBRARIES
   ${LIBFREENECT2_THREADING_LIBRARIES}
 )
 
+SET(LIBFREENECT2_DLLS
+  ${LibUSB_DLL}
+  ${TurboJPEG_DLL}
+)
+
 IF(ENABLE_OPENGL)
   FIND_PACKAGE(GLFW3)
   FIND_PACKAGE(OpenGL)
   IF(GLFW3_FOUND)
     INCLUDE_DIRECTORIES(${GLFW3_INCLUDE_DIRS})
 
+    LIST(APPEND LIBFREENECT2_DLLS ${GLFW3_DLL})
     LIST(APPEND LIBRARIES
       ${GLFW3_LIBRARIES}
       ${OPENGL_gl_LIBRARY}

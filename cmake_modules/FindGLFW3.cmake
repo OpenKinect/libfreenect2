@@ -58,5 +58,17 @@ FIND_LIBRARY(GLFW3_LIBRARIES
     ${_SUFFIX}
 )
 
+IF(WIN32)
+FIND_FILE(GLFW3_DLL
+  glfw3.dll
+  PATHS
+    "${DEPENDS_DIR}/glfw"
+    "$ENV{ProgramW6432}/glfw"
+    ENV GLFW_ROOT
+  PATH_SUFFIXES
+    ${_SUFFIX}
+)
+ENDIF()
+
 INCLUDE(FindPackageHandleStandardArgs)
 FIND_PACKAGE_HANDLE_STANDARD_ARGS(GLFW3 "Could NOT find GLFW3 - try adding GLFW_ROOT in enviroment variables." GLFW3_LIBRARIES GLFW3_INCLUDE_DIRS)

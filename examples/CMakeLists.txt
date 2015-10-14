@@ -29,8 +29,10 @@ LIST(APPEND CMAKE_MODULE_PATH ${freenect2_ROOT_DIR}/cmake_modules) # FindGLFW3.c
 IF(TARGET freenect2)
   MESSAGE(STATUS "Using in-tree freenect2 target")
   SET(freenect2_LIBRARIES freenect2)
+  SET(freenect2_DLLS ${LIBFREENECT2_DLLS})
 ELSE()
   FIND_PACKAGE(freenect2 REQUIRED)
+  # Out-of-tree build will have to have DLLs manually copied.
 ENDIF()
 
 INCLUDE_DIRECTORIES(
@@ -45,6 +47,10 @@ SET(Protonect_LIBRARIES
   ${freenect2_LIBRARIES}
 )
 
+SET(Protonect_DLLS
+  ${freenect2_DLLS}
+)
+
 IF(ENABLE_OPENGL)
   FIND_PACKAGE(GLFW3)
   FIND_PACKAGE(OpenGL)
@@ -54,6 +60,7 @@ IF(ENABLE_OPENGL)
       ${flextGL_INCLUDE_DIRS}
     )
 
+    LIST(APPEND Protonect_DLLS ${GLFW3_DLL})
     LIST(APPEND Protonect_src
       viewer.cpp
       ${flextGL_SOURCES}
@@ -73,3 +80,14 @@ ADD_EXECUTABLE(Protonect
 TARGET_LINK_LIBRARIES(Protonect
   ${Protonect_LIBRARIES}
 )
+
+IF(WIN32)
+  INSTALL(TARGETS Protonect DESTINATION bin)
+  LIST(REMOVE_DUPLICATES Protonect_DLLS)
+  FOREACH(FILEI ${Protonect_DLLS})
+    ADD_CUSTOM_COMMAND(TARGET Protonect POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different ${FILEI} $<TARGET_FILE_DIR:Protonect>
+    )
+  ENDFOREACH(FILEI)
+  INSTALL(FILES ${Protonect_DLLS} DESTINATION bin)
+ENDIF()

@@ -53,5 +53,22 @@ FIND_LIBRARY(LibUSB_LIBRARIES
     MS64/dll
 )
 
+IF(WIN32)
+FIND_FILE(LibUSB_DLL
+  libusb-1.0.dll
+  PATHS
+    "${DEPENDS_DIR}/libusb"
+    "${DEPENDS_DIR}/libusbx"
+    ENV LibUSB_ROOT
+  PATH_SUFFIXES
+    x64/Release/dll
+    x64/Debug/dll
+    Win32/Release/dll
+    Win32/Debug/dll
+    MS64
+    MS64/dll
+)
+ENDIF()
+
 INCLUDE(FindPackageHandleStandardArgs)
 FIND_PACKAGE_HANDLE_STANDARD_ARGS(LibUSB DEFAULT_MSG LibUSB_LIBRARIES LibUSB_INCLUDE_DIRS)
