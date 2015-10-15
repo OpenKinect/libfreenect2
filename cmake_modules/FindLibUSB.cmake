@@ -35,6 +35,7 @@ FIND_PATH(LibUSB_INCLUDE_DIRS
   PATH_SUFFIXES
     include
     libusb
+    include/libusb-1.0
 )
 
 FIND_LIBRARY(LibUSB_LIBRARIES
@@ -49,6 +50,7 @@ FIND_LIBRARY(LibUSB_LIBRARIES
     Win32/Release/dll
     Win32/Debug/dll
     MS64
+    MS64/dll
 )
 
 INCLUDE(FindPackageHandleStandardArgs)
