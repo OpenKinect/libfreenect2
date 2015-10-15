@@ -93,8 +93,13 @@ int main(int argc, char *argv[])
   }
 
   libfreenect2::Freenect2 freenect2;
+#if defined(WIN32) || defined(_WIN32) || defined(__WIN32__)
+  // avoid flooing the very slow Windows console with debug messages
+  libfreenect2::setGlobalLogger(libfreenect2::createConsoleLogger(libfreenect2::Logger::Info));
+#else
   // create a console logger with debug level (default is console logger with info level)
   libfreenect2::setGlobalLogger(libfreenect2::createConsoleLogger(libfreenect2::Logger::Debug));
+#endif
   MyFileLogger *filelogger = new MyFileLogger(getenv("LOGFILE"));
   if (filelogger->good())
     libfreenect2::setGlobalLogger(filelogger);
