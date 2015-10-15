@@ -37,10 +37,6 @@ INCLUDE_DIRECTORIES(
   ${freenect2_INCLUDE_DIR}
 )
 
-LINK_DIRECTORIES(
-  ${freenect2_LIBRARY_DIRS}
-)
-
 SET(Protonect_src
   Protonect.cpp
 )
@@ -58,7 +54,6 @@ IF(ENABLE_OPENGL)
       ${flextGL_INCLUDE_DIRS}
     )
 
-    LINK_DIRECTORIES(${GLFW3_LIBRARY_DIRS})
     LIST(APPEND Protonect_src
       viewer.cpp
       ${flextGL_SOURCES}
