@@ -166,16 +166,23 @@ ENDIF(ENABLE_OPENGL)
 IF(ENABLE_OPENCL)
   FIND_PACKAGE(OpenCL)
 
-  IF(OPENCL_FOUND)
+  IF(OpenCL_FOUND)
+    IF(UNIX AND NOT APPLE)
+      INCLUDE(CheckOpenCLICDLoader)
+      IF(OpenCL_C_WORKS AND NOT OpenCL_CXX_WORKS)
+        SET(LIBFREENECT2_OPENCL_ICD_LOADER_IS_OLD 1)
+        MESSAGE(WARNING "Your libOpenCL.so is incompatible with CL/cl.h. Install ocl-icd-opencl-dev to update libOpenCL.so?")
+      ENDIF()
+    ENDIF()
     SET(LIBFREENECT2_WITH_OPENCL_SUPPORT 1)
-    INCLUDE_DIRECTORIES(${OPENCL_INCLUDE_DIRS})
+    INCLUDE_DIRECTORIES(${OpenCL_INCLUDE_DIRS})
 
     LIST(APPEND SOURCES
       src/opencl_depth_packet_processor.cpp
     )
 
     LIST(APPEND LIBRARIES
-      ${OPENCL_LIBRARIES}
+      ${OpenCL_LIBRARIES}
     )
 
     LIST(APPEND RESOURCES
@@ -188,7 +195,7 @@ IF(ENABLE_OPENCL)
     IF(UNIX AND NOT APPLE)
       SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-exceptions")
     ENDIF()
-  ENDIF(OPENCL_FOUND)
+  ENDIF(OpenCL_FOUND)
 ENDIF(ENABLE_OPENCL)
 
 # RPATH handling for private libusb copies
