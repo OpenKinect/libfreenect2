@@ -83,6 +83,8 @@ public:
 int main(int argc, char *argv[])
 {
   std::string program_path(argv[0]);
+  std::cerr << "Environment variables: LOGFILE=<protonect.log>" << std::endl;
+  std::cerr << "Usage: " << program_path << " [gl | cl | cpu] [<device serial>] [-noviewer]" << std::endl;
   size_t executable_name_idx = program_path.rfind("Protonect");
 
   std::string binpath = "/";
