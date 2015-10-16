@@ -16,6 +16,19 @@ Missing features:
 
 Watch the OpenKinect wiki at www.openkinect.org and the mailing list at https://groups.google.com/forum/#!forum/openkinect for the latest developments and more information about the K4W2 USB protocol.
 
+## Requirements
+
+Supported operating systems:
+* Windows 7 (buggy), Windows 8, Windows 8.1, and probably Windows 10
+* Linux. Ubuntu and Debian are most well tested.
+* Mac OS X
+
+Virtual machines likely do not work, because USB 3.0 isochronous transfer is quite delicate.
+
+The following minimum requirements must be met in order to enable the optional features:
+* OpenGL depth processing: OpenGL 3.1 (Windows, Linux, Mac OS X). No OpenGL ES support at the moment.
+* OpenCL depth processing: OpenCL 1.1
+
 ## FAQ
 
 ### Can I use the Kinect v2 without an USB3 port?
@@ -47,7 +60,11 @@ Messages in `dmesg` like this means bugs in the USB driver. Updating kernel migh
 [  509.238580] xhci_hcd 0000:03:00.0: Assuming host is dying, halting host.
 ```
 
-Finally, it's also possible that your executable is not actually using the patched libusb from the `depends/` folder which is required at the moment. Check this using `ldd ./Protonect | grep libusb` (shows `libusb-1.0` under `depends/`), and adjust your `LD_LIBRARY_PATH` if necessary.
+Windows 7 does not have great USB 3.0 drivers. In our testing the above known working devices will stop working after running for a while. However, the official Kinect v2 SDK does not support Windows 7 at all, so there is still hope for Windows 7 users. Windows 8.1 and 10 have improved USB 3.0 drivers.
+
+Diabling USB selective suspend/autosuspend might be helpful to ameliorate transfer problems.
+
+When you report USB issues, please attach relevant debug log from running the program with environment variable `LIBUSB_DEBUG=4`, and relevant log from `dmesg`.
 
 ### I'm seeing the color camera stream, but no depth/IR (black windows).
 
@@ -71,27 +88,27 @@ If you're using an expansion card, make sure it's not plugged into an PCI-E x1 s
 
 ## Installation
 
-This project uses the libusbx drivers and API. Setting things up varies by platform.
+This project uses the libusb-1.0 drivers and API. Setting things up varies by platform.
 
 ### Windows / Visual Studio
 
 #### libusbK driver
 
-If you have the Kinect for Windows v2 SDK, install it first. You don't need to uninstall the SDK or the driver before doing this procedure.
+You don't need the Kinect for Windows v2 SDK to build and install libfreenect2, though it doesn't hurt to have it too. You don't need to uninstall the SDK or the driver before doing this procedure.
 
-Install the libusbK backend driver for libusbx:
+Install the libusbK backend driver for libusb. Please follow the steps exactly:
 
 1. Download Zadig from http://zadig.akeo.ie/.
-2. Run Zadig and in options, check List All Devices and uncheck Ignore Hubs or Composite Parents
-3. Select the Xbox NUI Sensor (composite parent) from the drop-down box. (Ignore the Interface 0 and Interface 2 varieties.) The current driver will list usbccgp. USB ID is VID 045E, PID 02C4.
-4. Select libusbK (v3.0.6.0) from the replacement driver list.
-5. Click the Replace Driver button. Click yes on the warning about replacing a system driver. (This is because it is a composite parent.)
+2. Run Zadig and in options, check "List All Devices" and uncheck "Ignore Hubs or Composite Parents"
+3. Select the "Xbox NUI Sensor (composite parent)" from the drop-down box. (Important: Ignore the "NuiSensor Adaptor" varieties, which are the adapter, NOT the Kinect) The current driver will list usbccgp. USB ID is VID 045E, PID 02C4 or 02D8.
+4. Select libusbK (v3.0.7.0 or newer) from the replacement driver list.
+5. Click the "Replace Driver" button. Click yes on the warning about replacing a system driver. (This is because it is a composite parent.)
 6. Done. 
 
 To uninstall the libusbK driver (and get back the official SDK driver, if installed):
 
 1. Open Device Manager
-2. Under libusbK USB Devices, right click the "Xbox NUI Sensor (Composite Parent)" device and select uninstall.
+2. Under "libusbK USB Devices" tree, right click the "Xbox NUI Sensor (Composite Parent)" device and select uninstall.
 3. Important: Check the "Delete the driver software for this device." checkbox, then click OK.
 
 If you already had the official SDK driver installed and you want to use it:
@@ -104,20 +121,12 @@ You can go back and forth between the SDK driver and the libusbK driver very qui
 
 #### libusb
 
-* Build from source (recommended)
-```bash
-cd depends/
-git clone https://github.com/libusb/libusb.git
-cd libusb
-git remote add joshblake https://github.com/JoshBlake/libusbx.git
-git fetch joshblake
-git merge joshblake/winiso  # patches for libusbK backend
+* Open a Git shell, or any shell that has access to git.exe and msbuild.exe
 ```
-Open `libusb/msvc/libusb_2013.sln` with Visual Studio 2013 (or older version, accordingly), set configurations to "Release x64", and build "libusb-1.0 (dll)". You can clone the libusb repo to somewhere else, but you will need to set environment variable `LibUSB_ROOT` to that path. Building with "Win32" is not recommended as it results in lower performance.
-
-* Pre-built binary
-
-Joshua Blake provided a Debug version binary: https://www.dropbox.com/s/madoye1ayaoajet/libusbx-winiso.zip. Install it as `depends/libusbx`. This version was built in 2013.
+cd depends/
+.\install_libusb_vs2013.cmd
+```
+Or `install_libusb_vs2015.cmd`. If you see some errors, you can always open the cmd files and follow the git commands, and maybe build `libusb_201x.sln` with Visual Studio by hand. Building with "Win32" is not recommended as it results in lower performance.
 
 #### TurboJPEG
 
@@ -131,49 +140,43 @@ Joshua Blake provided a Debug version binary: https://www.dropbox.com/s/madoye1a
 
 #### OpenCL
 
-* Intel GPU: Download `intel_sdk_for_ocl_applications_2014_x64_setup.msi` from http://www.softpedia.com/get/Programming/SDK-DDK/Intel-SDK-for-OpenCL-Applications.shtml (SDK official download is replaced by $$$ and no longer available) and install it. Then verify `INTELOCLSDKROOT` is set as an environment variable.
+* Intel GPU: Download `intel_sdk_for_ocl_applications_2014_x64_setup.msi` from http://www.softpedia.com/get/Programming/SDK-DDK/Intel-SDK-for-OpenCL-Applications.shtml (SDK official download is replaced by $$$ and no longer available) and install it. Then verify `INTELOCLSDKROOT` is set as an environment variable. You may need to download and install additional OpenCL runtime.
 
 #### Build
 
 ```
 mkdir build && cd build
-cmake .. -G "Visual Studio 12 2013 Win64" -DCMAKE_INSTALL_PREFIX=.
-cmake --build . --config Release --target install
+cmake .. -G "Visual Studio 12 2013 Win64"
+cmake --build . --config RelWithDebInfo --target install
 ```
-
-Then you can run the program with `.\bin\Protonect.exe`. If DLLs are missing, you can copy them to the `bin` folder.
+Or `-G "Visual Studio 14 2015 Win64"`. Then you can run the program with `.\install\bin\Protonect.exe`, or start debugging in Visual Studio. `RelWithDebInfo` provides debug symbols with release performance. The default installation path is `install`, you may change it by editing `CMAKE_INSTALL_PREFIX`.
 
 ### Mac OSX
 
-Use your favorite package managers (brew, ports, etc.)
+Use your favorite package managers (brew, ports, etc.) to install most if not all dependencies:
 
 1. ``cd`` into a directory where you want to keep libfreenect2 stuff in
-1. Make sure these build tools are available: wget, git, cmake, pkg-config, automake, autoconf, libtool. Xcode may provide some of them. Install the rest via package managers.
-1. Install dependencies: TurboJPEG, GLFW.
+1. Make sure these build tools are available: wget, git, cmake, pkg-config. Xcode may provide some of them. Install the rest via package managers.
+1. Install dependencies: libusb, TurboJPEG, GLFW.
 
     ```
 brew update
+brew install libusb
 brew tap homebrew/science
 brew install jpeg-turbo
 brew tap homebrew/versions
 brew install glfw3
 ```
 
-    Do not install libusb via package managers for libfreenect2. libfreenect2 includes an unreleased local version of libusb with USB3 specific patches. libfreenect2's libusb should still work fine in presence of a global version libusb.
+    It **is** now recommended to install libusb from package managers instead of building from source locally. Previously it was not recommended but that is no longer the case.
 
-    It is not recommended to build TurboJPEG from source, which produces corrupted results on Mac OSX according to reports. Install TurboJPEG binary only from package managers.
+    It is not recommended to build TurboJPEG from source, which may produce corrupted results on Mac OSX according to user reports. Install TurboJPEG binary only from package managers.
 
 1. Download the libfreenect2 repository
 
     ```
-git clone git@github.com:OpenKinect/libfreenect2.git
-```
-
-1. Install a bunch of dependencies
-
-    ```
-cd ./libfreenect2
-sh ./depends/install_mac.sh
+git clone https://github.com/OpenKinect/libfreenect2.git
+cd libfreenect2
 ```
 
 1. Build the actual protonect executable
@@ -191,7 +194,7 @@ make install
 ./bin/Protonect
 ```
 
-### Debian/Ubuntu 14.04 (perhaps earlier)
+### Debian/Ubuntu 14.04
 
 1. Install libfreenect2
 
@@ -199,22 +202,29 @@ make install
 git clone https://github.com/OpenKinect/libfreenect2.git
 ```
 
-1. Install a bunch of dependencies
+1. Install build tools, TurboJPEG, and OpenGL dependencies
 
     ```bash
-sudo apt-get install build-essential libturbojpeg libjpeg-turbo8-dev libtool autoconf libudev-dev cmake mesa-common-dev freeglut3-dev libxrandr-dev doxygen libxi-dev automake
+sudo apt-get install build-essential cmake pkg-config libturbojpeg libjpeg-turbo8-dev mesa-common-dev freeglut3-dev libxrandr-dev libxi-dev
 # sudo apt-get install libturbojpeg0-dev (Debian)
-
-cd libfreenect2/depends
-sh install_ubuntu.sh
-sudo dpkg -i libglfw3*_3.0.4-1_*.deb  # Ubuntu 14.04 only
-# sudo apt-get install libglfw3-dev (Debian/Ubuntu 14.10+:)
 ```
 
+1. Install libusb. `sudo apt-get install libusb-1.0-0-dev`. The version must be >=1.0.20. You may use `sudo apt-add-repository ppa:floe/libusb` if version 1.0.20 is not available.
+
+1. Install GLFW3. If `sudo apt-get install libglfw3-dev` is not available (e.g. Ubuntu trusty 14.04), you can download and install deb files from later Ubuntu releases:
+
+    ```bash
+cd libfreenect2/depends
+sh install_ubuntu.sh
+sudo dpkg -i libglfw3*_3.0.4-1_*.deb
+```
+    If you have Intel GPU, there is a serious GLSL bug with `libgl1-mesa-dri`. You are recommended but not required to update it to >=10.3 or newest using later releases or xorg-edgers ppa.
+
 1. OpenCL dependency
+  * OpenCL ICD loader: if you have `ocl-icd-libopencl1` (provides libOpenCL.so) installed, you are recommended but not required to update it to 2.2.4+ using later releases. Early versions have a deadlock bug that may cause hanging.
   * AMD GPU: Install the latest version of the AMD Catalyst drivers from https://support.amd.com and `apt-get install opencl-headers`.
-  * Nvidia GPU: Install the latest version of the Nvidia drivers, for example nvidia-346 from `ppa:xorg-edgers` and `apt-get install opencl-headers`.
-  * Intel GPU (kernel 3.16+ recommended): Install beignet-dev 1.0+, `apt-get install beignet-dev`. If not available, use this ppa `sudo apt-add-repository ppa:pmjdebruijn/beignet-testing`.
+  * Nvidia GPU: Install the latest version of the Nvidia drivers, for example nvidia-346 from `ppa:xorg-edgers` and `apt-get install opencl-headers`. Make sure that `dpkg -S libOpenCL.so` shows `ocl-icd-libopencl1` instead of nvidia opencl packages which are incompatible with `opencl-headers`. CUDA toolkit is not required for OpenCL.
+  * Intel GPU (kernel 3.16+ recommended): Install beignet-dev 1.0+, `apt-get install beignet-dev`. If not available, use this ppa `sudo apt-add-repository ppa:pmjdebruijn/beignet-testing`. Do not install `beignet` which has version 0.3.
 
 1. Build the actual protonect executable
 
@@ -222,7 +232,7 @@ sudo dpkg -i libglfw3*_3.0.4-1_*.deb  # Ubuntu 14.04 only
 mkdir build && cd build
 cmake ..
 make
-sudo make install
+sudo make install # without sudo if cmake -DCMAKE_INSTALL_PREFIX=$HOME/...
 ```
 
 1. Run the program
