@@ -43,6 +43,14 @@
 #include <libfreenect2/protocol/command_transaction.h>
 #include <libfreenect2/logging.h>
 
+#ifdef __APPLE__
+  #define PKTS_PER_XFER 128
+  #define NUM_XFERS 4
+#else
+  #define PKTS_PER_XFER 8
+  #define NUM_XFERS 60
+#endif
+
 namespace libfreenect2
 {
 using namespace libfreenect2;
@@ -464,8 +472,8 @@ bool Freenect2DeviceImpl::open()
     return false;
   }
 
-  rgb_transfer_pool_.allocate(50, 0x4000);
-  ir_transfer_pool_.allocate(80, 8, max_iso_packet_size);
+  rgb_transfer_pool_.allocate(20, 0x4000);
+  ir_transfer_pool_.allocate(NUM_XFERS, PKTS_PER_XFER, max_iso_packet_size);
 
   state_ = Open;
 
@@ -585,7 +593,7 @@ void Freenect2DeviceImpl::start()
 
   LOG_INFO << "submitting usb transfers...";
   rgb_transfer_pool_.submit(20);
-  ir_transfer_pool_.submit(60);
+  ir_transfer_pool_.submit(NUM_XFERS);
 
   state_ = Streaming;
   LOG_INFO << "started";
