@@ -100,7 +100,7 @@ void Registration::apply( int dx, int dy, float dz, float& cx, float &cy) const
  * @param [out] registered Image color image for the depth data (512x424).
  * @param enable_filter Use a depth buffer to remove pixels which are not visible to both cameras.
  * @param [out] bigdepth If not \c NULL, mapping of depth onto colors (1920x1082 'float' frame).
- * @param [out] bigdepth If not \c NULL, map for storing the color offset for each depth pixel.
+ * @param [out] color_depth_map If not \c NULL, map (512x424) for storing the color offset for each depth pixel.
  * @note The \a bigdepth frame has a blank top and bottom row.
  */
 void Registration::apply(const Frame *rgb, const Frame *depth, Frame *undistorted, Frame *registered, const bool enable_filter, Frame *bigdepth, int *color_depth_map) const
