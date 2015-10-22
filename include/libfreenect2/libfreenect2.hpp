@@ -31,6 +31,7 @@
 
 #include <libfreenect2/config.h>
 #include <libfreenect2/frame_listener.hpp>
+#include <string>
 
 namespace libfreenect2
 {
