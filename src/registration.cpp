@@ -248,7 +248,7 @@ void Registration::apply(const Frame *rgb, const Frame *depth, Frame *undistorte
       *registered_data = c_off < 0 ? 0 : *(rgb_data + c_off);
     }
   }
-  delete[] depth_to_c_off;
+  if (!color_depth_map) delete[] depth_to_c_off;
 }
 
 /**
