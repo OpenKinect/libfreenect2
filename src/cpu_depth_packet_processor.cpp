@@ -261,26 +261,6 @@ void flipHorizontal(const Mat<ScalarT> &in, Mat<ScalarT>& out)
 namespace libfreenect2
 {
 
-/**
- * Load a buffer from data of a file.
- * @param filename Name of the file to load.
- * @param buffer Start of the buffer to load.
- * @param n Size of the buffer to load.
- * @return Whether loading succeeded.
- */
-bool loadBufferFromFile2(const std::string& filename, unsigned char *buffer, size_t n)
-{
-  bool success;
-  std::ifstream in(filename.c_str());
-
-  in.read(reinterpret_cast<char*>(buffer), n);
-  success = in.gcount() == n;
-
-  in.close();
-
-  return success;
-}
-
 inline int bfi(int width, int offset, int src2, int src3)
 {
   int bitmask = (((1 << width)-1) << offset) & 0xffffffff;
@@ -897,111 +877,18 @@ void CpuDepthPacketProcessor::loadP0TablesFromCommandResponse(unsigned char* buf
   impl_->fillTrigTable(impl_->p0_table2, impl_->trig_table2);
 }
 
-/**
- * Load p0 tables.
- * @param p0_filename Filename of the first p0 table.
- * @param p1_filename Filename of the second p0 table.
- * @param p2_filename Filename of the third p0 table.
- */
-void CpuDepthPacketProcessor::loadP0TablesFromFiles(const char* p0_filename, const char* p1_filename, const char* p2_filename)
-{
-  Mat<uint16_t> p0_table0(424, 512);
-  if(!loadBufferFromFile2(p0_filename, p0_table0.buffer(), p0_table0.sizeInBytes()))
-  {
-    LOG_ERROR << "Loading p0table 0 from '" << p0_filename << "' failed!";
-  }
-
-  Mat<uint16_t> p0_table1(424, 512);
-  if(!loadBufferFromFile2(p1_filename, p0_table1.buffer(), p0_table1.sizeInBytes()))
-  {
-    LOG_ERROR << "Loading p0table 1 from '" << p1_filename << "' failed!";
-  }
-
-  Mat<uint16_t> p0_table2(424, 512);
-  if(!loadBufferFromFile2(p2_filename, p0_table2.buffer(), p0_table2.sizeInBytes()))
-  {
-    LOG_ERROR << "Loading p0table 2 from '" << p2_filename << "' failed!";
-  }
-
-  if(impl_->flip_ptables)
-  {
-    flipHorizontal(p0_table0, impl_->p0_table0);
-    flipHorizontal(p0_table1, impl_->p0_table1);
-    flipHorizontal(p0_table2, impl_->p0_table2);
-
-    impl_->fillTrigTable(impl_->p0_table0, impl_->trig_table0);
-    impl_->fillTrigTable(impl_->p0_table1, impl_->trig_table1);
-    impl_->fillTrigTable(impl_->p0_table2, impl_->trig_table2);
-  }
-  else
-  {
-    impl_->fillTrigTable(p0_table0, impl_->trig_table0);
-    impl_->fillTrigTable(p0_table1, impl_->trig_table1);
-    impl_->fillTrigTable(p0_table2, impl_->trig_table2);
-  }
-}
-
-/**
- * Load the X table from the resources.
- * @param filename Name of the file to load.
- * @note Filename is not actually used!
- */
-void CpuDepthPacketProcessor::loadXTableFromFile(const char* filename)
+void CpuDepthPacketProcessor::loadXZTables(const float *xtable, const float *ztable)
 {
   impl_->x_table.create(424, 512);
-  const unsigned char *data;
-  size_t length;
+  std::copy(xtable, xtable + TABLE_SIZE, impl_->x_table.ptr(0,0));
 
-  if(loadResource("xTable.bin", &data, &length))
-  {
-    std::copy(data, data + length, impl_->x_table.buffer());
-  }
-  else
-  {
-    LOG_ERROR << "Loading xtable from resource 'xTable.bin' failed!";
-  }
-}
-
-/**
- * Load the Z table from the resources.
- * @param filename Name of the file to load.
- * @note Filename is not actually used!
- */
-void CpuDepthPacketProcessor::loadZTableFromFile(const char* filename)
-{
   impl_->z_table.create(424, 512);
-
-  const unsigned char *data;
-  size_t length;
-
-  if(loadResource("zTable.bin", &data, &length))
-  {
-    std::copy(data, data + length, impl_->z_table.buffer());
-  }
-  else
-  {
-    LOG_ERROR << "Loading ztable from resource 'zTable.bin' failed!";
-  }
+  std::copy(ztable, ztable + TABLE_SIZE, impl_->z_table.ptr(0,0));
 }
 
-/**
- * Load the lookup table from 11 to 16 from the resources.
- * @param filename Name of the file to load.
- * @note Filename is not actually used!
- */
-void CpuDepthPacketProcessor::load11To16LutFromFile(const char* filename)
+void CpuDepthPacketProcessor::loadLookupTable(const short *lut)
 {
-  const unsigned char *data;
-  size_t length;
-
-  if(loadResource("11to16.bin", &data, &length))
-  {
-    std::copy(data, data + length, reinterpret_cast<unsigned char*>(impl_->lut11to16));
-  }
-  else
-  {
-    LOG_ERROR << "Loading 11to16 lut from resource '11to16.bin' failed!";
-  }
+  std::copy(lut, lut + LUT_SIZE, impl_->lut11to16);
 }
 
 /**
