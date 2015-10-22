@@ -136,7 +136,7 @@ void Registration::apply(const Frame *rgb, const Frame *depth, Frame *undistorte
   float *p_filter_map = NULL;
 
   // map for storing the color offset for each depth pixel
-  int *depth_to_c_off = new int[size_depth];
+  int depth_to_c_off[size_depth];
   int *map_c_off = depth_to_c_off;
 
   // initializing the depth_map with values outside of the Kinect2 range
@@ -247,7 +247,6 @@ void Registration::apply(const Frame *rgb, const Frame *depth, Frame *undistorte
       *registered_data = c_off < 0 ? 0 : *(rgb_data + c_off);
     }
   }
-  delete[] depth_to_c_off;
 }
 
 /**
