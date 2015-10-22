@@ -117,7 +117,7 @@ public:
   {
     if(level > level_) return;
 
-    (level >= Warning ? std::cerr : std::cout) << "[" << level2str(level) << "] " << message << std::endl;
+    (level <= Warning ? std::cerr : std::cout) << "[" << level2str(level) << "] " << message << std::endl;
   }
 };
 
