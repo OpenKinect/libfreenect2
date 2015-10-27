@@ -231,6 +231,15 @@ INSTALL(FILES "${PROJECT_BINARY_DIR}/libfreenect2_export.h" DESTINATION include/
 INSTALL(FILES "${PROJECT_BINARY_DIR}/freenect2Config.cmake" DESTINATION lib/cmake/freenect2/)
 INSTALL(FILES "${PROJECT_BINARY_DIR}/freenect2.pc" DESTINATION lib/pkgconfig/)
 
+find_package(Doxygen)
+IF(DOXYGEN_FOUND)
+  add_custom_target(
+    doc
+    COMMAND "DOXYGEN_OUTPUT_DIR=${PROJECT_BINARY_DIR}/doc" ${DOXYGEN_EXECUTABLE} Doxyfile
+    WORKING_DIRECTORY "${MY_DIR}"
+  )
+ENDIF()
+
 IF(BUILD_EXAMPLES)
   MESSAGE(STATUS "Configurating examples")
   ADD_SUBDIRECTORY(${MY_DIR}/examples)
