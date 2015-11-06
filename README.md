@@ -62,7 +62,7 @@ Messages in `dmesg` like this means bugs in the USB driver. Updating kernel migh
 
 Windows 7 does not have great USB 3.0 drivers. In our testing the above known working devices will stop working after running for a while. However, the official Kinect v2 SDK does not support Windows 7 at all, so there is still hope for Windows 7 users. Windows 8.1 and 10 have improved USB 3.0 drivers.
 
-Diabling USB selective suspend/autosuspend might be helpful to ameliorate transfer problems.
+Disabling USB selective suspend/autosuspend might be helpful to ameliorate transfer problems.
 
 When you report USB issues, please attach relevant debug log from running the program with environment variable `LIBUSB_DEBUG=4`, and relevant log from `dmesg`.
 
