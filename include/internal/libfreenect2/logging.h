@@ -66,7 +66,7 @@ std::string getShortName(const char *func);
 
 } /* namespace libfreenect2 */
 
-#if defined(__GNUC__) or defined(__clang__)
+#if defined(__GNUC__) || defined(__clang__)
 #define LOG_SOURCE ::libfreenect2::getShortName(__PRETTY_FUNCTION__)
 #elif defined(_MSC_VER)
 #define LOG_SOURCE ::libfreenect2::getShortName(__FUNCSIG__)

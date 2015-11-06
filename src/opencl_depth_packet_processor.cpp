@@ -36,14 +36,18 @@
 #define _USE_MATH_DEFINES
 #include <math.h>
 
-#ifdef __APPLE__
-#include <OpenCL/cl.hpp>
-#else
+#define CL_USE_DEPRECATED_OPENCL_1_2_APIS
+#define CL_USE_DEPRECATED_OPENCL_2_0_APIS
+
+#ifdef LIBFREENECT2_OPENCL_ICD_LOADER_IS_OLD
 #define CL_USE_DEPRECATED_OPENCL_1_1_APIS
 #include <CL/cl.h>
+#ifdef CL_VERSION_1_2
 #undef CL_VERSION_1_2
+#endif //CL_VERSION_1_2
+#endif //LIBFREENECT2_OPENCL_ICD_LOADER_IS_OLD
+
 #include <CL/cl.hpp>
-#endif
 
 #ifndef REG_OPENCL_FILE
 #define REG_OPENCL_FILE ""
@@ -146,7 +150,19 @@ public:
 
     const int CL_ICDL_VERSION = 2;
     typedef cl_int (*icdloader_func)(int, size_t, void*, size_t*);
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4996)
+#else
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
     icdloader_func clGetICDLoaderInfoOCLICD = (icdloader_func)clGetExtensionFunctionAddress("clGetICDLoaderInfoOCLICD");
+#ifdef _MSC_VER
+#pragma warning(pop)
+#else
+#pragma GCC diagnostic pop
+#endif
     if (clGetICDLoaderInfoOCLICD != NULL)
     {
       char buf[16];

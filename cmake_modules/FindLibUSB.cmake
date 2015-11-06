@@ -11,11 +11,21 @@ IF(PKG_CONFIG_FOUND)
   IF(DEPENDS_DIR) #Otherwise use System pkg-config path
     SET(ENV{PKG_CONFIG_PATH} "${DEPENDS_DIR}/libusb/lib/pkgconfig")
   ENDIF()
-  IF(LibUSB_FIND_REQUIRED)
-    PKG_CHECK_MODULES(LibUSB REQUIRED libusb-1.0)
-  ELSE()
-    PKG_CHECK_MODULES(LibUSB libusb-1.0)
+  SET(MODULE "libusb-1.0")
+  IF(CMAKE_SYSTEM_NAME MATCHES "Linux")
+    SET(MODULE "libusb-1.0>=1.0.20")
   ENDIF()
+  IF(LibUSB_FIND_REQUIRED)
+    SET(LisUSB_REQUIRED "REQUIRED")
+  ENDIF()
+  PKG_CHECK_MODULES(LibUSB ${LibUSB_REQUIRED} ${MODULE})
+
+  FIND_LIBRARY(LibUSB_LIBRARY
+    NAMES ${LibUSB_LIBRARIES}
+    HINTS ${LibUSB_LIBRARY_DIRS}
+  )
+  SET(LibUSB_LIBRARIES ${LibUSB_LIBRARY})
+
   RETURN()
 ENDIF()
 
@@ -28,6 +38,7 @@ FIND_PATH(LibUSB_INCLUDE_DIRS
   PATH_SUFFIXES
     include
     libusb
+    include/libusb-1.0
 )
 
 FIND_LIBRARY(LibUSB_LIBRARIES
@@ -42,7 +53,25 @@ FIND_LIBRARY(LibUSB_LIBRARIES
     Win32/Release/dll
     Win32/Debug/dll
     MS64
+    MS64/dll
 )
+
+IF(WIN32)
+FIND_FILE(LibUSB_DLL
+  libusb-1.0.dll
+  PATHS
+    "${DEPENDS_DIR}/libusb"
+    "${DEPENDS_DIR}/libusbx"
+    ENV LibUSB_ROOT
+  PATH_SUFFIXES
+    x64/Release/dll
+    x64/Debug/dll
+    Win32/Release/dll
+    Win32/Debug/dll
+    MS64
+    MS64/dll
+)
+ENDIF()
 
 INCLUDE(FindPackageHandleStandardArgs)
 FIND_PACKAGE_HANDLE_STANDARD_ARGS(LibUSB DEFAULT_MSG LibUSB_LIBRARIES LibUSB_INCLUDE_DIRS)

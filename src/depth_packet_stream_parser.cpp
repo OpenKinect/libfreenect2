@@ -119,9 +119,9 @@ void DepthPacketStreamParser::onDataReceived(unsigned char* buffer, size_t in_le
                 processed_packets_ = current_sequence_;
               int diff = current_sequence_ - processed_packets_;
               const int interval = 30;
-              if (current_sequence_ % interval == 0 && diff != 0)
+              if ((current_sequence_ % interval == 0 && diff != 0) || diff >= interval)
               {
-                LOG_INFO << diff << " of " << interval << " packets were lost";
+                LOG_INFO << diff << " packets were lost";
                 processed_packets_ = current_sequence_;
               }
             }

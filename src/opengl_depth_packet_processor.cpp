@@ -387,8 +387,9 @@ public:
   }
 };
 
-struct OpenGLDepthPacketProcessorImpl : public WithOpenGLBindings, public WithPerfLogging
+class OpenGLDepthPacketProcessorImpl : public WithOpenGLBindings, public WithPerfLogging
 {
+public:
   GLFWwindow *opengl_context_ptr;
   libfreenect2::DepthPacketProcessor::Config config;
 
@@ -585,50 +586,54 @@ struct OpenGLDepthPacketProcessorImpl : public WithOpenGLBindings, public WithPe
     GLenum debug_attachment = do_debug ? GL_COLOR_ATTACHMENT0 : GL_NONE;
 
     gl()->glGenFramebuffers(1, &stage1_framebuffer);
-    gl()->glBindFramebuffer(GL_DRAW_FRAMEBUFFER, stage1_framebuffer);
+    gl()->glBindFramebuffer(GL_FRAMEBUFFER, stage1_framebuffer);
 
     const GLenum stage1_buffers[] = { debug_attachment, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3, GL_COLOR_ATTACHMENT4 };
     gl()->glDrawBuffers(5, stage1_buffers);
+    glReadBuffer(GL_COLOR_ATTACHMENT4);
 
     if(do_debug) gl()->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_RECTANGLE, stage1_debug.texture, 0);
     gl()->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_RECTANGLE, stage1_data[0].texture, 0);
     gl()->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_RECTANGLE, stage1_data[1].texture, 0);
     gl()->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT3, GL_TEXTURE_RECTANGLE, stage1_data[2].texture, 0);
     gl()->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT4, GL_TEXTURE_RECTANGLE, stage1_infrared.texture, 0);
-    checkFBO(GL_DRAW_FRAMEBUFFER);
+    checkFBO(GL_FRAMEBUFFER);
 
     gl()->glGenFramebuffers(1, &filter1_framebuffer);
-    gl()->glBindFramebuffer(GL_DRAW_FRAMEBUFFER, filter1_framebuffer);
+    gl()->glBindFramebuffer(GL_FRAMEBUFFER, filter1_framebuffer);
 
     const GLenum filter1_buffers[] = { debug_attachment, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3 };
     gl()->glDrawBuffers(4, filter1_buffers);
+    glReadBuffer(GL_NONE);
 
     if(do_debug) gl()->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_RECTANGLE, filter1_debug.texture, 0);
     gl()->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_RECTANGLE, filter1_data[0].texture, 0);
     gl()->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_RECTANGLE, filter1_data[1].texture, 0);
     gl()->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT3, GL_TEXTURE_RECTANGLE, filter1_max_edge_test.texture, 0);
-    checkFBO(GL_DRAW_FRAMEBUFFER);
+    checkFBO(GL_FRAMEBUFFER);
 
     gl()->glGenFramebuffers(1, &stage2_framebuffer);
-    gl()->glBindFramebuffer(GL_DRAW_FRAMEBUFFER, stage2_framebuffer);
+    gl()->glBindFramebuffer(GL_FRAMEBUFFER, stage2_framebuffer);
 
     const GLenum stage2_buffers[] = { debug_attachment, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2 };
     gl()->glDrawBuffers(3, stage2_buffers);
+    glReadBuffer(GL_COLOR_ATTACHMENT1);
 
     if(do_debug) gl()->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_RECTANGLE, stage2_debug.texture, 0);
     gl()->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_RECTANGLE, stage2_depth.texture, 0);
     gl()->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_RECTANGLE, stage2_depth_and_ir_sum.texture, 0);
-    checkFBO(GL_DRAW_FRAMEBUFFER);
+    checkFBO(GL_FRAMEBUFFER);
 
     gl()->glGenFramebuffers(1, &filter2_framebuffer);
-    gl()->glBindFramebuffer(GL_DRAW_FRAMEBUFFER, filter2_framebuffer);
+    gl()->glBindFramebuffer(GL_FRAMEBUFFER, filter2_framebuffer);
 
     const GLenum filter2_buffers[] = { debug_attachment, GL_COLOR_ATTACHMENT1 };
     gl()->glDrawBuffers(2, filter2_buffers);
+    glReadBuffer(GL_COLOR_ATTACHMENT1);
 
     if(do_debug) gl()->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_RECTANGLE, filter2_debug.texture, 0);
     gl()->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_RECTANGLE, filter2_depth.texture, 0);
-    checkFBO(GL_DRAW_FRAMEBUFFER);
+    checkFBO(GL_FRAMEBUFFER);
 
     Vertex bl = {-1.0f, -1.0f, 0.0f, 0.0f }, br = { 1.0f, -1.0f, 512.0f, 0.0f }, tl = {-1.0f, 1.0f, 0.0f, 424.0f }, tr = { 1.0f, 1.0f, 512.0f, 424.0f };
     Vertex vertices[] = {

@@ -157,7 +157,7 @@ void RgbPacketStreamParser::onDataReceived(unsigned char* buffer, size_t length)
       }
       else
       {
-        LOG_WARNING << "skipping rgb packet!";
+        LOG_DEBUG << "skipping rgb packet!";
       }
 
       // reset front buffer

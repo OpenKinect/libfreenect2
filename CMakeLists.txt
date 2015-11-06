@@ -6,6 +6,11 @@ if(WIN32 AND NOT MINGW)
   endif()
 endif()
 
+IF(WIN32)
+  # no permission for the default install prefix %ProgramFiles%
+  SET(CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/install" CACHE STRING "installation path")
+ENDIF()
+
 IF(NOT DEFINED CMAKE_BUILD_TYPE)
   # No effect for multi-configuration generators (e.g. for Visual Studio)
   SET(CMAKE_BUILD_TYPE RelWithDebInfo CACHE STRING "Choose: RelWithDebInfo Release Debug MinSizeRel None")
@@ -21,6 +26,13 @@ OPTION(BUILD_EXAMPLES "Build examples" ON)
 OPTION(ENABLE_CXX11 "Enable C++11 support" OFF)
 OPTION(ENABLE_OPENCL "Enable OpenCL support" ON)
 OPTION(ENABLE_OPENGL "Enable OpenGL support" ON)
+
+IF(MSVC)
+  # suppress several "possible loss of data" warnings, and
+  # "zero-length array in struct" from libusb.h
+  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4267 /wd4244 /wd4200 /wd4305 /wd4146")
+  ADD_DEFINITIONS(-D_CRT_SECURE_NO_WARNINGS) # no warning for getenv()
+ENDIF()
 
 IF(ENABLE_CXX11)
   INCLUDE(CheckCXXCompilerFlag)
@@ -45,10 +57,11 @@ INCLUDE(SetupLibfreenect2Threading)
 INCLUDE(GenerateResources)
 
 #set the default path for built executables to the "bin" directory
-SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
+SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin)
 
 #set the default path for built libraries to the "lib" directory
-SET(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib)
+SET(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
+SET(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
 
 # dependencies
 FIND_PACKAGE(PkgConfig)    # try find PKGConfig as it will be used if found
@@ -65,10 +78,7 @@ INCLUDE_DIRECTORIES(
   ${TurboJPEG_INCLUDE_DIRS}
 )
 
-LINK_DIRECTORIES(${LibUSB_LIBRARY_DIRS})
-
 SET(RESOURCES_INC_FILE "${PROJECT_BINARY_DIR}/resources.inc.h")
-SET(CONFIG_H_FILE "${PROJECT_BINARY_DIR}/libfreenect2/config.h")
 
 SET(SOURCES
   include/internal/libfreenect2/protocol/command.h
@@ -117,7 +127,8 @@ SET(SOURCES
 
   ${LIBFREENECT2_THREADING_SOURCE}
   ${RESOURCES_INC_FILE}
-  ${CONFIG_H_FILE}
+  "${PROJECT_BINARY_DIR}/libfreenect2/config.h"
+  "${PROJECT_BINARY_DIR}/libfreenect2/export.h"
 )
 
 SET(LIBRARIES
@@ -126,13 +137,18 @@ SET(LIBRARIES
   ${LIBFREENECT2_THREADING_LIBRARIES}
 )
 
+SET(LIBFREENECT2_DLLS
+  ${LibUSB_DLL}
+  ${TurboJPEG_DLL}
+)
+
 IF(ENABLE_OPENGL)
   FIND_PACKAGE(GLFW3)
   FIND_PACKAGE(OpenGL)
   IF(GLFW3_FOUND)
     INCLUDE_DIRECTORIES(${GLFW3_INCLUDE_DIRS})
 
-    LINK_DIRECTORIES(${GLFW3_LIBRARY_DIRS})
+    LIST(APPEND LIBFREENECT2_DLLS ${GLFW3_DLL})
     LIST(APPEND LIBRARIES
       ${GLFW3_LIBRARIES}
       ${OPENGL_gl_LIBRARY}
@@ -157,16 +173,23 @@ ENDIF(ENABLE_OPENGL)
 IF(ENABLE_OPENCL)
   FIND_PACKAGE(OpenCL)
 
-  IF(OPENCL_FOUND)
+  IF(OpenCL_FOUND)
+    IF(UNIX AND NOT APPLE)
+      INCLUDE(CheckOpenCLICDLoader)
+      IF(OpenCL_C_WORKS AND NOT OpenCL_CXX_WORKS)
+        SET(LIBFREENECT2_OPENCL_ICD_LOADER_IS_OLD 1)
+        MESSAGE(WARNING "Your libOpenCL.so is incompatible with CL/cl.h. Install ocl-icd-opencl-dev to update libOpenCL.so?")
+      ENDIF()
+    ENDIF()
     SET(LIBFREENECT2_WITH_OPENCL_SUPPORT 1)
-    INCLUDE_DIRECTORIES(${OPENCL_INCLUDE_DIRS})
+    INCLUDE_DIRECTORIES(${OpenCL_INCLUDE_DIRS})
 
     LIST(APPEND SOURCES
       src/opencl_depth_packet_processor.cpp
     )
 
     LIST(APPEND LIBRARIES
-      ${OPENCL_LIBRARIES}
+      ${OpenCL_LIBRARIES}
     )
 
     LIST(APPEND RESOURCES
@@ -179,7 +202,7 @@ IF(ENABLE_OPENCL)
     IF(UNIX AND NOT APPLE)
       SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-exceptions")
     ENDIF()
-  ENDIF(OPENCL_FOUND)
+  ENDIF(OpenCL_FOUND)
 ENDIF(ENABLE_OPENCL)
 
 # RPATH handling for private libusb copies
@@ -200,34 +223,35 @@ IF(DEFINED CMAKE_INSTALL_RPATH)
   MESSAGE(STATUS "RPATH set to ${CMAKE_INSTALL_RPATH}")
 ENDIF()
 
-CONFIGURE_FILE("${MY_DIR}/include/libfreenect2/config.h.in" "${CONFIG_H_FILE}" @ONLY)
+CONFIGURE_FILE("${MY_DIR}/include/libfreenect2/config.h.in" "${PROJECT_BINARY_DIR}/libfreenect2/config.h" @ONLY)
 GENERATE_RESOURCES(${RESOURCES_INC_FILE} ${MY_DIR} ${RESOURCES})
 
 ADD_DEFINITIONS(-DRESOURCES_INC)
-SET(CMAKE_CXX_VISIBILITY_PRESET hidden)
-SET(CMAKE_C_VISIBILITY_PRESET hidden)
-SET(CMAKE_VISIBILITY_INLINES_HIDDEN 1)
-INCLUDE(GenerateExportHeader)
-
 ADD_LIBRARY(freenect2 ${SOURCES})
+SET_TARGET_PROPERTIES(freenect2 PROPERTIES
+  CXX_VISIBILITY_PRESET hidden
+  VISIBILITY_INLINES_HIDDEN 1
+)
+INCLUDE(GenerateExportHeader)
 GENERATE_EXPORT_HEADER(freenect2
   BASE_NAME libfreenect2
+  EXPORT_FILE_NAME libfreenect2/export.h
 )
 
 IF(MSVC AND NOT BUILD_SHARED_LIBS)
   # MSVC creates freenect2.lib for both dynamic and static by default
   set_target_properties(freenect2 PROPERTIES SUFFIX "static.lib")
 ENDIF()
-MESSAGE(STATUS "Linking with these libraries: ${LIBRARIES}")
+STRING(REPLACE ";" "\n " LIBRARIES_STRING "${LIBRARIES}")
+MESSAGE(STATUS "Linking with these libraries: \n ${LIBRARIES_STRING}")
 TARGET_LINK_LIBRARIES(freenect2 ${LIBRARIES})
 
 CONFIGURE_FILE(freenect2.cmake.in "${PROJECT_BINARY_DIR}/freenect2Config.cmake" @ONLY)
 CONFIGURE_FILE(freenect2.pc.in "${PROJECT_BINARY_DIR}/freenect2.pc" @ONLY)
 
-INSTALL(TARGETS freenect2 DESTINATION lib)
+INSTALL(TARGETS freenect2 DESTINATION lib RUNTIME DESTINATION bin)
 INSTALL(DIRECTORY "${MY_DIR}/include/${PROJECT_NAME}" DESTINATION include PATTERN "*.in" EXCLUDE)
-INSTALL(FILES "${CONFIG_H_FILE}" DESTINATION include/${PROJECT_NAME})
-INSTALL(FILES "${PROJECT_BINARY_DIR}/libfreenect2_export.h" DESTINATION include/${PROJECT_NAME})
+INSTALL(DIRECTORY "${PROJECT_BINARY_DIR}/${PROJECT_NAME}" DESTINATION include)
 INSTALL(FILES "${PROJECT_BINARY_DIR}/freenect2Config.cmake" DESTINATION lib/cmake/freenect2/)
 INSTALL(FILES "${PROJECT_BINARY_DIR}/freenect2.pc" DESTINATION lib/pkgconfig/)
 

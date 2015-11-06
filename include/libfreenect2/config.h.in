@@ -33,12 +33,13 @@
 #define LIBFREENECT2_PACK( __Declaration__ ) __Declaration__ __attribute__((__packed__))
 #endif
 
-#include "libfreenect2_export.h"
+#include <libfreenect2/export.h>
 #define LIBFREENECT2_API LIBFREENECT2_EXPORT
 
 #cmakedefine LIBFREENECT2_WITH_OPENGL_SUPPORT
 
 #cmakedefine LIBFREENECT2_WITH_OPENCL_SUPPORT
+#cmakedefine LIBFREENECT2_OPENCL_ICD_LOADER_IS_OLD
 
 #cmakedefine LIBFREENECT2_THREADING_STDLIB
 

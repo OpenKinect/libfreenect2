@@ -306,11 +306,13 @@ public:
     initialized(false),
     has_device_enumeration_(false)
   {
+#ifdef __linux__
     if (libusb_get_version()->nano < 10952)
     {
       LOG_ERROR << "Your libusb does not support large iso buffer!";
       return;
     }
+#endif
 
     if(managed_usb_context_)
     {

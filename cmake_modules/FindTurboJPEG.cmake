@@ -38,16 +38,29 @@ FIND_LIBRARY(TurboJPEG_LIBRARIES
     lib64
 )
 
+IF(WIN32)
+FIND_FILE(TurboJPEG_DLL
+  turbojpeg.dll
+  DOC "Found TurboJPEG DLL path"
+  PATHS
+    "${DEPENDS_DIR}/libjpeg_turbo"
+    "${DEPENDS_DIR}/libjpeg-turbo64"
+    "C:/libjpeg-turbo64"
+    ENV TurboJPEG_ROOT
+  PATH_SUFFIXES
+    bin
+)
+ENDIF()
+
+IF(TurboJPEG_INCLUDE_DIRS AND TurboJPEG_LIBRARIES)
 INCLUDE(CheckCSourceCompiles)
-if(MSVC)
-  set(CMAKE_REQUIRED_DEFINITIONS -MT)
-endif()
 set(CMAKE_REQUIRED_INCLUDES ${TurboJPEG_INCLUDE_DIRS})
 set(CMAKE_REQUIRED_LIBRARIES ${TurboJPEG_LIBRARIES})
 check_c_source_compiles("#include <turbojpeg.h>\nint main(void) { tjhandle h=tjInitCompress(); return 0; }" TURBOJPEG_WORKS)
 set(CMAKE_REQUIRED_DEFINITIONS)
 set(CMAKE_REQUIRED_INCLUDES)
 set(CMAKE_REQUIRED_LIBRARIES)
+ENDIF()
 
 INCLUDE(FindPackageHandleStandardArgs)
 FIND_PACKAGE_HANDLE_STANDARD_ARGS(TurboJPEG DEFAULT_MSG TurboJPEG_LIBRARIES TurboJPEG_INCLUDE_DIRS TURBOJPEG_WORKS)

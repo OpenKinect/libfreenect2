@@ -1,4 +1,5 @@
 #include "viewer.h"
+#include <cstdlib>
 
 Viewer::Viewer() : shader_folder("src/shader/")
 {
@@ -7,19 +8,37 @@ Viewer::Viewer() : shader_folder("src/shader/")
 
 }
 
+static void glfwErrorCallback(int error, const char* description)
+{
+  std::cerr << "GLFW error " << error << " " << description << std::endl;
+}
+
 void Viewer::initialize()
 {
+    GLFWerrorfun prev_func = glfwSetErrorCallback(glfwErrorCallback);
+    if (prev_func)
+      glfwSetErrorCallback(prev_func);
+
     // setup context
     glfwDefaultWindowHints();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 #ifdef __APPLE__
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-#endif
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+#else
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_ANY_PROFILE);
+#endif
     //glfwWindowHint(GLFW_VISIBLE, debug ? GL_TRUE : GL_FALSE);
 
-    window = glfwCreateWindow(1280, 800, "Viewer", 0, NULL);
+    window = glfwCreateWindow(1280, 800, "Viewer (press ESC to exit)", 0, NULL);
+    if (window == NULL)
+    {
+        std::cerr << "Failed to create opengl window." << std::endl;
+        exit(-1);
+    }
+
     glfwMakeContextCurrent(window);
     OpenGLBindings *b = new OpenGLBindings();
     flextInit(b);
