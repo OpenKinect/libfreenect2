@@ -244,9 +244,3 @@ sudo make install # without sudo if cmake -DCMAKE_INSTALL_PREFIX=$HOME/...
 ### Other operating systems
 
 I'm not sure, but look for libusbx installation instructions for your OS. Figure out how to attach the driver to the Xbox NUI Sensor composite parent device, VID 045E PID 02C4, then contribute your procedure.
-
-## Required notification
-
-The K4W2 hardware is currently pre-release. Per the K4W2 developer program agreement, all public demonstrations and code should display this notice:
-
-    "This is preliminary software and/or hardware and APIs are preliminary and subject to change."
