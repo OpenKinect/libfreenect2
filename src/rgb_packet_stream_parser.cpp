@@ -57,7 +57,7 @@ LIBFREENECT2_PACK(struct RgbPacketFooter {
   float gain; // ? ranges from 1.0 when camera is clear to 1.5 when camera is covered.
   uint32_t magic_footer; // is 'BBBB' equal 0x42424242
   uint32_t packet_size;
-  float unknown3; // seems 1.0f always
+  float gamma; // ranges from 1.0f to about 6.4 when camera is fully covered
   uint32_t unknown4[3]; // seems to be 0 all the time.
 });
 
@@ -149,6 +149,9 @@ void RgbPacketStreamParser::onDataReceived(unsigned char* buffer, size_t length)
         RgbPacket rgb_packet;
         rgb_packet.sequence = raw_packet->sequence;
         rgb_packet.timestamp = footer->timestamp;
+        rgb_packet.exposure = footer->exposure;
+        rgb_packet.gain = footer->gain;
+        rgb_packet.gamma = footer->gamma;
         rgb_packet.jpeg_buffer = raw_packet->jpeg_buffer;
         rgb_packet.jpeg_buffer_length = jpeg_length;
 

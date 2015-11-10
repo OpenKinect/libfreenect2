@@ -54,11 +54,17 @@ class LIBFREENECT2_API Frame
   size_t height;          ///< Number of lines in the frame.
   size_t bytes_per_pixel; ///< Number of bytes in a pixel.
   unsigned char* data;    ///< Data of the frame (aligned).
+  float exposure;
+  float gain;
+  float gamma;
 
   Frame(size_t width, size_t height, size_t bytes_per_pixel) :
     width(width),
     height(height),
-    bytes_per_pixel(bytes_per_pixel)
+    bytes_per_pixel(bytes_per_pixel),
+    exposure(1.f/30.f),
+    gain(1.f),
+    gamma(1.f)
   {
     const size_t alignment = 64;
     size_t space = width * height * bytes_per_pixel + alignment;
