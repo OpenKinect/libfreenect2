@@ -62,7 +62,7 @@ class LIBFREENECT2_API Frame
     width(width),
     height(height),
     bytes_per_pixel(bytes_per_pixel),
-    exposure(1.f/30.f),
+    exposure(30.f),
     gain(1.f),
     gamma(1.f)
   {
