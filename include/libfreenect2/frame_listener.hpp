@@ -62,9 +62,9 @@ class LIBFREENECT2_API Frame
     width(width),
     height(height),
     bytes_per_pixel(bytes_per_pixel),
-    exposure(30.f),
-    gain(1.f),
-    gamma(1.f)
+    exposure(0.f),
+    gain(0.f),
+    gamma(0.f)
   {
     const size_t alignment = 64;
     size_t space = width * height * bytes_per_pixel + alignment;
