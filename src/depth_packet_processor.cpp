@@ -61,7 +61,7 @@ DepthPacketProcessor::Parameters::Parameters()
   gaussian_kernel[1] = 0.1131098f;
   gaussian_kernel[2] = 0.1069973f;
   gaussian_kernel[3] = 0.1131098f;
-  gaussian_kernel[4] = 0.1195715f;
+  gaussian_kernel[4] = 0.1195716f; // sum shall be 1.0f, not 0.9999999f ? (rounding errors accumulating here)
   gaussian_kernel[5] = 0.1131098f;
   gaussian_kernel[6] = 0.1069973f;
   gaussian_kernel[7] = 0.1131098f;
