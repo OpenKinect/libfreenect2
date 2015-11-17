@@ -229,6 +229,7 @@ sudo dpkg -i libglfw3*_3.0.4-1_*.deb
 1. Build the actual protonect executable
 
     ```
+cd ..
 mkdir build && cd build
 cmake ..
 make
