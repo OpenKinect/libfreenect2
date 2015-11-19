@@ -257,10 +257,10 @@ INSTALL(FILES "${PROJECT_BINARY_DIR}/freenect2.pc" DESTINATION lib/pkgconfig/)
 
 find_package(Doxygen)
 IF(DOXYGEN_FOUND)
+  CONFIGURE_FILE(Doxyfile.in "${PROJECT_BINARY_DIR}/Doxyfile" @ONLY)
   add_custom_target(
     doc
-    COMMAND "DOXYGEN_OUTPUT_DIR=${PROJECT_BINARY_DIR}/doc" ${DOXYGEN_EXECUTABLE} Doxyfile
-    WORKING_DIRECTORY "${MY_DIR}"
+    COMMAND ${DOXYGEN_EXECUTABLE} Doxyfile
   )
 ENDIF()
 
