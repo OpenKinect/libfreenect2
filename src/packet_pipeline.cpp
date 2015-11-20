@@ -35,11 +35,7 @@
 namespace libfreenect2
 {
 
-PacketPipeline::~PacketPipeline()
-{
-}
-
-class BasePacketPipelineComponents
+class PacketPipelineComponents
 {
 public:
   RgbPacketStreamParser *rgb_parser_;
@@ -50,11 +46,11 @@ public:
   DepthPacketProcessor *depth_processor_;
   BaseDepthPacketProcessor *async_depth_processor_;
 
-  ~BasePacketPipelineComponents();
+  ~PacketPipelineComponents();
   void initialize(RgbPacketProcessor *rgb, DepthPacketProcessor *depth);
 };
 
-void BasePacketPipelineComponents::initialize(RgbPacketProcessor *rgb, DepthPacketProcessor *depth)
+void PacketPipelineComponents::initialize(RgbPacketProcessor *rgb, DepthPacketProcessor *depth)
 {
   rgb_parser_ = new RgbPacketStreamParser();
   depth_parser_ = new DepthPacketStreamParser();
@@ -69,7 +65,7 @@ void BasePacketPipelineComponents::initialize(RgbPacketProcessor *rgb, DepthPack
   depth_parser_->setPacketProcessor(async_depth_processor_);
 }
 
-BasePacketPipelineComponents::~BasePacketPipelineComponents()
+PacketPipelineComponents::~PacketPipelineComponents()
 {
   delete async_rgb_processor_;
   delete async_depth_processor_;
@@ -79,29 +75,29 @@ BasePacketPipelineComponents::~BasePacketPipelineComponents()
   delete depth_parser_;
 }
 
-BasePacketPipeline::BasePacketPipeline(): comp_(new BasePacketPipelineComponents()) {}
+PacketPipeline::PacketPipeline(): comp_(new PacketPipelineComponents()) {}
 
-BasePacketPipeline::~BasePacketPipeline()
+PacketPipeline::~PacketPipeline()
 {
   delete comp_;
 }
 
-BasePacketPipeline::PacketParser *BasePacketPipeline::getRgbPacketParser() const
+PacketPipeline::PacketParser *PacketPipeline::getRgbPacketParser() const
 {
   return comp_->rgb_parser_;
 }
 
-BasePacketPipeline::PacketParser *BasePacketPipeline::getIrPacketParser() const
+PacketPipeline::PacketParser *PacketPipeline::getIrPacketParser() const
 {
   return comp_->depth_parser_;
 }
 
-RgbPacketProcessor *BasePacketPipeline::getRgbPacketProcessor() const
+RgbPacketProcessor *PacketPipeline::getRgbPacketProcessor() const
 {
   return comp_->rgb_processor_;
 }
 
-DepthPacketProcessor *BasePacketPipeline::getDepthPacketProcessor() const
+DepthPacketProcessor *PacketPipeline::getDepthPacketProcessor() const
 {
   return comp_->depth_processor_;
 }

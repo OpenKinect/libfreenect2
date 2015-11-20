@@ -37,29 +37,16 @@ namespace libfreenect2
 class DataCallback;
 class RgbPacketProcessor;
 class DepthPacketProcessor;
+class PacketPipelineComponents;
 
-/** Packet pipeline for data processing of the device. */
+/** Front of the pipeline, RGB and Depth parsing and processing. */
 class LIBFREENECT2_API PacketPipeline
 {
 public:
   typedef DataCallback PacketParser;
+
+  PacketPipeline();
   virtual ~PacketPipeline();
-
-  virtual PacketParser *getRgbPacketParser() const = 0;
-  virtual PacketParser *getIrPacketParser() const = 0;
-
-  virtual RgbPacketProcessor *getRgbPacketProcessor() const = 0;
-  virtual DepthPacketProcessor *getDepthPacketProcessor() const = 0;
-};
-
-class BasePacketPipelineComponents;
-
-/** Front of the pipeline, RGB and Depth parsing and processing. */
-class LIBFREENECT2_API BasePacketPipeline : public PacketPipeline
-{
-public:
-  BasePacketPipeline();
-  virtual ~BasePacketPipeline();
 
   virtual PacketParser *getRgbPacketParser() const;
   virtual PacketParser *getIrPacketParser() const;
@@ -67,11 +54,11 @@ public:
   virtual RgbPacketProcessor *getRgbPacketProcessor() const;
   virtual DepthPacketProcessor *getDepthPacketProcessor() const;
 protected:
-  BasePacketPipelineComponents *comp_;
+  PacketPipelineComponents *comp_;
 };
 
 /** Complete pipe line with depth processing by the CPU. */
-class LIBFREENECT2_API CpuPacketPipeline : public BasePacketPipeline
+class LIBFREENECT2_API CpuPacketPipeline : public PacketPipeline
 {
 public:
   CpuPacketPipeline();
@@ -80,7 +67,7 @@ public:
 
 #ifdef LIBFREENECT2_WITH_OPENGL_SUPPORT
 /** Complete pipe line with depth processing with OpenGL. */
-class LIBFREENECT2_API OpenGLPacketPipeline : public BasePacketPipeline
+class LIBFREENECT2_API OpenGLPacketPipeline : public PacketPipeline
 {
 protected:
   void *parent_opengl_context_;
@@ -93,7 +80,7 @@ public:
 
 #ifdef LIBFREENECT2_WITH_OPENCL_SUPPORT
 /** Complete pipe line with depth processing with OpenCL. */
-class LIBFREENECT2_API OpenCLPacketPipeline : public BasePacketPipeline
+class LIBFREENECT2_API OpenCLPacketPipeline : public PacketPipeline
 {
 protected:
   const int deviceId;

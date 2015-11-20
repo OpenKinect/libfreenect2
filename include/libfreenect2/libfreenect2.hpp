@@ -31,12 +31,11 @@
 
 #include <libfreenect2/config.h>
 #include <libfreenect2/frame_listener.hpp>
+#include <libfreenect2/packet_pipeline.h>
 #include <string>
 
 namespace libfreenect2
 {
-
-class PacketPipeline;
 
 /** Device class. */
 class LIBFREENECT2_API Freenect2Device
