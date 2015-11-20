@@ -181,7 +181,7 @@ void RegistrationImpl::apply(const Frame *rgb, const Frame *depth, Frame *undist
     p_filter_map = filter_map + offset_filter_map;
 
     for(float *it = filter_map, *end = filter_map + size_filter_map; it != end; ++it){
-      *it = 65536.0f;
+      *it = std::numeric_limits<float>::infinity();
     }
   }
 

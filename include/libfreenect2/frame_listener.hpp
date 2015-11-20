@@ -36,27 +36,31 @@
 namespace libfreenect2
 {
 
-/** A frame from the stream. */
+/** @defgroup frame Frame Listeners
+ * Receive decoded image frames, and the frame format.
+ */
+
+/** Frame format and metadata. @ingroup frame */
 class LIBFREENECT2_API Frame
 {
   public:
-  /** Available types of frames. */
+  /** Available types of frames and their pixel format. */
   enum Type
   {
-    Color = 1, ///< RGB frame.
-    Ir = 2,    ///< IR frame.
-    Depth = 4  ///< Depth frame.
+    Color = 1, ///< 1920x1080 32-bit BGRX.
+    Ir = 2,    ///< 512x424 float. Range is [0.0, 65535.0].
+    Depth = 4  ///< 512x424 float, unit: millimeter. Non-positive, NaN, and infinity are invalid or missing data.
   };
 
-  uint32_t timestamp;
-  uint32_t sequence;
+  uint32_t timestamp;     ///< Unit: roughly or exactly 0.1 millisecond
+  uint32_t sequence;      ///< Increasing frame sequence number
   size_t width;           ///< Length of a line (in pixels).
   size_t height;          ///< Number of lines in the frame.
   size_t bytes_per_pixel; ///< Number of bytes in a pixel.
-  unsigned char* data;    ///< Data of the frame (aligned).
-  float exposure;         ///< Get the exposure time set by the color camera.
-  float gain;             ///< Get the gain set by the color camera.
-  float gamma;            ///< Get the gamma level set by the color camera.
+  unsigned char* data;    ///< Data of the frame (aligned). @see See Frame::Type for pixel format.
+  float exposure;         ///< From 0.5 (very bright) to ~60.0 (fully covered)
+  float gain;             ///< From 1.0 (bright) to 1.5 (covered)
+  float gamma;            ///< From 1.0 (bright) to 6.4 (covered)
 
   /** Construct a new frame.
    * @param width Width in pixel
@@ -93,14 +97,16 @@ class LIBFREENECT2_API Frame
   unsigned char* rawdata; ///< Unaligned start of #data.
 };
 
-/** Callback class for waiting on a new frame. */
+/** Callback interface to receive new frames. @ingroup frame
+ * You can inherit from FrameListener and define your own listener.
+ */
 class LIBFREENECT2_API FrameListener
 {
 public:
   virtual ~FrameListener();
 
   /**
-   * A new frame has arrived, process it.
+   * libfreenect2 calls this function when a new frame is decoded.
    * @param type Type of the new frame.
    * @param frame Data of the frame.
    */

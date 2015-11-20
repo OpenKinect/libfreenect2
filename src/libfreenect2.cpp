@@ -899,6 +899,8 @@ std::string Freenect2::getDeviceSerialNumber(int idx)
 {
   if (!impl_->initialized)
     return std::string();
+  if (idx >= impl_->getNumDevices() || idx < 0)
+    return std::string();
 
   return impl_->enumerated_devices_[idx].serial;
 }

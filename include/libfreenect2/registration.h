@@ -39,20 +39,63 @@ namespace libfreenect2
 
 class RegistrationImpl;
 
-/** Combine frames of depth and color camera. */
+/** @defgroup registration Registration and Geometry
+ * Register depth to color, create point clouds. */
+
+/** Combine frames of depth and color camera. @ingroup registration
+ * Right now this class uses a reverse engineered formula that uses factory
+ * preset extrinsic parameters.  We do not have a clear understanding of these
+ * particular extrinsic parameters and do not know how to calibrate them by
+ * hand.
+ *
+ * If you want to perform registration with standard camera extrinsic matrix,
+ * you probably need something else.
+ */
 class LIBFREENECT2_API Registration
 {
 public:
+  /**
+   * @param depth_p Depth camera parameters. You can use the factory values, or use your own.
+   * @param rgb_p Color camera parameters. Probably use the factory values for now.
+   */
   Registration(Freenect2Device::IrCameraParams depth_p, Freenect2Device::ColorCameraParams rgb_p);
   ~Registration();
 
-  // undistort/register a single depth data point
+  /** Undistort and register a single depth point to color camera.
+   * @param dx Distorted depth coordinate x (pixel)
+   * @param dy Distorted depth coordinate y (pixel)
+   * @param dz Depth value (millimeter)
+   * @param[out] cx Undistorted color coordinate x (normalized)
+   * @param[out] cy Undistorted color coordinate y (normalized)
+   */
   void apply(int dx, int dy, float dz, float& cx, float &cy) const;
 
-  // undistort/register a whole image
+  /** Map color images onto depth images
+   * @param rgb Color image (1920x1080 BGRX)
+   * @param depth Depth image (512x424 float)
+   * @param[out] undistorted Undistorted depth image
+   * @param[out] registered Color image for the depth image (512x424)
+   * @param enable_filter Filter out pixels not visible to both cameras.
+   * @param[out] bigdepth If not `NULL`, return mapping of depth onto colors (1920x1082 float). **1082** not 1080, with a blank top and bottom row.
+   * @param[out] color_depth_map Index of mapped color pixel for each depth pixel (512x424).
+   */
   void apply(const Frame* rgb, const Frame* depth, Frame* undistorted, Frame* registered, const bool enable_filter = true, Frame* bigdepth = 0, int* color_depth_map = 0) const;
 
-  // compute point XYZ RGB from undistored and registered frames
+  /** Construct a 3-D point with color in a point cloud.
+   * @param undistorted Undistorted depth frame from apply().
+   * @param registered Registered color frame from apply().
+   * @param r Row (y) index in depth image.
+   * @param c Column (x) index in depth image.
+   * @param[out] x X coordinate of the 3-D point (meter).
+   * @param[out] y Y coordinate of the 3-D point (meter).
+   * @param[out] z Z coordinate of the 3-D point (meter).
+   * @param[out] rgb Color of the 3-D point (BGRX). To unpack the data, use
+   *
+   *     const uint8_t *p = reinterpret_cast<uint8_t*>(&rgb);
+   *     uint8_t b = p[0];
+   *     uint8_t g = p[1];
+   *     uint8_t r = p[2];
+   */
   void getPointXYZRGB (const Frame* undistorted, const Frame* registered, int r, int c, float& x, float& y, float& z, float& rgb) const;
 
 private:

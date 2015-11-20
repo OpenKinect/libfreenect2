@@ -74,7 +74,6 @@ bool SyncMultiFrameListener::hasNewFrame() const
   return impl_->hasNewFrame();
 }
 
-#ifdef LIBFREENECT2_THREADING_STDLIB
 /**
  * Wait for a new set of frames to arrive.
  * @param [out] frame Retrieved frame.
@@ -82,6 +81,7 @@ bool SyncMultiFrameListener::hasNewFrame() const
  */
 bool SyncMultiFrameListener::waitForNewFrame(FrameMap &frame, int milliseconds)
 {
+#ifdef LIBFREENECT2_THREADING_STDLIB
   libfreenect2::unique_lock l(impl_->mutex_);
 
   auto predicate = std::bind(&SyncMultiFrameListenerImpl::hasNewFrame, impl_);
@@ -98,8 +98,11 @@ bool SyncMultiFrameListener::waitForNewFrame(FrameMap &frame, int milliseconds)
   {
     return false;
   }
-}
+#else
+  waitForNewFrame(frame);
+  return true;
 #endif // LIBFREENECT2_THREADING_STDLIB
+}
 
 /**
  * Wait for a new set of frames to arrive.
