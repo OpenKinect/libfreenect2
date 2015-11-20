@@ -7,3 +7,4 @@ FIND_PATH(freenect2_INCLUDE_DIR @PROJECT_NAME@/libfreenect2.hpp
     PATHS @CMAKE_INSTALL_PREFIX@/include
     NO_DEFAULT_PATH
 )
+SET(freenect2_INCLUDE_DIRS ${freenect2_INCLUDE_DIR})
