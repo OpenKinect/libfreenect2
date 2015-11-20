@@ -33,6 +33,7 @@
 #include <stdint.h>
 
 #include <libfreenect2/config.h>
+#include <libfreenect2/libfreenect2.hpp>
 #include <libfreenect2/frame_listener.hpp>
 #include <libfreenect2/packet_processor.h>
 
@@ -54,17 +55,7 @@ typedef PacketProcessor<DepthPacket> BaseDepthPacketProcessor;
 class DepthPacketProcessor : public BaseDepthPacketProcessor
 {
 public:
-  /** Configuration of depth processing. */
-  struct Config
-  {
-    float MinDepth;
-    float MaxDepth;
-
-    bool EnableBilateralFilter; ///< Whether to run the bilateral filter.
-    bool EnableEdgeAwareFilter; ///< Whether to run the edge aware filter.
-
-    Config();
-  };
+  typedef Freenect2Device::Config Config;
 
   /** Parameters of depth processing. */
   struct Parameters

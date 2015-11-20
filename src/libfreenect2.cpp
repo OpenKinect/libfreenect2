@@ -252,6 +252,7 @@ public:
   virtual Freenect2Device::IrCameraParams getIrCameraParams();
   virtual void setColorCameraParams(const Freenect2Device::ColorCameraParams &params);
   virtual void setIrCameraParams(const Freenect2Device::IrCameraParams &params);
+  virtual void setConfiguration(const Freenect2Device::Config &config);
 
   int nextCommandSeq();
 
@@ -604,6 +605,19 @@ void Freenect2DeviceImpl::setIrCameraParams(const Freenect2Device::IrCameraParam
     proc->loadXZTables(&tables.xtable[0], &tables.ztable[0]);
     proc->loadLookupTable(&tables.lut[0]);
   }
+}
+
+Freenect2Device::Config::Config() :
+  MinDepth(0.5f),
+  MaxDepth(4.5f),
+  EnableBilateralFilter(true),
+  EnableEdgeAwareFilter(true) {}
+
+void Freenect2DeviceImpl::setConfiguration(const Freenect2Device::Config &config)
+{
+  DepthPacketProcessor *proc = pipeline_->getDepthPacketProcessor();
+  if (proc != 0)
+    proc->setConfiguration(config);
 }
 
 void Freenect2DeviceImpl::setColorFrameListener(libfreenect2::FrameListener* rgb_frame_listener)
