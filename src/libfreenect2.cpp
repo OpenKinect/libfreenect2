@@ -511,6 +511,8 @@ public:
     }
     return enumerated_devices_.size();
   }
+
+  Freenect2Device *openDevice(int idx, const PacketPipeline *factory, bool attempting_reset);
 };
 
 
@@ -912,12 +914,12 @@ Freenect2Device *Freenect2::openDevice(int idx)
 
 Freenect2Device *Freenect2::openDevice(int idx, const PacketPipeline *pipeline)
 {
-  return openDevice(idx, pipeline, true);
+  return impl_->openDevice(idx, pipeline, true);
 }
 
-Freenect2Device *Freenect2::openDevice(int idx, const PacketPipeline *pipeline, bool attempting_reset)
+Freenect2Device *Freenect2Impl::openDevice(int idx, const PacketPipeline *pipeline, bool attempting_reset)
 {
-  int num_devices = impl_->getNumDevices();
+  int num_devices = getNumDevices();
   Freenect2DeviceImpl *device = 0;
 
   if(idx >= num_devices)
@@ -928,10 +930,10 @@ Freenect2Device *Freenect2::openDevice(int idx, const PacketPipeline *pipeline, 
     return device;
   }
 
-  Freenect2Impl::UsbDeviceWithSerial &dev = impl_->enumerated_devices_[idx];
+  Freenect2Impl::UsbDeviceWithSerial &dev = enumerated_devices_[idx];
   libusb_device_handle *dev_handle;
 
-  if(impl_->tryGetDevice(dev.dev, &device))
+  if(tryGetDevice(dev.dev, &device))
   {
     LOG_WARNING << "device " << PrintBusAndDevice(dev.dev)
         << " is already be open!";
@@ -975,8 +977,8 @@ Freenect2Device *Freenect2::openDevice(int idx, const PacketPipeline *pipeline, 
 
       // reenumerate devices
       LOG_INFO << "re-enumerating devices after reset";
-      impl_->clearDeviceEnumeration();
-      impl_->enumerateDevices();
+      clearDeviceEnumeration();
+      enumerateDevices();
 
       // re-open without reset
       return openDevice(idx, pipeline, false);
@@ -990,8 +992,8 @@ Freenect2Device *Freenect2::openDevice(int idx, const PacketPipeline *pipeline, 
     }
   }
 
-  device = new Freenect2DeviceImpl(impl_, pipeline, dev.dev, dev_handle, dev.serial);
-  impl_->addDevice(device);
+  device = new Freenect2DeviceImpl(this, pipeline, dev.dev, dev_handle, dev.serial);
+  addDevice(device);
 
   if(!device->open())
   {
