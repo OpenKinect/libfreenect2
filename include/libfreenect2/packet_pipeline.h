@@ -39,6 +39,11 @@ class RgbPacketProcessor;
 class DepthPacketProcessor;
 class PacketPipelineComponents;
 
+class ConfigPacketProcessor;
+#ifndef LIBFREENECT2_SETCONFIGURATION_COMPAT_INTERNAL
+#define DepthPacketProcessor ConfigPacketProcessor
+#endif
+
 /** Front of the pipeline, RGB and Depth parsing and processing. */
 class LIBFREENECT2_API PacketPipeline
 {
