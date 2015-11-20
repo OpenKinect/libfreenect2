@@ -39,6 +39,8 @@
 #include <libfreenect2/usb/event_loop.h>
 #include <libfreenect2/usb/transfer_pool.h>
 #include <libfreenect2/packet_pipeline.h>
+#include <libfreenect2/depth_packet_processor.h>
+#include <libfreenect2/rgb_packet_processor.h>
 #include <libfreenect2/protocol/usb_control.h>
 #include <libfreenect2/protocol/command.h>
 #include <libfreenect2/protocol/response.h>

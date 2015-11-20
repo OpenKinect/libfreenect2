@@ -30,13 +30,13 @@
 #define PACKET_PIPELINE_H_
 
 #include <libfreenect2/config.h>
-#include <libfreenect2/depth_packet_processor.h>
-#include <libfreenect2/rgb_packet_processor.h>
 
 namespace libfreenect2
 {
 
 class DataCallback;
+class RgbPacketProcessor;
+class DepthPacketProcessor;
 
 /** Packet pipeline for data processing of the device. */
 class LIBFREENECT2_API PacketPipeline
@@ -52,24 +52,13 @@ public:
   virtual DepthPacketProcessor *getDepthPacketProcessor() const = 0;
 };
 
-class RgbPacketStreamParser;
-class DepthPacketStreamParser;
+class BasePacketPipelineComponents;
 
 /** Front of the pipeline, RGB and Depth parsing and processing. */
 class LIBFREENECT2_API BasePacketPipeline : public PacketPipeline
 {
-protected:
-  RgbPacketStreamParser *rgb_parser_;
-  DepthPacketStreamParser *depth_parser_;
-
-  RgbPacketProcessor *rgb_processor_;
-  BaseRgbPacketProcessor *async_rgb_processor_;
-  DepthPacketProcessor *depth_processor_;
-  BaseDepthPacketProcessor *async_depth_processor_;
-
-  virtual void initialize();
-  virtual DepthPacketProcessor *createDepthPacketProcessor() = 0;
 public:
+  BasePacketPipeline();
   virtual ~BasePacketPipeline();
 
   virtual PacketParser *getRgbPacketParser() const;
@@ -77,13 +66,13 @@ public:
 
   virtual RgbPacketProcessor *getRgbPacketProcessor() const;
   virtual DepthPacketProcessor *getDepthPacketProcessor() const;
+protected:
+  BasePacketPipelineComponents *comp_;
 };
 
 /** Complete pipe line with depth processing by the CPU. */
 class LIBFREENECT2_API CpuPacketPipeline : public BasePacketPipeline
 {
-protected:
-  virtual DepthPacketProcessor *createDepthPacketProcessor();
 public:
   CpuPacketPipeline();
   virtual ~CpuPacketPipeline();
@@ -96,7 +85,6 @@ class LIBFREENECT2_API OpenGLPacketPipeline : public BasePacketPipeline
 protected:
   void *parent_opengl_context_;
   bool debug_;
-  virtual DepthPacketProcessor *createDepthPacketProcessor();
 public:
   OpenGLPacketPipeline(void *parent_opengl_context = 0, bool debug = false);
   virtual ~OpenGLPacketPipeline();
@@ -109,7 +97,6 @@ class LIBFREENECT2_API OpenCLPacketPipeline : public BasePacketPipeline
 {
 protected:
   const int deviceId;
-  virtual DepthPacketProcessor *createDepthPacketProcessor();
 public:
   OpenCLPacketPipeline(const int deviceId = -1);
   virtual ~OpenCLPacketPipeline();

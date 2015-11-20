@@ -39,13 +39,28 @@ PacketPipeline::~PacketPipeline()
 {
 }
 
-void BasePacketPipeline::initialize()
+class BasePacketPipelineComponents
+{
+public:
+  RgbPacketStreamParser *rgb_parser_;
+  DepthPacketStreamParser *depth_parser_;
+
+  RgbPacketProcessor *rgb_processor_;
+  BaseRgbPacketProcessor *async_rgb_processor_;
+  DepthPacketProcessor *depth_processor_;
+  BaseDepthPacketProcessor *async_depth_processor_;
+
+  ~BasePacketPipelineComponents();
+  void initialize(RgbPacketProcessor *rgb, DepthPacketProcessor *depth);
+};
+
+void BasePacketPipelineComponents::initialize(RgbPacketProcessor *rgb, DepthPacketProcessor *depth)
 {
   rgb_parser_ = new RgbPacketStreamParser();
   depth_parser_ = new DepthPacketStreamParser();
 
-  rgb_processor_ = new TurboJpegRgbPacketProcessor();
-  depth_processor_ = createDepthPacketProcessor();
+  rgb_processor_ = rgb;
+  depth_processor_ = depth;
 
   async_rgb_processor_ = new AsyncPacketProcessor<RgbPacket>(rgb_processor_);
   async_depth_processor_ = new AsyncPacketProcessor<DepthPacket>(depth_processor_);
@@ -54,7 +69,7 @@ void BasePacketPipeline::initialize()
   depth_parser_->setPacketProcessor(async_depth_processor_);
 }
 
-BasePacketPipeline::~BasePacketPipeline()
+BasePacketPipelineComponents::~BasePacketPipelineComponents()
 {
   delete async_rgb_processor_;
   delete async_depth_processor_;
@@ -64,54 +79,47 @@ BasePacketPipeline::~BasePacketPipeline()
   delete depth_parser_;
 }
 
+BasePacketPipeline::BasePacketPipeline(): comp_(new BasePacketPipelineComponents()) {}
+
+BasePacketPipeline::~BasePacketPipeline()
+{
+  delete comp_;
+}
+
 BasePacketPipeline::PacketParser *BasePacketPipeline::getRgbPacketParser() const
 {
-  return rgb_parser_;
+  return comp_->rgb_parser_;
 }
 
 BasePacketPipeline::PacketParser *BasePacketPipeline::getIrPacketParser() const
 {
-  return depth_parser_;
+  return comp_->depth_parser_;
 }
 
 RgbPacketProcessor *BasePacketPipeline::getRgbPacketProcessor() const
 {
-  return rgb_processor_;
+  return comp_->rgb_processor_;
 }
 
 DepthPacketProcessor *BasePacketPipeline::getDepthPacketProcessor() const
 {
-  return depth_processor_;
+  return comp_->depth_processor_;
 }
 
 CpuPacketPipeline::CpuPacketPipeline()
 { 
-  initialize();
+  comp_->initialize(new TurboJpegRgbPacketProcessor(), new CpuDepthPacketProcessor());
 }
 
 CpuPacketPipeline::~CpuPacketPipeline() { }
 
-DepthPacketProcessor *CpuPacketPipeline::createDepthPacketProcessor()
-{
-  CpuDepthPacketProcessor *depth_processor = new CpuDepthPacketProcessor();
-  
-  return depth_processor;
-}
-
 #ifdef LIBFREENECT2_WITH_OPENGL_SUPPORT
 OpenGLPacketPipeline::OpenGLPacketPipeline(void *parent_opengl_context, bool debug) : parent_opengl_context_(parent_opengl_context), debug_(debug)
 { 
-  initialize();
+  comp_->initialize(new TurboJpegRgbPacketProcessor(), new OpenGLDepthPacketProcessor(parent_opengl_context_, debug_));
 }
 
 OpenGLPacketPipeline::~OpenGLPacketPipeline() { }
-
-DepthPacketProcessor *OpenGLPacketPipeline::createDepthPacketProcessor()
-{
-  OpenGLDepthPacketProcessor *depth_processor = new OpenGLDepthPacketProcessor(parent_opengl_context_, debug_);
-  
-  return depth_processor;
-}
 #endif // LIBFREENECT2_WITH_OPENGL_SUPPORT
 
 
@@ -119,17 +127,10 @@ DepthPacketProcessor *OpenGLPacketPipeline::createDepthPacketProcessor()
 
 OpenCLPacketPipeline::OpenCLPacketPipeline(const int deviceId) : deviceId(deviceId)
 { 
-  initialize();
+  comp_->initialize(new TurboJpegRgbPacketProcessor(), new OpenCLDepthPacketProcessor(deviceId));
 }
 
 OpenCLPacketPipeline::~OpenCLPacketPipeline() { }
-
-DepthPacketProcessor *OpenCLPacketPipeline::createDepthPacketProcessor()
-{
-  OpenCLDepthPacketProcessor *depth_processor = new OpenCLDepthPacketProcessor(deviceId);
-  
-  return depth_processor;
-}
 #endif // LIBFREENECT2_WITH_OPENCL_SUPPORT
 
 } /* namespace libfreenect2 */
