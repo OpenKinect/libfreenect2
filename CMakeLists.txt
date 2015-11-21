@@ -93,17 +93,17 @@ SET(SOURCES
   include/internal/libfreenect2/logging.h
 
   include/internal/libfreenect2/async_packet_processor.h
-  include/libfreenect2/depth_packet_processor.h
+  include/internal/libfreenect2/depth_packet_processor.h
   include/internal/libfreenect2/depth_packet_stream_parser.h
   include/internal/libfreenect2/double_buffer.h
   include/libfreenect2/frame_listener.hpp
   include/libfreenect2/frame_listener_impl.h
   include/libfreenect2/libfreenect2.hpp
   include/libfreenect2/packet_pipeline.h
-  include/libfreenect2/packet_processor.h
+  include/internal/libfreenect2/packet_processor.h
   include/libfreenect2/registration.h
   include/internal/libfreenect2/resource.h
-  include/libfreenect2/rgb_packet_processor.h
+  include/internal/libfreenect2/rgb_packet_processor.h
   include/internal/libfreenect2/rgb_packet_stream_parser.h
   include/internal/libfreenect2/threading.h
 

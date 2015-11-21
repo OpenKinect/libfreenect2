@@ -32,15 +32,6 @@
 namespace libfreenect2
 {
 
-DepthPacketProcessor::Config::Config() :
-  MinDepth(0.5f),
-  MaxDepth(4.5f),
-  EnableBilateralFilter(true),
-  EnableEdgeAwareFilter(true)
-{
-
-}
-
 DepthPacketProcessor::Parameters::Parameters()
 {
   ab_multiplier = 0.6666667f;

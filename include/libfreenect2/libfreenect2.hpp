@@ -31,12 +31,11 @@
 
 #include <libfreenect2/config.h>
 #include <libfreenect2/frame_listener.hpp>
+#include <libfreenect2/packet_pipeline.h>
 #include <string>
 
 namespace libfreenect2
 {
-
-class PacketPipeline;
 
 /** Device class. */
 class LIBFREENECT2_API Freenect2Device
@@ -82,6 +81,18 @@ public:
     float fx, fy, cx, cy, k1, k2, k3, p1, p2;
   };
 
+  /** Configuration of depth processing. */
+  struct Config
+  {
+    float MinDepth;
+    float MaxDepth;
+
+    bool EnableBilateralFilter; ///< Whether to run the bilateral filter.
+    bool EnableEdgeAwareFilter; ///< Whether to run the edge aware filter.
+
+    Config();
+  };
+
   virtual ~Freenect2Device();
 
   virtual std::string getSerialNumber() = 0;
@@ -91,6 +102,7 @@ public:
   virtual Freenect2Device::IrCameraParams getIrCameraParams() = 0;
   virtual void setColorCameraParams(const Freenect2Device::ColorCameraParams &params) = 0;
   virtual void setIrCameraParams(const Freenect2Device::IrCameraParams &params) = 0;
+  virtual void setConfiguration(const Config &config) = 0;
 
   virtual void setColorFrameListener(libfreenect2::FrameListener* rgb_frame_listener) = 0;
   virtual void setIrAndDepthFrameListener(libfreenect2::FrameListener* ir_frame_listener) = 0;
@@ -98,6 +110,15 @@ public:
   virtual void start() = 0;
   virtual void stop() = 0;
   virtual void close() = 0;
+};
+
+/** @deprecated Use Freenect2Device::setConfiguration() instead.
+ */
+class ConfigPacketProcessor
+{
+public:
+  typedef Freenect2Device::Config Config;
+  LIBFREENECT2_DEPRECATED virtual void setConfiguration(const Config &config) = 0;
 };
 
 class Freenect2Impl;
@@ -128,8 +149,6 @@ public:
 
   Freenect2Device *openDefaultDevice();
   Freenect2Device *openDefaultDevice(const PacketPipeline *factory);
-protected:
-  Freenect2Device *openDevice(int idx, const PacketPipeline *factory, bool attempting_reset);
 private:
   Freenect2Impl *impl_;
 };
