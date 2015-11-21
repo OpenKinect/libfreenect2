@@ -74,11 +74,6 @@ bool SyncMultiFrameListener::hasNewFrame() const
   return impl_->hasNewFrame();
 }
 
-/**
- * Wait for a new set of frames to arrive.
- * @param [out] frame Retrieved frame.
- * @param milliseconds Timeout to wait.
- */
 bool SyncMultiFrameListener::waitForNewFrame(FrameMap &frame, int milliseconds)
 {
 #ifdef LIBFREENECT2_THREADING_STDLIB
@@ -104,10 +99,6 @@ bool SyncMultiFrameListener::waitForNewFrame(FrameMap &frame, int milliseconds)
 #endif // LIBFREENECT2_THREADING_STDLIB
 }
 
-/**
- * Wait for a new set of frames to arrive.
- * @param [out] frame Retrieved frame.
- */
 void SyncMultiFrameListener::waitForNewFrame(FrameMap &frame)
 {
   libfreenect2::unique_lock l(impl_->mutex_);
@@ -122,10 +113,6 @@ void SyncMultiFrameListener::waitForNewFrame(FrameMap &frame)
   impl_->ready_frame_types_ = 0;
 }
 
-/**
- * Free the frames from the synchronized set.
- * @param [inout] frame Frames to release.
- */
 void SyncMultiFrameListener::release(FrameMap &frame)
 {
   for(FrameMap::iterator it = frame.begin(); it != frame.end(); ++it)
@@ -137,11 +124,6 @@ void SyncMultiFrameListener::release(FrameMap &frame)
   frame.clear();
 }
 
-/**
- * Merge an arriving frame into the synchronized set.
- * @param type Type of the new frame.
- * @param frame Received frame.
- */
 bool SyncMultiFrameListener::onNewFrame(Frame::Type type, Frame *frame)
 {
   if((impl_->subscribed_frame_types_ & type) == 0) return false;

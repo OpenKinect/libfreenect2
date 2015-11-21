@@ -59,6 +59,9 @@ public:
    * `LIBFREENECT2_LOGGER_LEVEL` can contain a case-insensitive name of level.
    */
   static Level getDefaultLevel();
+
+  /** Convert logging level to a human-readable name.
+   */
   static std::string level2str(Level level);
 
   virtual ~Logger();

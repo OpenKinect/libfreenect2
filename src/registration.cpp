@@ -103,9 +103,6 @@ void RegistrationImpl::depth_to_color(float mx, float my, float& rx, float& ry) 
   ry = (wy / color_q) + color.cy;
 }
 
-/**
- * Undistort/register a single depth data point
- */
 void Registration::apply( int dx, int dy, float dz, float& cx, float &cy) const
 {
   impl_->apply(dx, dy, dz, cx, cy);
@@ -121,18 +118,6 @@ void RegistrationImpl::apply( int dx, int dy, float dz, float& cx, float &cy) co
   cx = rx * color.fx + color.cx;
 }
 
-/**
- * Map color pixels onto depth data, giving an \a registered output image.
- * Optionally, the inverse map can also be obtained through \a bigdepth.
- * @param rgb RGB color image (1920x1080).
- * @param depth Depth image (512x424)
- * @param [out] undistorted Undistorted depth image.
- * @param [out] registered Image color image for the depth data (512x424).
- * @param enable_filter Use a depth buffer to remove pixels which are not visible to both cameras.
- * @param [out] bigdepth If not \c NULL, mapping of depth onto colors (1920x1082 'float' frame).
- * @param [out] color_depth_map If not \c NULL, map (512x424) for storing the color offset for each depth pixel.
- * @note The \a bigdepth frame has a blank top and bottom row.
- */
 void Registration::apply(const Frame *rgb, const Frame *depth, Frame *undistorted, Frame *registered, const bool enable_filter, Frame *bigdepth, int *color_depth_map) const
 {
   impl_->apply(rgb, depth, undistorted, registered, enable_filter, bigdepth, color_depth_map);
@@ -286,18 +271,6 @@ void RegistrationImpl::apply(const Frame *rgb, const Frame *depth, Frame *undist
   if (!color_depth_map) delete[] depth_to_c_off;
 }
 
-/**
- * Computes Euclidean coordinates of a pixel and its color from already registered
- * depth and color frames. I.e. constructs a point to fill a point cloud.
- * @param undistorted Undistorted depth frame from Registration::apply.
- * @param registered Registered color frame from Registration::apply.
- * @param r row index of depth frame this point belong to.
- * @param c column index of depth frame this point belong to.
- * @param[out] x x coordinate of point.
- * @param[out] y y coordinate of point.
- * @param[out] z z coordinate of point.
- * @param[out] RGB associated rgb color of point.
- */
 void Registration::getPointXYZRGB (const Frame* undistorted, const Frame* registered, int r, int c, float& x, float& y, float& z, float& rgb) const
 {
   impl_->getPointXYZRGB(undistorted, registered, r, c, x, y, z, rgb);
