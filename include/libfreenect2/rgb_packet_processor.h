@@ -47,6 +47,10 @@ struct LIBFREENECT2_API RgbPacket
   uint32_t timestamp;
   unsigned char *jpeg_buffer; ///< JPEG data.
   size_t jpeg_buffer_length;  ///< Length of the JPEG data.
+  float exposure;
+  float gain;
+  float gamma;
+
 };
 
 typedef PacketProcessor<RgbPacket> BaseRgbPacketProcessor;
