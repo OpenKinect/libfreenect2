@@ -211,7 +211,7 @@ sudo apt-get install build-essential cmake pkg-config libturbojpeg libjpeg-turbo
 
 1. Install libusb. `sudo apt-get install libusb-1.0-0-dev`. The version must be >=1.0.20. You may use `sudo apt-add-repository ppa:floe/libusb` if version 1.0.20 is not available.
 
-1. Install GLFW3. If `sudo apt-get install libglfw3-dev` is not available (e.g. Ubuntu trusty 14.04), you can download and install deb files from later Ubuntu releases:
+1. Install GLFW3, only if OpenGL 3.1 is supported (Odroid XU4 does not support it and you should use `cmake -DENABLE_OPENGL=OFF`). Try `sudo apt-get install libglfw3-dev`, if that is not available (e.g. Ubuntu trusty 14.04), you can download and install deb files from later Ubuntu releases:
 
     ```bash
 cd libfreenect2/depends
@@ -224,7 +224,10 @@ sudo dpkg -i libglfw3*_3.0.4-1_*.deb
   * OpenCL ICD loader: if you have `ocl-icd-libopencl1` (provides libOpenCL.so) installed, you are recommended but not required to update it to 2.2.4+ using later releases. Early versions have a deadlock bug that may cause hanging.
   * AMD GPU: Install the latest version of the AMD Catalyst drivers from https://support.amd.com and `apt-get install opencl-headers`.
   * Nvidia GPU: Install the latest version of the Nvidia drivers, for example nvidia-346 from `ppa:xorg-edgers` and `apt-get install opencl-headers`. Make sure that `dpkg -S libOpenCL.so` shows `ocl-icd-libopencl1` instead of nvidia opencl packages which are incompatible with `opencl-headers`. CUDA toolkit is not required for OpenCL.
-  * Intel GPU (kernel 3.16+ recommended): Install beignet-dev 1.0+, `apt-get install beignet-dev`. If not available, use this ppa `sudo apt-add-repository ppa:pmjdebruijn/beignet-testing`. Do not install `beignet` which has version 0.3.
+  * Intel GPU (kernel 3.16+ recommended): Install beignet-dev 1.0+, `apt-get install beignet-dev`. If not available, use this ppa `sudo apt-add-repository ppa:pmjdebruijn/beignet-testing`. Do not install `beignet` which has version 0.3. Beignet is in active development for new Intel hardware and you may run into issues. Be sure to check out known issues and solutions here: http://www.freedesktop.org/wiki/Software/Beignet/ .
+  * Nvidia discrete/Intel integrated GPUs: this gets tricky, but the rule of thumb is to make sure the actually used OpenCL headers and the driver libraries have matching versions.
+  * Mali GPU (e.g. Odroid XU4): (with root) `mkdir -p /etc/OpenCL/vendors; echo /usr/lib/arm-linux-gnueabihf/mali-egl/libmali.so >/etc/OpenCL/vendors/mali.icd; apt-get install opencl-headers`.
+  * Verify: You can install `clinfo` to verify if you have correctly set up the OpenCL stack.
 
 1. Build the actual protonect executable
 
