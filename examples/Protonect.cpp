@@ -48,6 +48,27 @@ void sigint_handler(int s)
   protonect_shutdown = true;
 }
 
+bool protonect_paused = false;
+libfreenect2::Freenect2Device *devtopause;
+
+//Doing non-trivial things in signal handler is bad. If you want to pause,
+//do it in another thread.
+//Though libusb operations are generally thread safe, I cannot guarantee
+//everything above is thread safe when calling start()/stop() while
+//waitForNewFrame().
+void sigusr1_handler(int s)
+{
+  if (devtopause == 0)
+    return;
+/// [pause]
+  if (protonect_paused)
+    devtopause->start();
+  else
+    devtopause->stop();
+  protonect_paused = !protonect_paused;
+/// [pause]
+}
+
 //The following demostrates how to create a custom logger
 /// [logger]
 #include <fstream>
@@ -91,6 +112,7 @@ int main(int argc, char *argv[])
   std::string program_path(argv[0]);
   std::cerr << "Environment variables: LOGFILE=<protonect.log>" << std::endl;
   std::cerr << "Usage: " << program_path << " [gl | cl | cpu] [<device serial>] [-noviewer]" << std::endl;
+  std::cerr << "To pause and unpause: pkill -USR1 Protonect" << std::endl;
   size_t executable_name_idx = program_path.rfind("Protonect");
 
   std::string binpath = "/";
@@ -193,7 +215,12 @@ int main(int argc, char *argv[])
     return -1;
   }
 
+  devtopause = dev;
+
   signal(SIGINT,sigint_handler);
+#ifdef SIGUSR1
+  signal(SIGUSR1, sigusr1_handler);
+#endif
   protonect_shutdown = false;
 
 /// [listeners]

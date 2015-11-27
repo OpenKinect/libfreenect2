@@ -224,6 +224,20 @@ If you are finished and no longer need to receive more frames, you can stop
 the device and exit.
 
 @snippet Protonect.cpp stop
+
+Pause the Device
+----------------
+
+You can also temporarily pause the device with
+[stop()](@ref libfreenect2::Freenect2Device::stop) and
+[start()](@ref libfreenect2::Freenect2Device::start).
+
+@snippet Protonect.cpp pause
+
+Doing this during `waitForNewFrame()` should be thread safe, and tests also
+show well. But a guarantee of thread safety has not been checked yet.
+
+THE END.
 */
 
 namespace libfreenect2
