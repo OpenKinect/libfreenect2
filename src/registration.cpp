@@ -49,7 +49,7 @@ public:
   RegistrationImpl(Freenect2Device::IrCameraParams depth_p, Freenect2Device::ColorCameraParams rgb_p);
 
   void apply(int dx, int dy, float dz, float& cx, float &cy) const;
-  void apply(const Frame* rgb, const Frame* depth, Frame* undistorted, Frame* registered, const bool enable_filter, Frame* bigdepth, int* color_depth_map = 0) const;
+  void apply(const Frame* rgb, const Frame* depth, Frame* undistorted, Frame* registered, const bool enable_filter, Frame* bigdepth, int* color_depth_map) const;
   void getPointXYZRGB (const Frame* undistorted, const Frame* registered, int r, int c, float& x, float& y, float& z, float& rgb) const;
   void distort(int mx, int my, float& dx, float& dy) const;
   void depth_to_color(float mx, float my, float& rx, float& ry) const;
@@ -135,7 +135,7 @@ void RegistrationImpl::apply( int dx, int dy, float dz, float& cx, float &cy) co
  */
 void Registration::apply(const Frame *rgb, const Frame *depth, Frame *undistorted, Frame *registered, const bool enable_filter, Frame *bigdepth, int *color_depth_map) const
 {
-  impl_->apply(rgb, depth, undistorted, registered, enable_filter, bigdepth);
+  impl_->apply(rgb, depth, undistorted, registered, enable_filter, bigdepth, color_depth_map);
 }
 
 void RegistrationImpl::apply(const Frame *rgb, const Frame *depth, Frame *undistorted, Frame *registered, const bool enable_filter, Frame *bigdepth, int *color_depth_map) const
