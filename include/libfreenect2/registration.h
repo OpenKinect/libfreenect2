@@ -50,7 +50,7 @@ public:
   void apply(int dx, int dy, float dz, float& cx, float &cy) const;
 
   // undistort/register a whole image
-  void apply(const Frame* rgb, const Frame* depth, Frame* undistorted, Frame* registered, const bool enable_filter = true, Frame* bigdepth = 0) const;
+  void apply(const Frame* rgb, const Frame* depth, Frame* undistorted, Frame* registered, const bool enable_filter = true, Frame* bigdepth = 0, int* color_depth_map = 0) const;
 
   // compute point XYZ RGB from undistored and registered frames
   void getPointXYZRGB (const Frame* undistorted, const Frame* registered, int r, int c, float& x, float& y, float& z, float& rgb) const;

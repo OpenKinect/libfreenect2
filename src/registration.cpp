@@ -130,9 +130,10 @@ void RegistrationImpl::apply( int dx, int dy, float dz, float& cx, float &cy) co
  * @param [out] registered Image color image for the depth data (512x424).
  * @param enable_filter Use a depth buffer to remove pixels which are not visible to both cameras.
  * @param [out] bigdepth If not \c NULL, mapping of depth onto colors (1920x1082 'float' frame).
+ * @param [out] color_depth_map If not \c NULL, map (512x424) for storing the color offset for each depth pixel.
  * @note The \a bigdepth frame has a blank top and bottom row.
  */
-void Registration::apply(const Frame *rgb, const Frame *depth, Frame *undistorted, Frame *registered, const bool enable_filter, Frame *bigdepth) const
+void Registration::apply(const Frame *rgb, const Frame *depth, Frame *undistorted, Frame *registered, const bool enable_filter, Frame *bigdepth, int *color_depth_map) const
 {
   impl_->apply(rgb, depth, undistorted, registered, enable_filter, bigdepth);
 }
@@ -171,7 +172,7 @@ void RegistrationImpl::apply(const Frame *rgb, const Frame *depth, Frame *undist
   float *p_filter_map = NULL;
 
   // map for storing the color offset for each depth pixel
-  int *depth_to_c_off = new int[size_depth];
+  int *depth_to_c_off = color_depth_map ? color_depth_map : new int[size_depth];
   int *map_c_off = depth_to_c_off;
 
   // initializing the depth_map with values outside of the Kinect2 range
@@ -282,7 +283,7 @@ void RegistrationImpl::apply(const Frame *rgb, const Frame *depth, Frame *undist
       *registered_data = c_off < 0 ? 0 : *(rgb_data + c_off);
     }
   }
-  delete[] depth_to_c_off;
+  if (!color_depth_map) delete[] depth_to_c_off;
 }
 
 /**
