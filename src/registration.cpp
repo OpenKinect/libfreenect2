@@ -49,7 +49,7 @@ public:
   RegistrationImpl(Freenect2Device::IrCameraParams depth_p, Freenect2Device::ColorCameraParams rgb_p);
 
   void apply(int dx, int dy, float dz, float& cx, float &cy) const;
-  void apply(const Frame* rgb, const Frame* depth, Frame* undistorted, Frame* registered, const bool enable_filter, Frame* bigdepth) const;
+  void apply(const Frame* rgb, const Frame* depth, Frame* undistorted, Frame* registered, const bool enable_filter, Frame* bigdepth, int* color_depth_map = 0) const;
   void getPointXYZRGB (const Frame* undistorted, const Frame* registered, int r, int c, float& x, float& y, float& z, float& rgb) const;
   void distort(int mx, int my, float& dx, float& dy) const;
   void depth_to_color(float mx, float my, float& rx, float& ry) const;
@@ -138,7 +138,7 @@ void Registration::apply(const Frame *rgb, const Frame *depth, Frame *undistorte
   impl_->apply(rgb, depth, undistorted, registered, enable_filter, bigdepth);
 }
 
-void RegistrationImpl::apply(const Frame *rgb, const Frame *depth, Frame *undistorted, Frame *registered, const bool enable_filter, Frame *bigdepth) const
+void RegistrationImpl::apply(const Frame *rgb, const Frame *depth, Frame *undistorted, Frame *registered, const bool enable_filter, Frame *bigdepth, int *color_depth_map) const
 {
   // Check if all frames are valid and have the correct size
   if (!rgb || !depth || !undistorted || !registered ||
