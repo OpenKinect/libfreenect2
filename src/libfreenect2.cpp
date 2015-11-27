@@ -683,9 +683,9 @@ void Freenect2DeviceImpl::start()
   command_tx_.execute(ReadFirmwareVersionsCommand(nextCommandSeq()), firmware_result);
   firmware_ = FirmwareVersionResponse(firmware_result.data, firmware_result.length).toString();
 
-  command_tx_.execute(ReadData0x14Command(nextCommandSeq()), result);
-  LOG_DEBUG << "ReadData0x14 response";
-  LOG_DEBUG << GenericResponse(result.data, result.length).toString();
+  command_tx_.execute(ReadHardwareInfoCommand(nextCommandSeq()), result);
+  //The hardware version is currently useless.  It is only used to select the
+  //IR normalization table, but we don't have that.
 
   command_tx_.execute(ReadSerialNumberCommand(nextCommandSeq()), serial_result);
   std::string new_serial = SerialNumberResponse(serial_result.data, serial_result.length).toString();
@@ -749,17 +749,28 @@ void Freenect2DeviceImpl::start()
   rgb_camera_params_.my_x0y0 = rgb_p->my_x0y0; // 1
   setColorCameraParams(rgb_camera_params_);
 
-  command_tx_.execute(ReadStatus0x090000Command(nextCommandSeq()), result);
-  LOG_DEBUG << "ReadStatus0x090000 response";
-  LOG_DEBUG << GenericResponse(result.data, result.length).toString();
+  command_tx_.execute(SetModeEnabledWith0x00640064Command(nextCommandSeq()), result);
+  command_tx_.execute(SetModeDisabledCommand(nextCommandSeq()), result);
+
+  for (uint32_t status = 0, last = 0; (status & 1) == 0; last = status)
+  {
+    command_tx_.execute(ReadStatus0x090000Command(nextCommandSeq()), result);
+    if (result.length < sizeof(uint32_t))
+      continue; //TODO should report error
+    status = *reinterpret_cast<const uint32_t *>(result.data);
+    if (status != last)
+      LOG_DEBUG << "status 0x090000: " << status;
+    if ((status & 1) == 0)
+      this_thread::sleep_for(chrono::milliseconds(100));
+  }
 
   command_tx_.execute(InitStreamsCommand(nextCommandSeq()), result);
 
   usb_control_.setIrInterfaceState(UsbControl::Enabled);
 
   command_tx_.execute(ReadStatus0x090000Command(nextCommandSeq()), result);
-  LOG_DEBUG << "ReadStatus0x090000 response";
-  LOG_DEBUG << GenericResponse(result.data, result.length).toString();
+  if (result.length >= sizeof(uint32_t))
+    LOG_DEBUG << "status 0x090000: " << *reinterpret_cast<const uint32_t *>(result.data);
 
   command_tx_.execute(SetStreamEnabledCommand(nextCommandSeq()), result);
 
@@ -813,8 +824,14 @@ void Freenect2DeviceImpl::stop()
   usb_control_.setIrInterfaceState(UsbControl::Disabled);
 
   CommandTransaction::Result result;
-  command_tx_.execute(Unknown0x0ACommand(nextCommandSeq()), result);
+  command_tx_.execute(SetModeEnabledWith0x00640064Command(nextCommandSeq()), result);
+  command_tx_.execute(SetModeDisabledCommand(nextCommandSeq()), result);
+  command_tx_.execute(StopCommand(nextCommandSeq()), result);
   command_tx_.execute(SetStreamDisabledCommand(nextCommandSeq()), result);
+  command_tx_.execute(SetModeEnabledCommand(nextCommandSeq()), result);
+  command_tx_.execute(SetModeDisabledCommand(nextCommandSeq()), result);
+  command_tx_.execute(SetModeEnabledCommand(nextCommandSeq()), result);
+  command_tx_.execute(SetModeDisabledCommand(nextCommandSeq()), result);
 
   usb_control_.setVideoTransferFunctionState(UsbControl::Disabled);
 
@@ -836,6 +853,11 @@ void Freenect2DeviceImpl::close()
   {
     stop();
   }
+
+  CommandTransaction::Result result;
+  command_tx_.execute(SetModeEnabledWith0x00640064Command(nextCommandSeq()), result);
+  command_tx_.execute(SetModeDisabledCommand(nextCommandSeq()), result);
+  command_tx_.execute(ShutdownCommand(nextCommandSeq()), result);
 
   if(pipeline_->getRgbPacketProcessor() != 0)
     pipeline_->getRgbPacketProcessor()->setFrameListener(0);
