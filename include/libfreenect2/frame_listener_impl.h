@@ -36,27 +36,40 @@
 
 namespace libfreenect2
 {
+///@addtogroup frame
+///@{
 
-/** Storage of frames by type. */
+/** Storage of multiple different types of frames. */
 typedef std::map<Frame::Type, Frame*> FrameMap;
 
 class SyncMultiFrameListenerImpl;
 
-/** Class for collecting and combining frames from different sources. */
+/** Collect multiple types of frames. */
 class LIBFREENECT2_API SyncMultiFrameListener : public FrameListener
 {
 public:
+  /**
+   * @param frame_types Use bitwise or to combine multiple types, e.g. `Frame::Ir | Frame::Depth`.
+   */
   SyncMultiFrameListener(unsigned int frame_types);
   virtual ~SyncMultiFrameListener();
 
+  /** Test if there are new frames. Non-blocking. */
   bool hasNewFrame() const;
 
-#ifdef  LIBFREENECT2_THREADING_STDLIB
+  /** Wait milliseconds for new frames.
+   * @param[out] frame Caller is responsible to release the frames.
+   * @param milliseconds Timeout. This parameter is ignored if not built with C++11 threading support.
+   * @return true if a frame is received; false if not.
+   */
   bool waitForNewFrame(FrameMap &frame, int milliseconds);
-#endif // LIBFREENECT2_THREADING_STDLIB
-  // for now the caller is responsible to release the frames when he is done
+
+  /** Wait indefinitely for new frames.
+   * @param[out] frame Caller is responsible to release the frames.
+   */
   void waitForNewFrame(FrameMap &frame);
 
+  /** Shortcut to delete all frames */
   void release(FrameMap &frame);
 
   virtual bool onNewFrame(Frame::Type type, Frame *frame);
@@ -64,5 +77,6 @@ private:
   SyncMultiFrameListenerImpl *impl_;
 };
 
+///@}
 } /* namespace libfreenect2 */
 #endif /* FRAME_LISTENER_IMPL_H_ */

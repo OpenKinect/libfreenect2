@@ -44,7 +44,16 @@ class ConfigPacketProcessor;
 #define DepthPacketProcessor ConfigPacketProcessor
 #endif
 
-/** Front of the pipeline, RGB and Depth parsing and processing. */
+/** @defgroup pipeline Packet Pipelines
+ * Implement various methods to decode color and depth images with different performance and platform support
+ *
+ * You can construct a specific PacketPipeline object and provide it to Freenect2::openDevice().
+ */
+///@{
+
+/** Base class for other pipeline classes.
+ * Methods in this class are reserved for internal use.
+ */
 class LIBFREENECT2_API PacketPipeline
 {
 public:
@@ -62,7 +71,7 @@ protected:
   PacketPipelineComponents *comp_;
 };
 
-/** Complete pipe line with depth processing by the CPU. */
+/** Pipeline with CPU depth processing. */
 class LIBFREENECT2_API CpuPacketPipeline : public PacketPipeline
 {
 public:
@@ -71,7 +80,7 @@ public:
 };
 
 #ifdef LIBFREENECT2_WITH_OPENGL_SUPPORT
-/** Complete pipe line with depth processing with OpenGL. */
+/** Pipeline with OpenGL depth processing. */
 class LIBFREENECT2_API OpenGLPacketPipeline : public PacketPipeline
 {
 protected:
@@ -84,7 +93,7 @@ public:
 #endif // LIBFREENECT2_WITH_OPENGL_SUPPORT
 
 #ifdef LIBFREENECT2_WITH_OPENCL_SUPPORT
-/** Complete pipe line with depth processing with OpenCL. */
+/** Pipeline with OpenCL depth processing. */
 class LIBFREENECT2_API OpenCLPacketPipeline : public PacketPipeline
 {
 protected:
@@ -95,6 +104,6 @@ public:
 };
 #endif // LIBFREENECT2_WITH_OPENCL_SUPPORT
 
-
+///@}
 } /* namespace libfreenect2 */
 #endif /* PACKET_PIPELINE_H_ */
