@@ -30,73 +30,62 @@
 #define PACKET_PIPELINE_H_
 
 #include <libfreenect2/config.h>
-#include <libfreenect2/depth_packet_processor.h>
-#include <libfreenect2/rgb_packet_processor.h>
 
 namespace libfreenect2
 {
 
 class DataCallback;
+class RgbPacketProcessor;
+class DepthPacketProcessor;
+class PacketPipelineComponents;
 
-/** Packet pipeline for data processing of the device. */
+class ConfigPacketProcessor;
+#ifndef LIBFREENECT2_SETCONFIGURATION_COMPAT_INTERNAL
+#define DepthPacketProcessor ConfigPacketProcessor
+#endif
+
+/** @defgroup pipeline Packet Pipelines
+ * Implement various methods to decode color and depth images with different performance and platform support
+ *
+ * You can construct a specific PacketPipeline object and provide it to Freenect2::openDevice().
+ */
+///@{
+
+/** Base class for other pipeline classes.
+ * Methods in this class are reserved for internal use.
+ */
 class LIBFREENECT2_API PacketPipeline
 {
 public:
   typedef DataCallback PacketParser;
+
+  PacketPipeline();
   virtual ~PacketPipeline();
-
-  virtual PacketParser *getRgbPacketParser() const = 0;
-  virtual PacketParser *getIrPacketParser() const = 0;
-
-  virtual RgbPacketProcessor *getRgbPacketProcessor() const = 0;
-  virtual DepthPacketProcessor *getDepthPacketProcessor() const = 0;
-};
-
-class RgbPacketStreamParser;
-class DepthPacketStreamParser;
-
-/** Front of the pipeline, RGB and Depth parsing and processing. */
-class LIBFREENECT2_API BasePacketPipeline : public PacketPipeline
-{
-protected:
-  RgbPacketStreamParser *rgb_parser_;
-  DepthPacketStreamParser *depth_parser_;
-
-  RgbPacketProcessor *rgb_processor_;
-  BaseRgbPacketProcessor *async_rgb_processor_;
-  DepthPacketProcessor *depth_processor_;
-  BaseDepthPacketProcessor *async_depth_processor_;
-
-  virtual void initialize();
-  virtual DepthPacketProcessor *createDepthPacketProcessor() = 0;
-public:
-  virtual ~BasePacketPipeline();
 
   virtual PacketParser *getRgbPacketParser() const;
   virtual PacketParser *getIrPacketParser() const;
 
   virtual RgbPacketProcessor *getRgbPacketProcessor() const;
   virtual DepthPacketProcessor *getDepthPacketProcessor() const;
+protected:
+  PacketPipelineComponents *comp_;
 };
 
-/** Complete pipe line with depth processing by the CPU. */
-class LIBFREENECT2_API CpuPacketPipeline : public BasePacketPipeline
+/** Pipeline with CPU depth processing. */
+class LIBFREENECT2_API CpuPacketPipeline : public PacketPipeline
 {
-protected:
-  virtual DepthPacketProcessor *createDepthPacketProcessor();
 public:
   CpuPacketPipeline();
   virtual ~CpuPacketPipeline();
 };
 
 #ifdef LIBFREENECT2_WITH_OPENGL_SUPPORT
-/** Complete pipe line with depth processing with OpenGL. */
-class LIBFREENECT2_API OpenGLPacketPipeline : public BasePacketPipeline
+/** Pipeline with OpenGL depth processing. */
+class LIBFREENECT2_API OpenGLPacketPipeline : public PacketPipeline
 {
 protected:
   void *parent_opengl_context_;
   bool debug_;
-  virtual DepthPacketProcessor *createDepthPacketProcessor();
 public:
   OpenGLPacketPipeline(void *parent_opengl_context = 0, bool debug = false);
   virtual ~OpenGLPacketPipeline();
@@ -104,18 +93,17 @@ public:
 #endif // LIBFREENECT2_WITH_OPENGL_SUPPORT
 
 #ifdef LIBFREENECT2_WITH_OPENCL_SUPPORT
-/** Complete pipe line with depth processing with OpenCL. */
-class LIBFREENECT2_API OpenCLPacketPipeline : public BasePacketPipeline
+/** Pipeline with OpenCL depth processing. */
+class LIBFREENECT2_API OpenCLPacketPipeline : public PacketPipeline
 {
 protected:
   const int deviceId;
-  virtual DepthPacketProcessor *createDepthPacketProcessor();
 public:
   OpenCLPacketPipeline(const int deviceId = -1);
   virtual ~OpenCLPacketPipeline();
 };
 #endif // LIBFREENECT2_WITH_OPENCL_SUPPORT
 
-
+///@}
 } /* namespace libfreenect2 */
 #endif /* PACKET_PIPELINE_H_ */

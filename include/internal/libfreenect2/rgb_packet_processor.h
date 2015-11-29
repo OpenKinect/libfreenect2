@@ -40,19 +40,23 @@ namespace libfreenect2
 {
 
 /** Packet with JPEG data. */
-struct LIBFREENECT2_API RgbPacket
+struct RgbPacket
 {
   uint32_t sequence;
 
   uint32_t timestamp;
   unsigned char *jpeg_buffer; ///< JPEG data.
   size_t jpeg_buffer_length;  ///< Length of the JPEG data.
+  float exposure;
+  float gain;
+  float gamma;
+
 };
 
 typedef PacketProcessor<RgbPacket> BaseRgbPacketProcessor;
 
 /** JPEG processor. */
-class LIBFREENECT2_API RgbPacketProcessor : public BaseRgbPacketProcessor
+class RgbPacketProcessor : public BaseRgbPacketProcessor
 {
 public:
   RgbPacketProcessor();
@@ -64,7 +68,7 @@ protected:
 };
 
 /** Class for dumping the JPEG information, eg to file. */
-class LIBFREENECT2_API DumpRgbPacketProcessor : public RgbPacketProcessor
+class DumpRgbPacketProcessor : public RgbPacketProcessor
 {
 public:
   DumpRgbPacketProcessor();
@@ -76,7 +80,7 @@ protected:
 class TurboJpegRgbPacketProcessorImpl;
 
 /** Processor to decode JPEG to image, using TurboJpeg. */
-class LIBFREENECT2_API TurboJpegRgbPacketProcessor : public RgbPacketProcessor
+class TurboJpegRgbPacketProcessor : public RgbPacketProcessor
 {
 public:
   TurboJpegRgbPacketProcessor();

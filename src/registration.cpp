@@ -43,7 +43,32 @@ namespace libfreenect2
 static const float depth_q = 0.01;
 static const float color_q = 0.002199;
 
-void Registration::distort(int mx, int my, float& x, float& y) const
+class RegistrationImpl
+{
+public:
+  RegistrationImpl(Freenect2Device::IrCameraParams depth_p, Freenect2Device::ColorCameraParams rgb_p);
+
+  void apply(int dx, int dy, float dz, float& cx, float &cy) const;
+  void apply(const Frame* rgb, const Frame* depth, Frame* undistorted, Frame* registered, const bool enable_filter, Frame* bigdepth, int* color_depth_map) const;
+  void getPointXYZRGB (const Frame* undistorted, const Frame* registered, int r, int c, float& x, float& y, float& z, float& rgb) const;
+  void distort(int mx, int my, float& dx, float& dy) const;
+  void depth_to_color(float mx, float my, float& rx, float& ry) const;
+
+private:
+  Freenect2Device::IrCameraParams depth;    ///< Depth camera parameters.
+  Freenect2Device::ColorCameraParams color; ///< Color camera parameters.
+
+  int distort_map[512 * 424];
+  float depth_to_color_map_x[512 * 424];
+  float depth_to_color_map_y[512 * 424];
+  int depth_to_color_map_yi[512 * 424];
+
+  const int filter_width_half;
+  const int filter_height_half;
+  const float filter_tolerance;
+};
+
+void RegistrationImpl::distort(int mx, int my, float& x, float& y) const
 {
   // see http://en.wikipedia.org/wiki/Distortion_(optics) for description
   float dx = ((float)mx - depth.cx) / depth.fx;
@@ -57,7 +82,7 @@ void Registration::distort(int mx, int my, float& x, float& y) const
   y = depth.fy * (dy * kr + depth.p1 * (r2 + 2 * dy2) + depth.p2 * dxdy2) + depth.cy;
 }
 
-void Registration::depth_to_color(float mx, float my, float& rx, float& ry) const
+void RegistrationImpl::depth_to_color(float mx, float my, float& rx, float& ry) const
 {
   mx = (mx - depth.cx) * depth_q;
   my = (my - depth.cy) * depth_q;
@@ -78,10 +103,12 @@ void Registration::depth_to_color(float mx, float my, float& rx, float& ry) cons
   ry = (wy / color_q) + color.cy;
 }
 
-/**
- * Undistort/register a single depth data point
- */
 void Registration::apply( int dx, int dy, float dz, float& cx, float &cy) const
+{
+  impl_->apply(dx, dy, dz, cx, cy);
+}
+
+void RegistrationImpl::apply( int dx, int dy, float dz, float& cx, float &cy) const
 {
   const int index = dx + dy * 512;
   float rx = depth_to_color_map_x[index];
@@ -91,18 +118,12 @@ void Registration::apply( int dx, int dy, float dz, float& cx, float &cy) const
   cx = rx * color.fx + color.cx;
 }
 
-/**
- * Map color pixels onto depth data, giving an \a registered output image.
- * Optionally, the inverse map can also be obtained through \a bigdepth.
- * @param rgb RGB color image (1920x1080).
- * @param depth Depth image (512x424)
- * @param [out] undistorted Undistorted depth image.
- * @param [out] registered Image color image for the depth data (512x424).
- * @param enable_filter Use a depth buffer to remove pixels which are not visible to both cameras.
- * @param [out] bigdepth If not \c NULL, mapping of depth onto colors (1920x1082 'float' frame).
- * @note The \a bigdepth frame has a blank top and bottom row.
- */
-void Registration::apply(const Frame *rgb, const Frame *depth, Frame *undistorted, Frame *registered, const bool enable_filter, Frame *bigdepth) const
+void Registration::apply(const Frame *rgb, const Frame *depth, Frame *undistorted, Frame *registered, const bool enable_filter, Frame *bigdepth, int *color_depth_map) const
+{
+  impl_->apply(rgb, depth, undistorted, registered, enable_filter, bigdepth, color_depth_map);
+}
+
+void RegistrationImpl::apply(const Frame *rgb, const Frame *depth, Frame *undistorted, Frame *registered, const bool enable_filter, Frame *bigdepth, int *color_depth_map) const
 {
   // Check if all frames are valid and have the correct size
   if (!rgb || !depth || !undistorted || !registered ||
@@ -136,7 +157,7 @@ void Registration::apply(const Frame *rgb, const Frame *depth, Frame *undistorte
   float *p_filter_map = NULL;
 
   // map for storing the color offset for each depth pixel
-  int *depth_to_c_off = new int[size_depth];
+  int *depth_to_c_off = color_depth_map ? color_depth_map : new int[size_depth];
   int *map_c_off = depth_to_c_off;
 
   // initializing the depth_map with values outside of the Kinect2 range
@@ -145,7 +166,7 @@ void Registration::apply(const Frame *rgb, const Frame *depth, Frame *undistorte
     p_filter_map = filter_map + offset_filter_map;
 
     for(float *it = filter_map, *end = filter_map + size_filter_map; it != end; ++it){
-      *it = 65536.0f;
+      *it = std::numeric_limits<float>::infinity();
     }
   }
 
@@ -247,22 +268,15 @@ void Registration::apply(const Frame *rgb, const Frame *depth, Frame *undistorte
       *registered_data = c_off < 0 ? 0 : *(rgb_data + c_off);
     }
   }
-  delete[] depth_to_c_off;
+  if (!color_depth_map) delete[] depth_to_c_off;
 }
 
-/**
- * Computes Euclidean coordinates of a pixel and its color from already registered
- * depth and color frames. I.e. constructs a point to fill a point cloud.
- * @param undistorted Undistorted depth frame from Registration::apply.
- * @param registered Registered color frame from Registration::apply.
- * @param r row index of depth frame this point belong to.
- * @param c column index of depth frame this point belong to.
- * @param[out] x x coordinate of point.
- * @param[out] y y coordinate of point.
- * @param[out] z z coordinate of point.
- * @param[out] RGB associated rgb color of point.
- */
 void Registration::getPointXYZRGB (const Frame* undistorted, const Frame* registered, int r, int c, float& x, float& y, float& z, float& rgb) const
+{
+  impl_->getPointXYZRGB(undistorted, registered, r, c, x, y, z, rgb);
+}
+
+void RegistrationImpl::getPointXYZRGB (const Frame* undistorted, const Frame* registered, int r, int c, float& x, float& y, float& z, float& rgb) const
 {
   const float bad_point = std::numeric_limits<float>::quiet_NaN();
   const float cx(depth.cx), cy(depth.cy);
@@ -288,6 +302,14 @@ void Registration::getPointXYZRGB (const Frame* undistorted, const Frame* regist
 }
 
 Registration::Registration(Freenect2Device::IrCameraParams depth_p, Freenect2Device::ColorCameraParams rgb_p):
+  impl_(new RegistrationImpl(depth_p, rgb_p)) {}
+
+Registration::~Registration()
+{
+  delete impl_;
+}
+
+RegistrationImpl::RegistrationImpl(Freenect2Device::IrCameraParams depth_p, Freenect2Device::ColorCameraParams rgb_p):
   depth(depth_p), color(rgb_p), filter_width_half(2), filter_height_half(1), filter_tolerance(0.01f)
 {
   float mx, my;

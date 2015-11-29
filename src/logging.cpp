@@ -76,11 +76,6 @@ Logger::Level Logger::level() const
   return level_;
 }
 
-/**
- * Convert logging level to a human-readable name.
- * @param l Logging level to convert.
- * @return Human readable name for the logging level.
- */
 std::string Logger::level2str(Level l)
 {
   switch(l)

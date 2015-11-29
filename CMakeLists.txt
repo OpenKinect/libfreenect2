@@ -93,17 +93,17 @@ SET(SOURCES
   include/internal/libfreenect2/logging.h
 
   include/internal/libfreenect2/async_packet_processor.h
-  include/libfreenect2/depth_packet_processor.h
+  include/internal/libfreenect2/depth_packet_processor.h
   include/internal/libfreenect2/depth_packet_stream_parser.h
   include/internal/libfreenect2/double_buffer.h
   include/libfreenect2/frame_listener.hpp
   include/libfreenect2/frame_listener_impl.h
   include/libfreenect2/libfreenect2.hpp
   include/libfreenect2/packet_pipeline.h
-  include/libfreenect2/packet_processor.h
+  include/internal/libfreenect2/packet_processor.h
   include/libfreenect2/registration.h
   include/internal/libfreenect2/resource.h
-  include/libfreenect2/rgb_packet_processor.h
+  include/internal/libfreenect2/rgb_packet_processor.h
   include/internal/libfreenect2/rgb_packet_stream_parser.h
   include/internal/libfreenect2/threading.h
 
@@ -257,10 +257,10 @@ INSTALL(FILES "${PROJECT_BINARY_DIR}/freenect2.pc" DESTINATION lib/pkgconfig/)
 
 find_package(Doxygen)
 IF(DOXYGEN_FOUND)
+  CONFIGURE_FILE(Doxyfile.in "${PROJECT_BINARY_DIR}/Doxyfile" @ONLY)
   add_custom_target(
     doc
-    COMMAND "DOXYGEN_OUTPUT_DIR=${PROJECT_BINARY_DIR}/doc" ${DOXYGEN_EXECUTABLE} Doxyfile
-    WORKING_DIRECTORY "${MY_DIR}"
+    COMMAND ${DOXYGEN_EXECUTABLE} Doxyfile
   )
 ENDIF()
 

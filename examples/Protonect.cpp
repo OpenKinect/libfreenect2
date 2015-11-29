@@ -29,11 +29,13 @@
 #include <iostream>
 #include <signal.h>
 
+/// [headers]
 #include <libfreenect2/libfreenect2.hpp>
 #include <libfreenect2/frame_listener_impl.h>
 #include <libfreenect2/registration.h>
 #include <libfreenect2/packet_pipeline.h>
 #include <libfreenect2/logger.h>
+/// [headers]
 #ifdef EXAMPLES_WITH_OPENGL_SUPPORT
 #include "viewer.h"
 #endif
@@ -47,6 +49,7 @@ void sigint_handler(int s)
 }
 
 //The following demostrates how to create a custom logger
+/// [logger]
 #include <fstream>
 #include <cstdlib>
 class MyFileLogger: public libfreenect2::Logger
@@ -69,7 +72,9 @@ public:
     logfile_ << "[" << libfreenect2::Logger::level2str(level) << "] " << message << std::endl;
   }
 };
+/// [logger]
 
+/// [main]
 /**
  * Main application entry point.
  *
@@ -81,6 +86,7 @@ public:
  * - -noviewer Disable viewer window.
  */
 int main(int argc, char *argv[])
+/// [main]
 {
   std::string program_path(argv[0]);
   std::cerr << "Environment variables: LOGFILE=<protonect.log>" << std::endl;
@@ -94,21 +100,28 @@ int main(int argc, char *argv[])
     binpath = program_path.substr(0, executable_name_idx);
   }
 
-  libfreenect2::Freenect2 freenect2;
 #if defined(WIN32) || defined(_WIN32) || defined(__WIN32__)
   // avoid flooing the very slow Windows console with debug messages
   libfreenect2::setGlobalLogger(libfreenect2::createConsoleLogger(libfreenect2::Logger::Info));
 #else
   // create a console logger with debug level (default is console logger with info level)
+/// [logging]
   libfreenect2::setGlobalLogger(libfreenect2::createConsoleLogger(libfreenect2::Logger::Debug));
+/// [logging]
 #endif
+/// [file logging]
   MyFileLogger *filelogger = new MyFileLogger(getenv("LOGFILE"));
   if (filelogger->good())
     libfreenect2::setGlobalLogger(filelogger);
+/// [file logging]
 
+/// [context]
+  libfreenect2::Freenect2 freenect2;
   libfreenect2::Freenect2Device *dev = 0;
   libfreenect2::PacketPipeline *pipeline = 0;
+/// [context]
 
+/// [discovery]
   if(freenect2.enumerateDevices() == 0)
   {
     std::cout << "no device connected!" << std::endl;
@@ -116,6 +129,7 @@ int main(int argc, char *argv[])
   }
 
   std::string serial = freenect2.getDefaultDeviceSerialNumber();
+/// [discovery]
 
   bool viewer_enabled = true;
 
@@ -126,7 +140,9 @@ int main(int argc, char *argv[])
     if(arg == "cpu")
     {
       if(!pipeline)
+/// [pipeline]
         pipeline = new libfreenect2::CpuPacketPipeline();
+/// [pipeline]
     }
     else if(arg == "gl")
     {
@@ -162,7 +178,9 @@ int main(int argc, char *argv[])
 
   if(pipeline)
   {
+/// [open]
     dev = freenect2.openDevice(serial, pipeline);
+/// [open]
   }
   else
   {
@@ -178,18 +196,25 @@ int main(int argc, char *argv[])
   signal(SIGINT,sigint_handler);
   protonect_shutdown = false;
 
+/// [listeners]
   libfreenect2::SyncMultiFrameListener listener(libfreenect2::Frame::Color | libfreenect2::Frame::Ir | libfreenect2::Frame::Depth);
   libfreenect2::FrameMap frames;
-  libfreenect2::Frame undistorted(512, 424, 4), registered(512, 424, 4);
 
   dev->setColorFrameListener(&listener);
   dev->setIrAndDepthFrameListener(&listener);
+/// [listeners]
+
+/// [start]
   dev->start();
 
   std::cout << "device serial: " << dev->getSerialNumber() << std::endl;
   std::cout << "device firmware: " << dev->getFirmwareVersion() << std::endl;
+/// [start]
 
+/// [registration setup]
   libfreenect2::Registration* registration = new libfreenect2::Registration(dev->getIrCameraParams(), dev->getColorCameraParams());
+  libfreenect2::Frame undistorted(512, 424, 4), registered(512, 424, 4);
+/// [registration setup]
 
   size_t framecount = 0;
 #ifdef EXAMPLES_WITH_OPENGL_SUPPORT
@@ -200,14 +225,18 @@ int main(int argc, char *argv[])
   viewer_enabled = false;
 #endif
 
+/// [loop start]
   while(!protonect_shutdown)
   {
     listener.waitForNewFrame(frames);
     libfreenect2::Frame *rgb = frames[libfreenect2::Frame::Color];
     libfreenect2::Frame *ir = frames[libfreenect2::Frame::Ir];
     libfreenect2::Frame *depth = frames[libfreenect2::Frame::Depth];
+/// [loop start]
 
+/// [registration]
     registration->apply(rgb, depth, &undistorted, &registered);
+/// [registration]
 
     framecount++;
     if (!viewer_enabled)
@@ -227,14 +256,18 @@ int main(int argc, char *argv[])
     protonect_shutdown = protonect_shutdown || viewer.render();
 #endif
 
+/// [loop end]
     listener.release(frames);
-    //libfreenect2::this_thread::sleep_for(libfreenect2::chrono::milliseconds(100));
+    /** libfreenect2::this_thread::sleep_for(libfreenect2::chrono::milliseconds(100)); */
   }
+/// [loop end]
 
   // TODO: restarting ir stream doesn't work!
   // TODO: bad things will happen, if frame listeners are freed before dev->stop() :(
+/// [stop]
   dev->stop();
   dev->close();
+/// [stop]
 
   delete registration;
 
