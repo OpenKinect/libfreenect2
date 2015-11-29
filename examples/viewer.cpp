@@ -3,8 +3,8 @@
 
 
 Viewer::Viewer() : shader_folder("src/shader/"), 
-                   win_width(1280), 
-                   win_height(800)
+                   win_width(600),
+                   win_height(400)
 {
     // init glfw - if already initialized nothing happens
     int init = glfwInit();
@@ -35,7 +35,7 @@ void Viewer::initialize()
 #endif
     //glfwWindowHint(GLFW_VISIBLE, debug ? GL_TRUE : GL_FALSE);
 
-    window = glfwCreateWindow(win_width, win_height, "Viewer (press ESC to exit)", 0, NULL);
+    window = glfwCreateWindow(win_width*2, win_height*2, "Viewer (press ESC to exit)", 0, NULL);
     if (window == NULL)
     {
         std::cerr << "Failed to create opengl window." << std::endl;
@@ -122,7 +122,8 @@ void Viewer::winsize_callbackstatic(GLFWwindow* window, int w, int h)
 
 void Viewer::winsize_callback(GLFWwindow* window, int w, int h)
 {
-    win_width = w; win_height = h;
+    win_width = w/2;
+    win_height = h/2;
 }
 
 void Viewer::key_callbackstatic(GLFWwindow* window, int key, int scancode, int action, int mods)
