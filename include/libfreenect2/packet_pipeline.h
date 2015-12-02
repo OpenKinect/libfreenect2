@@ -39,11 +39,6 @@ class RgbPacketProcessor;
 class DepthPacketProcessor;
 class PacketPipelineComponents;
 
-class ConfigPacketProcessor;
-#ifndef LIBFREENECT2_SETCONFIGURATION_COMPAT_INTERNAL
-#define DepthPacketProcessor ConfigPacketProcessor
-#endif
-
 /** @defgroup pipeline Packet Pipelines
  * Implement various methods to decode color and depth images with different performance and platform support
  *

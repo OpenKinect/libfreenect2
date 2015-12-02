@@ -365,19 +365,6 @@ public:
   virtual void close() = 0;
 };
 
-/** Deprecated method to configure packet processors
- * @deprecated Use Freenect2Device::setConfiguration() instead.
- *
- * Usage of `pipeline->getDepthPacketProcessor()->setConfiguration(config)`
- * should be converted to `device->setConfiguration(config)`
- */
-class ConfigPacketProcessor
-{
-public:
-  typedef Freenect2Device::Config Config;
-  LIBFREENECT2_DEPRECATED virtual void setConfiguration(const Config &config) = 0;
-};
-
 class Freenect2Impl;
 
 /**

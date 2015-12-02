@@ -33,7 +33,6 @@
 #include <stdint.h>
 
 #include <libfreenect2/config.h>
-#define LIBFREENECT2_SETCONFIGURATION_COMPAT_INTERNAL
 #include <libfreenect2/libfreenect2.hpp>
 #include <libfreenect2/frame_listener.hpp>
 #include <libfreenect2/packet_processor.h>
@@ -53,7 +52,7 @@ struct DepthPacket
 /** Class for processing depth information. */
 typedef PacketProcessor<DepthPacket> BaseDepthPacketProcessor;
 
-class DepthPacketProcessor : public ConfigPacketProcessor, public BaseDepthPacketProcessor
+class DepthPacketProcessor : public BaseDepthPacketProcessor
 {
 public:
   typedef Freenect2Device::Config Config;
