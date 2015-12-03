@@ -152,6 +152,7 @@ bool Viewer::render()
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     GLint x = 0, y = 0;
+    int fb_width, fb_width_half, fb_height, fb_height_half;
 
     std::map<std::string, libfreenect2::Frame*>::iterator iter;
 
@@ -159,12 +160,17 @@ bool Viewer::render()
     {
         libfreenect2::Frame* frame = iter->second;
 
-        glViewport(x, y, win_width, win_height);
-        x += win_width;
-        if (x >= (win_width * 2))
+        // Using the frame buffer size to account for screens where window.size != framebuffer.size, e.g. retina displays
+        glfwGetFramebufferSize(window, &fb_width, &fb_height);
+        fb_width_half = (fb_width + 1) / 2;
+        fb_height_half = (fb_height + 1) / 2;
+
+        glViewport(x, y, fb_width_half, fb_height_half);
+        x += fb_width_half;
+        if (x >= fb_width)
         {
             x = 0;
-            y += win_height;
+            y += fb_height_half;
         }
 
         float w = static_cast<float>(frame->width);
