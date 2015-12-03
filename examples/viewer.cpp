@@ -167,7 +167,7 @@ bool Viewer::render()
 
         glViewport(x, y, fb_width_half, fb_height_half);
         x += fb_width_half;
-        if (x >= fb_width)
+        if (x >= (fb_width - 1))
         {
             x = 0;
             y += fb_height_half;
