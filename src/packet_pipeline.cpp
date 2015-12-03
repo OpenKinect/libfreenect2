@@ -26,7 +26,6 @@
 
 /** @file packet_pipeline.cpp Packet pipeline implementation. */
 
-#define LIBFREENECT2_SETCONFIGURATION_COMPAT_INTERNAL
 #include <libfreenect2/packet_pipeline.h>
 #include <libfreenect2/async_packet_processor.h>
 #include <libfreenect2/data_callback.h>
