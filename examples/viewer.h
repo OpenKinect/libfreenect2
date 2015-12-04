@@ -271,6 +271,8 @@ private:
     std::map<std::string,libfreenect2::Frame*> frames;
     Texture<F8C4> rgb;
     Texture<F32C1> ir;
+    int win_height;
+    int win_width;
 public:
     Viewer();
     void initialize();
@@ -278,7 +280,9 @@ public:
     bool render();
     void addFrame(std::string id,libfreenect2::Frame* frame);
     void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
+    void winsize_callback(GLFWwindow* window, int w, int h);
     static void key_callbackstatic(GLFWwindow* window, int key, int scancode, int action, int mods);
+    static void winsize_callbackstatic(GLFWwindow* window, int w, int h);
 };
 
 #endif

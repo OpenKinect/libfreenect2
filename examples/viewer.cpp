@@ -1,7 +1,10 @@
 #include "viewer.h"
 #include <cstdlib>
 
-Viewer::Viewer() : shader_folder("src/shader/")
+
+Viewer::Viewer() : shader_folder("src/shader/"), 
+                   win_width(600),
+                   win_height(400)
 {
     // init glfw - if already initialized nothing happens
     int init = glfwInit();
@@ -32,7 +35,7 @@ void Viewer::initialize()
 #endif
     //glfwWindowHint(GLFW_VISIBLE, debug ? GL_TRUE : GL_FALSE);
 
-    window = glfwCreateWindow(1280, 800, "Viewer (press ESC to exit)", 0, NULL);
+    window = glfwCreateWindow(win_width*2, win_height*2, "Viewer (press ESC to exit)", 0, NULL);
     if (window == NULL)
     {
         std::cerr << "Failed to create opengl window." << std::endl;
@@ -106,8 +109,21 @@ void Viewer::initialize()
 
     glfwSetWindowUserPointer(window, this);
     glfwSetKeyCallback(window, Viewer::key_callbackstatic);
+    glfwSetWindowSizeCallback(window, Viewer::winsize_callbackstatic);
 
     shouldStop = false;
+}
+
+void Viewer::winsize_callbackstatic(GLFWwindow* window, int w, int h)
+{
+    Viewer* viewer = reinterpret_cast<Viewer*>(glfwGetWindowUserPointer(window));
+    viewer->winsize_callback(window, w, h);
+}
+
+void Viewer::winsize_callback(GLFWwindow* window, int w, int h)
+{
+    win_width = w/2;
+    win_height = h/2;
 }
 
 void Viewer::key_callbackstatic(GLFWwindow* window, int key, int scancode, int action, int mods)
@@ -135,7 +151,8 @@ bool Viewer::render()
     // wipe the drawing surface clear
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    GLint x = 0, y = 0, width = 600, height = 400;
+    GLint x = 0, y = 0;
+    int fb_width, fb_width_half, fb_height, fb_height_half;
 
     std::map<std::string, libfreenect2::Frame*>::iterator iter;
 
@@ -143,17 +160,29 @@ bool Viewer::render()
     {
         libfreenect2::Frame* frame = iter->second;
 
-        glViewport(x, y, width, height);
-        x += width;
-        if (x >= 1024)
+        // Using the frame buffer size to account for screens where window.size != framebuffer.size, e.g. retina displays
+        glfwGetFramebufferSize(window, &fb_width, &fb_height);
+        fb_width_half = (fb_width + 1) / 2;
+        fb_height_half = (fb_height + 1) / 2;
+
+        glViewport(x, y, fb_width_half, fb_height_half);
+        x += fb_width_half;
+        if (x >= (fb_width - 1))
         {
             x = 0;
-            y += height;
+            y += fb_height_half;
         }
 
-        Vertex bl = { -1.0f, -1.0f, 0.0f, 0.0f }, br = { 1.0f, -1.0f, static_cast<float>(frame->width), 0.0f }, tl = { -1.0f, 1.0f, 0.0f, static_cast<float>(frame->height) }, tr = { 1.0f, 1.0f, static_cast<float>(frame->width), static_cast<float>(frame->height) };
+        float w = static_cast<float>(frame->width);
+        float h = static_cast<float>(frame->height);
+
+        Vertex bl = { -1.0f, -1.0f, 0.0f, 0.0f };
+        Vertex br = { 1.0f, -1.0f, w, 0.0f }; 
+        Vertex tl = { -1.0f, 1.0f, 0.0f, h };
+        Vertex tr = { 1.0f, 1.0f, w, h };
         Vertex vertices[] = {
-            bl, tl, tr, tr, br, bl
+            bl, tl, tr, 
+            tr, br, bl
         };
 
         gl()->glGenBuffers(1, &triangle_vbo);
