@@ -355,14 +355,22 @@ public:
    * All above configuration must only be called before start() or after stop().
    *
    * FrameListener will receive frames when the device is running.
+   *
+   * @return Undefined. To be defined in 0.2.
    */
-  virtual void start() = 0;
+  virtual bool start() = 0;
 
-  /** Stop data processing. */
-  virtual void stop() = 0;
+  /** Stop data processing.
+   *
+   * @return Undefined. To be defined in 0.2.
+   */
+  virtual bool stop() = 0;
 
-  /** Shut down the device. */
-  virtual void close() = 0;
+  /** Shut down the device.
+   *
+   * @return Undefined. To be defined in 0.2.
+   */
+  virtual bool close() = 0;
 };
 
 class Freenect2Impl;

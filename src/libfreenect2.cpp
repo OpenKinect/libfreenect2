@@ -259,9 +259,9 @@ public:
 
   virtual void setColorFrameListener(libfreenect2::FrameListener* rgb_frame_listener);
   virtual void setIrAndDepthFrameListener(libfreenect2::FrameListener* ir_frame_listener);
-  virtual void start();
-  virtual void stop();
-  virtual void close();
+  virtual bool start();
+  virtual bool stop();
+  virtual bool close();
 };
 
 struct PrintBusAndDevice
@@ -671,10 +671,10 @@ bool Freenect2DeviceImpl::open()
   return true;
 }
 
-void Freenect2DeviceImpl::start()
+bool Freenect2DeviceImpl::start()
 {
   LOG_INFO << "starting...";
-  if(state_ != Open) return;
+  if(state_ != Open) return false;
 
   CommandTransaction::Result serial_result, firmware_result, result;
 
@@ -790,16 +790,17 @@ void Freenect2DeviceImpl::start()
 
   state_ = Streaming;
   LOG_INFO << "started";
+  return true;
 }
 
-void Freenect2DeviceImpl::stop()
+bool Freenect2DeviceImpl::stop()
 {
   LOG_INFO << "stopping...";
 
   if(state_ != Streaming)
   {
     LOG_INFO << "already stopped, doing nothing";
-    return;
+    return false;
   }
 
   LOG_INFO << "disabling usb transfer submission...";
@@ -820,16 +821,17 @@ void Freenect2DeviceImpl::stop()
 
   state_ = Open;
   LOG_INFO << "stopped";
+  return true;
 }
 
-void Freenect2DeviceImpl::close()
+bool Freenect2DeviceImpl::close()
 {
   LOG_INFO << "closing...";
 
   if(state_ == Closed)
   {
     LOG_INFO << "already closed, doing nothing";
-    return;
+    return true;
   }
 
   if(state_ == Streaming)
@@ -863,6 +865,7 @@ void Freenect2DeviceImpl::close()
 
   state_ = Closed;
   LOG_INFO << "closed";
+  return true;
 }
 
 PacketPipeline *createDefaultPacketPipeline()
