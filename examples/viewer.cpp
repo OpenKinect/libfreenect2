@@ -225,6 +225,9 @@ bool Viewer::render()
             glDrawArrays(GL_TRIANGLES, 0, 6);
             ir.deallocate();
         }
+
+        gl()->glDeleteBuffers(1, &triangle_vbo);
+        gl()->glDeleteVertexArrays(1, &triangle_vao);
     }
 
     // put the stuff we've been drawing onto the display
