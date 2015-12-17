@@ -44,7 +44,7 @@ namespace libfreenect2
 class LIBFREENECT2_API Frame
 {
   public:
-  /** Available types of frames and their pixel format. */
+  /** Available types of frames. */
   enum Type
   {
     Color = 1, ///< 1920x1080 32-bit BGRX.
@@ -52,15 +52,26 @@ class LIBFREENECT2_API Frame
     Depth = 4  ///< 512x424 float, unit: millimeter. Non-positive, NaN, and infinity are invalid or missing data.
   };
 
-  uint32_t timestamp;     ///< Unit: roughly or exactly 0.1 millisecond
-  uint32_t sequence;      ///< Increasing frame sequence number
+  /** (Proposed for 0.2) Pixel format. */
+  enum Format
+  {
+    BGRX,
+    RGBX,
+    Gray,
+    Float
+  };
+
   size_t width;           ///< Length of a line (in pixels).
   size_t height;          ///< Number of lines in the frame.
   size_t bytes_per_pixel; ///< Number of bytes in a pixel.
   unsigned char* data;    ///< Data of the frame (aligned). @see See Frame::Type for pixel format.
+  uint32_t timestamp;     ///< Unit: roughly or exactly 0.1 millisecond
+  uint32_t sequence;      ///< Increasing frame sequence number
   float exposure;         ///< From 0.5 (very bright) to ~60.0 (fully covered)
   float gain;             ///< From 1.0 (bright) to 1.5 (covered)
   float gamma;            ///< From 1.0 (bright) to 6.4 (covered)
+  uint32_t status;        ///< Reserved. To be defined in 0.2.
+  Format format;          ///< Reserved. To be defined in 0.2.
 
   /** Construct a new frame.
    * @param width Width in pixel
