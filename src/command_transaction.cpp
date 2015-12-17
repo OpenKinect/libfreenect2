@@ -49,7 +49,7 @@ CommandTransaction::Result::~Result()
 
 void CommandTransaction::Result::allocate(size_t size)
 {
-  if (capacity < size)
+  if (capacity != size)
   {
     deallocate();
     data = new unsigned char[size];

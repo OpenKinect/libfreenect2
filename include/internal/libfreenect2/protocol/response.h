@@ -46,7 +46,7 @@ private:
 public:
   SerialNumberResponse(const unsigned char *data, int length)
   {
-    char *c = new char[length / 2];
+    char *c = new char[length / 2 + 1]();
 
     for(int i = 0, j = 0; i < length; i += 2, ++j)
     {
@@ -70,18 +70,16 @@ class FirmwareVersionResponse
 private:
   struct FWSubsystemVersion
   {
-    uint16_t minor;
-    uint16_t major;
-    uint16_t build;
-    uint16_t revision;
-    uint16_t reserved0[4];
+    uint32_t maj_min;
+    uint32_t revision;
+    uint32_t build;
+    uint32_t reserved0;
 
     FWSubsystemVersion()
     {
-      major = 0;
-      minor = 0;
-      build = 0;
+      maj_min = 0;
       revision = 0;
+      build = 0;
     }
   };
 
@@ -92,24 +90,23 @@ public:
     int n = length / sizeof(FWSubsystemVersion);
     const FWSubsystemVersion *sv = reinterpret_cast<const FWSubsystemVersion *>(data);
 
-    for(int i = 0; i < n && sv->major > 0; ++i, ++sv)
+    for(int i = 0; i < 7 && i < n; ++i)
     {
-      versions_.push_back(*sv);
+      versions_.push_back(sv[i]);
     }
   }
 
   std::string toString()
   {
     FWSubsystemVersion max;
-    for(int i = 0; i < versions_.size(); ++i)
-    {
-      max.major = std::max<uint16_t>(max.major, versions_[i].major);
-      max.minor = std::max<uint16_t>(max.minor, versions_[i].minor);
-      max.build = std::max<uint16_t>(max.build, versions_[i].build);
-      max.revision = std::max<uint16_t>(max.revision, versions_[i].revision);
-    }
     std::stringstream version_string;
-    version_string << max.major << "." << max.minor << "." << max.build << "." << max.revision << "." << versions_.size();
+    // the main blob's index
+    int i = 3;
+    if (i < versions_.size())
+    {
+      const FWSubsystemVersion &ver = versions_[i];
+      version_string << (ver.maj_min >> 16) << "." << (ver.maj_min & 0xffff) << "." << ver.revision << "." << ver.build;
+    }
 
     return version_string.str();
   }

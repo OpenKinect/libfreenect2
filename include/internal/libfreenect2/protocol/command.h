@@ -31,7 +31,7 @@
 
 #define KCMD_READ_FIRMWARE_VERSIONS 0x02
 #define KCMD_INIT_STREAMS 0x09
-#define KCMD_READ_DATA_0x14 0x14
+#define KCMD_READ_HARDWARE_INFO 0x14
 #define KCMD_READ_STATUS 0x16
 #define KCMD_READ_DATA_PAGE 0x22
 #define KCMD_READ_DATA_0x26 0x26
@@ -43,7 +43,8 @@
 #define KCMD_0x47 0x47
 
 // observed in sensor stop/shutdown sequence
-#define KCMD_0x0A 0x0A
+#define KCMD_STOP 0x0A
+#define KCMD_SHUTDOWN 0x00
 
 namespace libfreenect2
 {
@@ -166,7 +167,7 @@ struct CommandWith4Params : public Command<CommandId, MaxResponseLength, 4>
 
 typedef CommandWith0Params<0x02, 0x200> ReadFirmwareVersionsCommand;
 
-typedef CommandWith0Params<KCMD_READ_DATA_0x14, 0x5C> ReadData0x14Command;
+typedef CommandWith0Params<KCMD_READ_HARDWARE_INFO, 0x5C> ReadHardwareInfoCommand;
 
 typedef CommandWith0Params<KCMD_INIT_STREAMS, 0x00> InitStreamsCommand;
 
@@ -192,7 +193,8 @@ typedef CommandWith1Param<KCMD_SET_STREAMING, 0x00, 0x01> SetStreamEnabledComman
 typedef CommandWith4Params<KCMD_0x46, 0x00, 0x00, 0x00003840, 0x00000037, 0x00> Unknown0x46Command;
 typedef CommandWith0Params<KCMD_0x47, 0x10> Unknown0x47Command;
 
-typedef CommandWith0Params<KCMD_0x0A, 0x00> Unknown0x0ACommand;
+typedef CommandWith0Params<KCMD_STOP, 0x00> StopCommand;
+typedef CommandWith0Params<KCMD_SHUTDOWN, 0x00> ShutdownCommand;
 
 typedef CommandWith4Params<KCMD_SET_MODE, 0x00, 0x00> SetModeDisabledCommand;
 typedef CommandWith4Params<KCMD_SET_MODE, 0x00, 0x01> SetModeEnabledCommand;

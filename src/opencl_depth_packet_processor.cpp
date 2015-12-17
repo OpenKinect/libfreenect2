@@ -53,6 +53,8 @@
 #define REG_OPENCL_FILE ""
 #endif
 
+#include <cstdlib>
+
 namespace libfreenect2
 {
 
@@ -141,6 +143,11 @@ public:
     , programBuilt(false)
     , programInitialized(false)
   {
+#if _BSD_SOURCE || _POSIX_C_SOURCE >= 200112L || _XOPEN_SOURCE >= 600
+    setenv("OCL_IGNORE_SELF_TEST", "1", 0);
+    setenv("OCL_STRICT_CONFORMANCE", "0", 0);
+#endif
+
     newIrFrame();
     newDepthFrame();
 
