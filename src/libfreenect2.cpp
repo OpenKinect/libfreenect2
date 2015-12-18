@@ -465,6 +465,7 @@ public:
             {
               unsigned char buffer[1024];
               r = libusb_get_string_descriptor_ascii(dev_handle, dev_desc.iSerialNumber, buffer, sizeof(buffer));
+              libusb_close(dev_handle);
 
               if(r > LIBUSB_SUCCESS)
               {
@@ -481,8 +482,6 @@ public:
               {
                 LOG_ERROR << "failed to get serial number of Kinect v2: " << PrintBusAndDevice(dev, r);
               }
-
-              libusb_close(dev_handle);
             }
             else
             {

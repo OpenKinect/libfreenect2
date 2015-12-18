@@ -135,6 +135,8 @@ int main(int argc, char *argv[])
   MyFileLogger *filelogger = new MyFileLogger(getenv("LOGFILE"));
   if (filelogger->good())
     libfreenect2::setGlobalLogger(filelogger);
+  else
+    delete filelogger;
 /// [file logging]
 
 /// [context]

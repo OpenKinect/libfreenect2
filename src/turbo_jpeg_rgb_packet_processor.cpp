@@ -55,6 +55,8 @@ public:
 
   ~TurboJpegRgbPacketProcessorImpl()
   {
+    delete frame;
+
     if(decompressor != 0)
     {
       if(tjDestroy(decompressor) == -1)
