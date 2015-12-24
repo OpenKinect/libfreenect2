@@ -10,7 +10,7 @@
 * [Installation](README.md#installation)
   * [Windows / Visual Studio](README.md#windows--visual-studio)
   * [MacOS X](README.md#mac-osx)
-  * [Debian/Ubuntu 14.04](README.md#debianubuntu-14.04)
+  * [Debian/Ubuntu 14.04](README.md#debianubuntu-1404)
 
 ## Description
 Driver for Kinect for Windows v2 (K4W2) devices (release and developer preview).
