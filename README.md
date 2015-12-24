@@ -3,11 +3,11 @@
 ## Table of Contents
 
 * [API Documentation (external)](https://openkinect.github.io/libfreenect2/)
-* [Description](README.md#Description)
-* [Requirements](README.md#Requirements)
-* [FAQ](README.md#FAQ)
-* [Maintainers](README.md#Maintainers)
-* [Installation](README.md#Installation)
+* [Description](README.md#description)
+* [Requirements](README.md#requirements)
+* [FAQ](README.md#faq)
+* [Maintainers](README.md#maintainers)
+* [Installation](README.md#installation)
 
 ## Description
 Driver for Kinect for Windows v2 (K4W2) devices (release and developer preview).
