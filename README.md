@@ -221,7 +221,7 @@ sudo apt-get install build-essential cmake pkg-config libturbojpeg libjpeg-turbo
 # sudo apt-get install libturbojpeg0-dev (Debian)
 ```
 
-1. Install libusb. `sudo apt-get install libusb-1.0-0-dev`. The version must be >=1.0.20. You may use `sudo apt-add-repository ppa:floe/libusb` if version 1.0.20 is not available.
+1. Install libusb. `sudo apt-get install libusb-1.0-0-dev`. The version must be >=1.0.20. You may use `sudo apt-add-repository ppa:floe/libusb && sudo apt-get update && sudo apt-get upgrade` if version 1.0.20 is not available.
 
 1. Install GLFW3, only if OpenGL 3.1 is supported (Odroid XU4 does not support it and you should use `cmake -DENABLE_OPENGL=OFF`). Try `sudo apt-get install libglfw3-dev`, if that is not available (e.g. Ubuntu trusty 14.04), you can download and install deb files from later Ubuntu releases:
 
