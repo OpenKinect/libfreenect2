@@ -24,7 +24,7 @@ This driver supports:
 
 Missing features:
 * audio transfer
-* firmware updates
+* firmware updates (see [issue #460](https://github.com/OpenKinect/libfreenect2/issues/460) for WiP)
 
 Watch the OpenKinect wiki at www.openkinect.org and the mailing list at https://groups.google.com/forum/#!forum/openkinect for the latest developments and more information about the K4W2 USB protocol.
 
