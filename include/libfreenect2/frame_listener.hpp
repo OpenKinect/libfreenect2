@@ -120,6 +120,7 @@ public:
    * libfreenect2 calls this function when a new frame is decoded.
    * @param type Type of the new frame.
    * @param frame Data of the frame.
+   * @return true if you want to take ownership of the frame, i.e. reuse/delete it. Will be reused/deleted by caller otherwise.
    */
   virtual bool onNewFrame(Frame::Type type, Frame *frame) = 0;
 };
