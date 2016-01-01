@@ -46,10 +46,8 @@ namespace Freenect2Driver
 
   private:
     typedef std::map< OniVideoMode, int > FreenectVideoModeMap;
-    static const OniSensorType sensor_type = ONI_SENSOR_COLOR;
-
-    static FreenectVideoModeMap getSupportedVideoModes();
-    OniStatus setVideoMode(OniVideoMode requested_mode);
+    OniSensorType getSensorType() const { return ONI_SENSOR_COLOR; }
+    VideoModeMap getSupportedVideoModes() const;
     void populateFrame(libfreenect2::Frame* srcFrame, int srcX, int srcY, OniFrame* dstFrame, int dstX, int dstY, int width, int height) const;
     
     static void copyFrame(uint8_t* srcPix, int srcX, int srcY, int srcStride, uint8_t* dstPix, int dstX, int dstY, int dstStride, int width, int height, bool mirroring);
@@ -60,15 +58,6 @@ namespace Freenect2Driver
   public:
     ColorStream(libfreenect2::Freenect2Device* pDevice, Freenect2Driver::Registration *reg);
     //~ColorStream() { }
-
-    static OniSensorInfo getSensorInfo()
-    {
-      FreenectVideoModeMap supported_modes = getSupportedVideoModes();
-      OniVideoMode* modes = new OniVideoMode[supported_modes.size()];
-      std::transform(supported_modes.begin(), supported_modes.end(), modes, ExtractKey());
-      OniSensorInfo sensors = { sensor_type, static_cast<int>(supported_modes.size()), modes };
-      return sensors;
-    }
 
     OniStatus setImageRegistrationMode(OniImageRegistrationMode mode)
     {

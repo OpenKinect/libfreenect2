@@ -50,15 +50,14 @@ DepthStream::DepthStream(libfreenect2::Freenect2Device* pDevice, Freenect2Driver
   video_mode = makeOniVideoMode(ONI_PIXEL_FORMAT_DEPTH_1_MM, 640, 480, 30);
   setVideoMode(video_mode);
   setImageRegistrationMode(ONI_IMAGE_REGISTRATION_OFF);
-  pDevice->start();
 }
 
 // Add video modes here as you implement them
 // Note: if image_registration_mode == ONI_IMAGE_REGISTRATION_DEPTH_TO_COLOR,
 // setVideoFormat() will try FREENECT_DEPTH_REGISTERED first then fall back on what is set here.
-DepthStream::FreenectDepthModeMap DepthStream::getSupportedVideoModes()
+DepthStream::VideoModeMap DepthStream::getSupportedVideoModes() const
 {
-  FreenectDepthModeMap modes;
+  VideoModeMap modes;
   //                      pixelFormat, resolutionX, resolutionY, fps
   modes[makeOniVideoMode(ONI_PIXEL_FORMAT_DEPTH_1_MM, 640, 480, 30)] = 0;
   modes[makeOniVideoMode(ONI_PIXEL_FORMAT_DEPTH_1_MM, 512, 424, 30)] = 1;
@@ -66,20 +65,9 @@ DepthStream::FreenectDepthModeMap DepthStream::getSupportedVideoModes()
   return modes;
 }
 
-OniStatus DepthStream::setVideoMode(OniVideoMode requested_mode)
-{
-  FreenectDepthModeMap supported_video_modes = getSupportedVideoModes();
-  FreenectDepthModeMap::const_iterator matched_mode_iter = supported_video_modes.find(requested_mode);
-  if (matched_mode_iter == supported_video_modes.end())
-    return ONI_STATUS_NOT_SUPPORTED;
-
-  video_mode = requested_mode;
-  return ONI_STATUS_OK;
-}
-
 void DepthStream::populateFrame(libfreenect2::Frame* srcFrame, int srcX, int srcY, OniFrame* dstFrame, int dstX, int dstY, int width, int height) const
 {
-  dstFrame->sensorType = sensor_type;
+  dstFrame->sensorType = getSensorType();
   dstFrame->stride = dstFrame->width * sizeof(uint16_t);
 
   // XXX, save depth map for registration

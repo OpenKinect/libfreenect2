@@ -58,26 +58,14 @@ namespace Freenect2Driver
     static const double EMITTER_DCMOS_DISTANCE_VAL;
 
   private:
-    typedef std::map<OniVideoMode, int> FreenectDepthModeMap;
-    static const OniSensorType sensor_type = ONI_SENSOR_DEPTH;
+    OniSensorType getSensorType() const { return ONI_SENSOR_DEPTH; }
     OniImageRegistrationMode image_registration_mode;
-
-    static FreenectDepthModeMap getSupportedVideoModes();
-    OniStatus setVideoMode(OniVideoMode requested_mode);
+    VideoModeMap getSupportedVideoModes() const;
     void populateFrame(libfreenect2::Frame* srcFrame, int srcX, int srcY, OniFrame* dstFrame, int dstX, int dstY, int width, int height) const;
 
   public:
     DepthStream(libfreenect2::Freenect2Device* pDevice, Freenect2Driver::Registration *reg);
     //~DepthStream() { }
-
-    static OniSensorInfo getSensorInfo()
-    {
-      FreenectDepthModeMap supported_modes = getSupportedVideoModes();
-      OniVideoMode* modes = new OniVideoMode[supported_modes.size()];
-      std::transform(supported_modes.begin(), supported_modes.end(), modes, ExtractKey());
-      OniSensorInfo sensors = { sensor_type, static_cast<int>(supported_modes.size()), modes };
-      return sensors;
-    }
 
     OniImageRegistrationMode getImageRegistrationMode() const { return image_registration_mode; }
     OniStatus setImageRegistrationMode(OniImageRegistrationMode mode)

@@ -38,11 +38,10 @@ ColorStream::ColorStream(libfreenect2::Freenect2Device* pDevice, Freenect2Driver
 {
   video_mode = makeOniVideoMode(ONI_PIXEL_FORMAT_RGB888, 1920, 1080, 30);
   setVideoMode(video_mode);
-  pDevice->start();
 }
 
 // Add video modes here as you implement them
-ColorStream::FreenectVideoModeMap ColorStream::getSupportedVideoModes()
+ColorStream::FreenectVideoModeMap ColorStream::getSupportedVideoModes() const
 {
   FreenectVideoModeMap modes;
   //                    pixelFormat, resolutionX, resolutionY, fps
@@ -52,20 +51,9 @@ ColorStream::FreenectVideoModeMap ColorStream::getSupportedVideoModes()
   return modes;
 }
 
-OniStatus ColorStream::setVideoMode(OniVideoMode requested_mode)
-{
-  FreenectVideoModeMap supported_video_modes = getSupportedVideoModes();
-  FreenectVideoModeMap::const_iterator matched_mode_iter = supported_video_modes.find(requested_mode);
-  if (matched_mode_iter == supported_video_modes.end())
-    return ONI_STATUS_NOT_SUPPORTED;
-
-  video_mode = requested_mode;
-  return ONI_STATUS_OK;
-}
-
 void ColorStream::populateFrame(libfreenect2::Frame* srcFrame, int srcX, int srcY, OniFrame* dstFrame, int dstX, int dstY, int width, int height) const
 {
-  dstFrame->sensorType = sensor_type;
+  dstFrame->sensorType = getSensorType();
   dstFrame->stride = dstFrame->width * 3;
 
   // copy stream buffer from freenect

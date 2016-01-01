@@ -44,25 +44,13 @@ namespace Freenect2Driver
     static const float VERTICAL_FOV;
 
   private:
-    typedef std::map< OniVideoMode, int> FreenectIrModeMap;
-    static const OniSensorType sensor_type = ONI_SENSOR_IR;
-
-    static FreenectIrModeMap getSupportedVideoModes();
-    OniStatus setVideoMode(OniVideoMode requested_mode);
+    OniSensorType getSensorType() const { return ONI_SENSOR_IR; }
+    VideoModeMap getSupportedVideoModes() const;
     void populateFrame(libfreenect2::Frame* srcFrame, int srcX, int srcY, OniFrame* dstFrame, int dstX, int dstY, int width, int height) const;
 
   public:
     IrStream(libfreenect2::Freenect2Device* pDevice, Freenect2Driver::Registration *reg);
     //~IrStream() { }
-
-    static OniSensorInfo getSensorInfo()
-    {
-      FreenectIrModeMap supported_modes = getSupportedVideoModes();
-      OniVideoMode* modes = new OniVideoMode[supported_modes.size()];
-      std::transform(supported_modes.begin(), supported_modes.end(), modes, ExtractKey());
-      OniSensorInfo sensors = { sensor_type, static_cast<int>(supported_modes.size()), modes };
-      return sensors;
-    }
 
     // from StreamBase
     OniBool isPropertySupported(int propertyId)

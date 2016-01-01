@@ -39,12 +39,10 @@ namespace Freenect2Driver
   {
   private:
     unsigned int frame_id; // number each frame
-
-    virtual OniStatus setVideoMode(OniVideoMode requested_mode) = 0;
     virtual void populateFrame(libfreenect2::Frame* lf2Frame, int srcX, int srcY, OniFrame* oniFrame, int tgtX, int tgtY, int width, int height) const = 0;
 
   protected:
-    static const OniSensorType sensor_type;
+    virtual OniSensorType getSensorType() const = 0;
     libfreenect2::Freenect2Device* device;
     bool running; // buildFrame() does something iff true
     OniVideoMode video_mode;
@@ -52,6 +50,19 @@ namespace Freenect2Driver
     bool mirroring;
     Freenect2Driver::Registration* reg;
     bool callPropertyChangedCallback;
+    typedef std::map< OniVideoMode, int > VideoModeMap;
+    virtual VideoModeMap getSupportedVideoModes() const = 0;
+
+    OniStatus setVideoMode(OniVideoMode requested_mode)
+    {
+      VideoModeMap supported_video_modes = getSupportedVideoModes();
+      VideoModeMap::const_iterator matched_mode_iter = supported_video_modes.find(requested_mode);
+      if (matched_mode_iter == supported_video_modes.end())
+        return ONI_STATUS_NOT_SUPPORTED;
+
+      video_mode = requested_mode;
+      return ONI_STATUS_OK;
+    }
 
     static void copyFrame(float* srcPix, int srcX, int srcY, int srcStride, uint16_t* dstPix, int dstX, int dstY, int dstStride, int width, int height, bool mirroring)
     {
@@ -82,13 +93,23 @@ namespace Freenect2Driver
       device(device),
       reg(reg),
       callPropertyChangedCallback(false),
-      mirroring(false)
+      mirroring(false),
+      running(false)
       {
         // joy of structs
         memset(&cropping, 0, sizeof(cropping));
         memset(&video_mode, 0, sizeof(video_mode));
       }
     //~VideoStream() { stop();  }
+
+    OniSensorInfo getSensorInfo()
+    {
+      VideoModeMap supported_modes = getSupportedVideoModes();
+      OniVideoMode* modes = new OniVideoMode[supported_modes.size()];
+      std::transform(supported_modes.begin(), supported_modes.end(), modes, ExtractKey());
+      OniSensorInfo sensors = { getSensorType(), static_cast<int>(supported_modes.size()), modes };
+      return sensors;
+    }
 
     void setPropertyChangedCallback(oni::driver::PropertyChangedCallback handler, void* pCookie) {
       callPropertyChangedCallback = true;

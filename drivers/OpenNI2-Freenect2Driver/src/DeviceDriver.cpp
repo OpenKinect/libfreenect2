@@ -142,10 +142,10 @@ namespace Freenect2Driver
     }
     ~Device()
     {
-      close();
       destroyStream(color);
       destroyStream(ir);
       destroyStream(depth);
+      close();
       if (reg) {
         delete reg;
         reg = NULL;
@@ -166,17 +166,48 @@ namespace Freenect2Driver
       //TODO: start thread executing the run() method
       //device_stop = false;
       //thread = new libfreenect2::thread(&Device::static_run, this);
-      dev->start(); 
+      if (! color) {
+        color = new ColorStream(dev, reg);
+        setStreamProperties(color, "color");
+      }
+      if (! depth) {
+        depth = new DepthStream(dev, reg);
+        setStreamProperties(depth, "depth");
+      }
+      if (! ir) {
+        ir = new IrStream(dev, reg);
+        setStreamProperties(ir, "ir");
+      }
+      dev->start();
     }
     void stop() { 
-      device_stop = true;
-      thread->join();
-
-      dev->stop(); 
+      if (!device_stop) {
+        device_stop = true;
+        thread->join();
+        dev->stop();
+      }
+      if (color != NULL)
+      {
+        delete color;
+        color = NULL;
+      }
+      if (depth != NULL)
+      {
+        delete depth;
+        depth = NULL;
+      }
+      if (ir != NULL)
+      {
+        delete ir;
+        ir = NULL;
+      }
     }
     void close() { 
-      stop();
-      dev->close(); 
+      if (this->dev) {
+        stop();
+        dev->close();
+      }
+      this->dev = NULL;
     }
 
     // for DeviceBase
@@ -202,48 +233,25 @@ namespace Freenect2Driver
           LogError("Cannot create a stream of type " + to_string(sensorType));
           return NULL;
         case ONI_SENSOR_COLOR:
-          if (! color) {
-            color = new ColorStream(dev, reg);
-            setStreamProperties(color, "color");
-          }
+          WriteMessage("Device: createStream(color)");
           return color;
         case ONI_SENSOR_DEPTH:
-          if (! depth) {
-            depth = new DepthStream(dev, reg);
-            setStreamProperties(depth, "depth");
-          }
+          WriteMessage("Device: createStream(depth)");
           return depth;
         case ONI_SENSOR_IR:
-          if (! ir) {
-            ir = new IrStream(dev, reg);
-            setStreamProperties(ir, "ir");
-          }
+          WriteMessage("Device: createStream(ir)");
           return ir;
       }
     }
 
     void destroyStream(oni::driver::StreamBase* pStream)
     {
-      if (pStream == NULL)
-        return;
-
-      // stop them all
-      dev->stop();
       if (pStream == color)
-      {
-        delete color;
-        color = NULL;
-      }
+        WriteMessage("Device: destroyStream(color)");
       if (pStream == depth)
-      {
-        delete depth;
-        depth = NULL;
-      }
+        WriteMessage("Device: destroyStream(depth)");
       if (pStream == ir)
-      {
-        delete ir;
-        ir = NULL;
-      }
+        WriteMessage("Device: destroyStream(ir)");
     }
 
     // todo: fill out properties
@@ -464,6 +472,7 @@ namespace Freenect2Driver
             Device* device = new Device(id);
             device->setFreenect2Device(freenect2.openDevice(id)); // XXX, detault pipeline // const PacketPipeline *factory);
             device->setConfigStrings(config);
+            device->start();
             iter->second = device;
             return device;
           }
@@ -509,14 +518,10 @@ namespace Freenect2Driver
     {
       for (OniDeviceMap::iterator iter = devices.begin(); iter != devices.end(); iter++)
       {
-        WriteMessage("Closing device " + std::string(iter->first.uri));
-        int id = uri_to_devid(iter->first.uri);
-        Device* device = (Device*)iter->second;
-        device->stop();
-        device->close();
+        if (iter->second) {
+          deviceClose(iter->second);
+        }
       }
-
-      devices.clear();
     }
 
 
