@@ -37,33 +37,21 @@ IrStream::IrStream(libfreenect2::Freenect2Device* pDevice, Freenect2Driver::Regi
 {
   video_mode = makeOniVideoMode(ONI_PIXEL_FORMAT_GRAY16, 512, 424, 30);
   setVideoMode(video_mode);
-  pDevice->start();
 }
 
 // Add video modes here as you implement them
-IrStream::FreenectIrModeMap IrStream::getSupportedVideoModes()
+IrStream::VideoModeMap IrStream::getSupportedVideoModes() const
 {
-  FreenectIrModeMap modes;
+  VideoModeMap modes;
   // pixelFormat, resolutionX, resolutionY, fps
   modes[makeOniVideoMode(ONI_PIXEL_FORMAT_GRAY16, 512, 424, 30)] = 0;
 
   return modes;
 }
 
-OniStatus IrStream::setVideoMode(OniVideoMode requested_mode)
-{
-  FreenectIrModeMap supported_video_modes = getSupportedVideoModes();
-  FreenectIrModeMap::const_iterator matched_mode_iter = supported_video_modes.find(requested_mode);
-  if (matched_mode_iter == supported_video_modes.end())
-    return ONI_STATUS_NOT_SUPPORTED;
-
-  video_mode = requested_mode;
-  return ONI_STATUS_OK;
-}
-
 void IrStream::populateFrame(libfreenect2::Frame* srcFrame, int srcX, int srcY, OniFrame* dstFrame, int dstX, int dstY, int width, int height) const
 {
-  dstFrame->sensorType = sensor_type;
+  dstFrame->sensorType = getSensorType();
   dstFrame->stride = dstFrame->width * sizeof(uint16_t);
 
   // copy stream buffer from freenect
