@@ -72,6 +72,16 @@ Messages in `dmesg` like this means bugs in the USB driver. Updating kernel migh
 [  509.238580] xhci_hcd 0000:03:00.0: Assuming host is dying, halting host.
 ```
 
+`failed to submit transfer: LIBUSB_ERROR_IO` followed by `dmesg` messages
+```
+[ 1417.271120] kinect2_bridge: page allocation failure: order:7, mode:0x40d0
+...
+[ 1417.271230]  [<ffffffff815e8f93>] proc_do_submiturb+0x5c3/0xbc0
+[ 1417.271235]  [<ffffffff815ea088>] usbdev_do_ioctl+0xaf8/0xfb0
+
+```
+means USB buffer allocation fails due to memory fragmentation. Reserve memory `sudo sysctl -w vm.min_free_kbytes=65536` or more (always less than 5% of total memory) to mitigate this.
+
 Windows 7 does not have great USB 3.0 drivers. In our testing the above known working devices will stop working after running for a while. However, the official Kinect v2 SDK does not support Windows 7 at all, so there is still hope for Windows 7 users. Windows 8.1 and 10 have improved USB 3.0 drivers.
 
 Disabling USB selective suspend/autosuspend might be helpful to ameliorate transfer problems.
