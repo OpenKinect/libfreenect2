@@ -1,59 +1,30 @@
-OpenNI2-FreenectDriver
+OpenNI2-Freenect2Driver
 ======================
 
-OpenNI2-FreenectDriver is a bridge to libfreenect implemented as an OpenNI2 driver.
-It allows OpenNI2 to use Kinect hardware on Linux and OSX.
-OpenNI2-FreenectDriver is distributed under the [Apache 2](https://github.com/OpenKinect/libfreenect/blob/master/APACHE20) license.
+OpenNI2-Freenect2Driver is a bridge to libfreenect2 implemented as an OpenNI2 driver.
+It allows OpenNI2 to use Kinect for Windows v2 (K4W2) devices on Mac OS X. (and on Linux?)
+OpenNI2-Freenect2Driver is derived from OpenNI2-FreenectDriver (https://github.com/OpenKinect/libfreenect/tree/master/OpenNI2-FreenectDriver).
 
 Install
 -------
-1. Download and unpack [OpenNI](http://structure.io/openni) 2.2.0.33 or higher.
-2. Go to the top libfreenect directory and build it with the OpenNI2 driver.
+Please refer libfreenect2 install documentation at first. This description assumes that you are familiar with the libfreenect2 build instruction.
 
-        mkdir build
-        cd build
-        cmake .. -DBUILD_OPENNI2_DRIVER=ON
-        make
+1. You need [OpenNI](http://structure.io/openni) 2.2.0.33 or higher installed on your system and set the environment variables properly. You can use homebrew to install OpenNI if you use Mac OS X. And you will need to make sure target systems have libusb and all other dependencies also.
 
-3. Copy the driver to your OpenNI2 driver repository. You must first change `Repository` to match your project layout.
+        $ brew tap homebrew/science
+        $ brew install openni2
 
-        Repository="/example/path/to/Samples/Bin/OpenNI2/Drivers/"
-        cp -L lib/OpenNI2-FreenectDriver/libFreenectDriver.{so,dylib} ${Repository}
-        
-        # you could instead make a symlink to avoid copying after every build
-        # ln -s lib/OpenNI2-FreenectDriver/libFreenectDriver.{so,dylib} ${Repository}
+        $ export OPENNI2_REDIST=/usr/local/lib/ni2
+        $ export OPENNI2_INCLUDE=/usr/local/include/ni2
 
-OpenNI2-FreenectDriver is built with a static libfreenect, so you do not need to include libfreenect when deploying.
-However, you will need to make sure target systems have libusb and all other dependencies listed in `ldd libFreenectDriver.so`.
+2. Go to the top libfreenect2 directory and build it. The build option which enables to build this driver is OFF by default. You must specify -DBUILD_OPENNI2_DRIVER=ON in cmake argument. And you may specify additional -DENABLE_OPENGL=NO in cmake argument to use OpenNI2's NiViewer.
 
-__________________________________________________
+        $ cd /some/where/libfreenect2
+        $ mkdir build
+        $ cd build
+        $ cmake -DBUILD_OPENNI2_DRIVER=ON ..
+        $ make
 
-Structure
----------
-This driver is modeled on TestDevice.cpp and Drivers/Kinect/.
-In the FreenectDriver namespace, it ties together the C++ interfaces of OpenNI2 and libfreenect using multiple inheritance.
+3. 'make install' copies the driver to your OpenNI2 driver repository (${OPENNI2_REDIST}/OpenNI2/Drivers)
 
-Driver inherits publically from oni::driver::DriverBase and privately from Freenect::Freenect.
-libfreenect.hpp allows protected access to the Freenect context, so that FreenectDriver can call the Freenect's C API.
-As a DriverBase, FreenectDriver manages devices and sets up device state callbacks.
-
-Device inherits publically from oni::driver::DeviceBase and Freenect::FreenectDevice.
-Because of this, it can be built by Freenect::Freenect::createDevice() and it can define Device's depth and video callbacks.
-Those callbacks trigger acquireFrame() in FreenectStream.
-
-VideoStream is a virtual base class inheriting from oni::driver::StreamBase.
-It does generic frame setup in buildFrame() and then calls pure virtual populateFrame() to let derived classes finish the frame.
-It also provides the base skeleton for setting and getting properties, which cascades down the inheritance tree.
-
-DepthStream and ColorStream are nearly identical in definition and implementation, both inheriting from VideoStream.
-They differ mostly in the formats they use to process data and the video modes they support.
-These two classes offer a system to store and report supported video modes.
-To implement a new mode, simply add it to getSupportedVideoModes() and modify populateFrame() as necessary.
-
-__________________________________________________
-
-Todo
-----
-* support more FREENECT_RESOLUTION_\*, FREENECT_VIDEO_\*, and FREENECT_DEPTH_\*
-* provide more OniVideoMode and OniStreamProperty
-* implement remaining derived functions
+        $ make install
