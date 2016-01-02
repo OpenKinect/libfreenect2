@@ -3,8 +3,8 @@
 #include <algorithm> // for transform()
 #include <cmath> // for M_PI
 #include <cstdio> // for memcpy
-#include "libfreenect2/libfreenect2.hpp"
-#include "Driver/OniDriverAPI.h"
+#include <libfreenect2/libfreenect2.hpp>
+#include <Driver/OniDriverAPI.h>
 #include "PS1080.h"
 #include "VideoStream.hpp"
 
@@ -18,7 +18,7 @@ namespace Freenect2Driver
     static const float VERTICAL_FOV;
 
   private:
-    typedef std::map< OniVideoMode, std::pair<freenect2_ir_format, freenect2_resolution> > FreenectIrModeMap;
+    typedef std::map< OniVideoMode, int> FreenectIrModeMap;
     static const OniSensorType sensor_type = ONI_SENSOR_IR;
 
     static FreenectIrModeMap getSupportedVideoModes();

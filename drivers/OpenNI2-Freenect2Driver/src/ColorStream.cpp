@@ -19,9 +19,9 @@ ColorStream::ColorStream(libfreenect2::Freenect2Device* pDevice, Freenect2Driver
 ColorStream::FreenectVideoModeMap ColorStream::getSupportedVideoModes()
 {
   FreenectVideoModeMap modes;
-  //                    pixelFormat, resolutionX, resolutionY, fps    freenect_video_format, freenect_resolution
-  modes[makeOniVideoMode(ONI_PIXEL_FORMAT_RGB888, 512, 424, 30)] = std::pair<freenect2_video_format, freenect2_resolution>(FREENECT2_VIDEO_RGB, FREENECT2_RESOLUTION_1920x1080);
-  modes[makeOniVideoMode(ONI_PIXEL_FORMAT_RGB888, 1920, 1080, 30)] = std::pair<freenect2_video_format, freenect2_resolution>(FREENECT2_VIDEO_RGB, FREENECT2_RESOLUTION_1920x1080);
+  //                    pixelFormat, resolutionX, resolutionY, fps
+  modes[makeOniVideoMode(ONI_PIXEL_FORMAT_RGB888, 512, 424, 30)] = 0;
+  modes[makeOniVideoMode(ONI_PIXEL_FORMAT_RGB888, 1920, 1080, 30)] = 1;
 
   return modes;
 }
@@ -32,9 +32,6 @@ OniStatus ColorStream::setVideoMode(OniVideoMode requested_mode)
   FreenectVideoModeMap::const_iterator matched_mode_iter = supported_video_modes.find(requested_mode);
   if (matched_mode_iter == supported_video_modes.end())
     return ONI_STATUS_NOT_SUPPORTED;
-
-  freenect2_video_format format = matched_mode_iter->second.first;
-  freenect2_resolution resolution = matched_mode_iter->second.second;
 
   video_mode = requested_mode;
   return ONI_STATUS_OK;

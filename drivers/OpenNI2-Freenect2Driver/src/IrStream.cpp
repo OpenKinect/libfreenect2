@@ -19,8 +19,7 @@ IrStream::FreenectIrModeMap IrStream::getSupportedVideoModes()
 {
   FreenectIrModeMap modes;
   // pixelFormat, resolutionX, resolutionY, fps
-  modes[makeOniVideoMode(ONI_PIXEL_FORMAT_GRAY16, 512, 424, 30)] = std::pair<freenect2_ir_format, freenect2_resolution>(FREENECT2_IR_RAW, FREENECT2_RESOLUTION_512x424);
-
+  modes[makeOniVideoMode(ONI_PIXEL_FORMAT_GRAY16, 512, 424, 30)] = 0;
 
   return modes;
 }

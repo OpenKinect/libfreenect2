@@ -34,8 +34,8 @@ DepthStream::FreenectDepthModeMap DepthStream::getSupportedVideoModes()
 {
   FreenectDepthModeMap modes;
   //                      pixelFormat, resolutionX, resolutionY, fps
-  modes[makeOniVideoMode(ONI_PIXEL_FORMAT_DEPTH_1_MM, 640, 480, 30)] = std::pair<freenect2_depth_format, freenect2_resolution>(FREENECT2_DEPTH_MM, FREENECT2_RESOLUTION_512x424);
-  modes[makeOniVideoMode(ONI_PIXEL_FORMAT_DEPTH_1_MM, 512, 424, 30)] = std::pair<freenect2_depth_format, freenect2_resolution>(FREENECT2_DEPTH_MM, FREENECT2_RESOLUTION_512x424);
+  modes[makeOniVideoMode(ONI_PIXEL_FORMAT_DEPTH_1_MM, 640, 480, 30)] = 0;
+  modes[makeOniVideoMode(ONI_PIXEL_FORMAT_DEPTH_1_MM, 512, 424, 30)] = 1;
 
   return modes;
 }

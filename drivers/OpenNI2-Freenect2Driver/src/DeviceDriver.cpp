@@ -21,8 +21,8 @@
 #include <map>
 #include <string>
 #include <array>
-#include "Driver/OniDriverAPI.h"
-#include "libfreenect2/libfreenect2.hpp"
+#include <Driver/OniDriverAPI.h>
+#include <libfreenect2/libfreenect2.hpp>
 #include <libfreenect2/frame_listener.hpp>
 #include <libfreenect2/frame_listener_impl.h>
 #include <libfreenect2/threading.h>
@@ -118,7 +118,7 @@ namespace Freenect2Driver
     }
 
   public:
-    Device(freenect2_context* fn_ctx, int index) : //libfreenect2::Freenect2Device(fn_ctx, index),
+    Device(int index) : //libfreenect2::Freenect2Device(fn_ctx, index),
       dev(NULL),
       reg(NULL),
       color(NULL),
@@ -450,7 +450,7 @@ namespace Freenect2Driver
           {
             WriteMessage("Opening device " + std::string(uri));
             int id = uri_to_devid(iter->first.uri);
-            Device* device = new Device(NULL, id);
+            Device* device = new Device(id);
             device->setFreenect2Device(openDevice(id)); // XXX, detault pipeline // const PacketPipeline *factory);
             device->setConfigStrings(config);
             iter->second = device;
