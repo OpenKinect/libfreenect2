@@ -76,7 +76,7 @@ Windows 7 does not have great USB 3.0 drivers. In our testing the above known wo
 
 Disabling USB selective suspend/autosuspend might be helpful to ameliorate transfer problems.
 
-When you report USB issues, please attach relevant debug log from running the program with environment variable `LIBUSB_DEBUG=4`, and relevant log from `dmesg`.
+When you report USB issues, please attach relevant debug log from running the program with environment variable `LIBUSB_DEBUG=3`, and relevant log from `dmesg`.
 
 ### I'm seeing the color camera stream, but no depth/IR (black windows).
 
