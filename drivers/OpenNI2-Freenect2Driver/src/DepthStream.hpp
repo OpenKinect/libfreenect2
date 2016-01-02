@@ -33,8 +33,6 @@
 #include <Driver/OniDriverAPI.h>
 #include "PS1080.h"
 #include "VideoStream.hpp"
-#include "S2D.h"
-#include "D2S.h"
 
 
 namespace Freenect2Driver
@@ -210,14 +208,22 @@ namespace Freenect2Driver
           *(static_cast<double*>(data)) = EMITTER_DCMOS_DISTANCE_VAL;
           return ONI_STATUS_OK;
         case XN_STREAM_PROPERTY_S2D_TABLE:              // OniDepthPixel[]
-          *pDataSize = sizeof(S2D);
-          //std::copy(S2D, S2D+1, static_cast<OniDepthPixel*>(data));
-          memcpy(data, S2D, *pDataSize);
+          {
+            uint16_t *s2d = (uint16_t *)data;
+            *pDataSize = sizeof(*s2d) * 2048;
+            memset(data, 0, *pDataSize);
+            for (int i = 1; i <= 1052; i++)
+              s2d[i] = 342205.0/(1086.671 - i);
+          }
           return ONI_STATUS_OK;
         case XN_STREAM_PROPERTY_D2S_TABLE:              // unsigned short[]
-          *pDataSize = sizeof(D2S);
-          //std::copy(D2S, D2S+1, static_cast<unsigned short*>(data));
-          memcpy(data, D2S, *pDataSize);
+          {
+            uint16_t *d2s = (uint16_t *)data;
+            *pDataSize = sizeof(*d2s) * 10001;
+            memset(data, 0, *pDataSize);
+            for (int i = 315; i <= 10000; i++)
+              d2s[i] = 1086.671 - 342205.0/(i + 1);
+          }
           return ONI_STATUS_OK;
       }
     }
