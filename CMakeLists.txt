@@ -23,6 +23,7 @@ SET(DEPENDS_DIR "${MY_DIR}/depends" CACHE STRING "dependency directory must be s
 
 OPTION(BUILD_SHARED_LIBS "Build shared (ON) or static (OFF) libraries" ON)
 OPTION(BUILD_EXAMPLES "Build examples" ON)
+OPTION(BUILD_OPENNI2_DRIVER "Build OpenNI2 driver" OFF)
 OPTION(ENABLE_CXX11 "Enable C++11 support" OFF)
 OPTION(ENABLE_OPENCL "Enable OpenCL support" ON)
 OPTION(ENABLE_OPENGL "Enable OpenGL support" ON)
@@ -267,4 +268,9 @@ ENDIF()
 IF(BUILD_EXAMPLES)
   MESSAGE(STATUS "Configurating examples")
   ADD_SUBDIRECTORY(${MY_DIR}/examples)
+ENDIF()
+
+IF(BUILD_OPENNI2_DRIVER)
+  MESSAGE(STATUS "Configuring OpenNI2 driver")
+  ADD_SUBDIRECTORY(${MY_DIR}/drivers/OpenNI2-Freenect2Driver)
 ENDIF()
