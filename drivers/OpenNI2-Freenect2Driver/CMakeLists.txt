@@ -17,8 +17,7 @@ SET(MY_DIR ${openni2_freenect2driver_SOURCE_DIR})
 SET(freenect2_ROOT_DIR ${MY_DIR}/../..)
 
 FIND_PACKAGE(PkgConfig)    # try find PKGConfig as it will be used if found
-SET(OPENNI2_INCLUDE $ENV{OPENNI2_INCLUDE})
-SET(OPENNI2_LINRARY $ENV{OPENNI2_REDIST})
+FIND_PACKAGE(OpenNI2 REQUIRED)
 
 IF(TARGET freenect2)
   MESSAGE(STATUS "Using in-tree freenect2 target")
@@ -31,7 +30,7 @@ ENDIF()
 
 INCLUDE_DIRECTORIES(
   ${freenect2_INCLUDE_DIR}
-  ${OPENNI2_INCLUDE}
+  ${OpenNI2_INCLUDE_DIRS}
 )
 
 SET(OpenNI2-Freenect2Driver_src
@@ -57,4 +56,4 @@ TARGET_LINK_LIBRARIES(OpenNI2-Freenect2Driver
   ${OpenNI2-Freenect2Driver_LIBRARIES}
 )
 
-INSTALL(TARGETS OpenNI2-Freenect2Driver DESTINATION "${OPENNI2_LINRARY}/OpenNI2/Drivers")
+INSTALL(TARGETS OpenNI2-Freenect2Driver DESTINATION "${OpenNI2_INSTALL_DIR}")

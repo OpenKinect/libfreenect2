@@ -30,7 +30,7 @@
 
 #include <map>
 #include <string>
-#include <array>
+#include <vector>
 #include <Driver/OniDriverAPI.h>
 #include <libfreenect2/libfreenect2.hpp>
 #include <libfreenect2/frame_listener.hpp>
@@ -118,7 +118,7 @@ namespace Freenect2Driver
         WriteMessage("setStreamProperty: " + pfx + "size: " + config[pfx + "size"]);
         std::string size(config[pfx + "size"]);
         int i = size.find("x");
-        OniVideoMode video_mode = makeOniVideoMode(ONI_PIXEL_FORMAT_DEPTH_1_MM, std::stoi(size.substr(0, i)), std::stoi(size.substr(i + 1)), 30);
+        OniVideoMode video_mode = makeOniVideoMode(ONI_PIXEL_FORMAT_DEPTH_1_MM, atoi(size.substr(0, i).c_str()), atoi(size.substr(i + 1).c_str()), 30);
         tmp_res = stream->setProperty(ONI_STREAM_PROPERTY_VIDEO_MODE, (void*)&video_mode, sizeof(video_mode));
         if (tmp_res != ONI_STATUS_OK)
           res = tmp_res;
@@ -417,11 +417,11 @@ namespace Freenect2Driver
       for (int i = 0; i < freenect2.enumerateDevices(); i++)
       {
         std::string uri = devid_to_uri(i);
-        std::array<std::string, 3> modes = {
-          "",
-          "?depth-size=640x480",
-          "?depth-size=512x424",
-        };
+        std::vector<std::string> modes;
+
+        modes.push_back("");
+        modes.push_back("?depth-size=640x480");
+        modes.push_back("?depth-size=512x424");
 
         WriteMessage("Found device " + uri);
 
