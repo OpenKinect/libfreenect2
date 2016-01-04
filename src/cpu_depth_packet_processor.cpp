@@ -304,6 +304,12 @@ public:
     //ir_frame = new Frame(512, 424, 12);
   }
 
+  ~CpuDepthPacketProcessorImpl()
+  {
+    delete ir_frame;
+    delete depth_frame;
+  }
+
   /** Allocate a new depth frame. */
   void newDepthFrame()
   {

@@ -181,6 +181,12 @@ public:
     }
   }
 
+  ~OpenCLDepthPacketProcessorImpl()
+  {
+    delete ir_frame;
+    delete depth_frame;
+  }
+
   void generateOptions(std::string &options) const
   {
     std::ostringstream oss;

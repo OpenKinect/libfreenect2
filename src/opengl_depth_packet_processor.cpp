@@ -300,6 +300,11 @@ public:
   {
   }
 
+  ~Texture()
+  {
+    delete[] data;
+  }
+
   void bindToUnit(GLenum unit)
   {
     gl()->glActiveTexture(unit);
@@ -980,6 +985,11 @@ void OpenGLDepthPacketProcessor::process(const DepthPacket &packet)
     {
       delete depth;
     }
+  }
+  else
+  {
+    delete ir;
+    delete depth;
   }
 }
 

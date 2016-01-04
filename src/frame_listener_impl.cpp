@@ -64,6 +64,7 @@ SyncMultiFrameListener::SyncMultiFrameListener(unsigned int frame_types) :
 
 SyncMultiFrameListener::~SyncMultiFrameListener()
 {
+  release(impl_->next_frame_);
   delete impl_;
 }
 
