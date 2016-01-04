@@ -190,7 +190,7 @@ UsbControl::~UsbControl()
 }
 
 #define CHECK_LIBUSB_RESULT(__CODE, __RESULT) if((__CODE = (__RESULT == LIBUSB_SUCCESS ? Success : Error)) == Error) LOG_ERROR
-#define WRITE_LIBUSB_ERROR(__RESULT) libusb_error_name(__RESULT) << " " << libusb_strerror((libusb_error)__RESULT) << ". Try debugging with environment variable: export LIBUSB_DEBUG=4 ."
+#define WRITE_LIBUSB_ERROR(__RESULT) libusb_error_name(__RESULT) << " " << libusb_strerror((libusb_error)__RESULT) << ". Try debugging with environment variable: export LIBUSB_DEBUG=3 ."
 
 UsbControl::ResultCode UsbControl::setConfiguration()
 {

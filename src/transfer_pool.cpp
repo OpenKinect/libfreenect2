@@ -108,7 +108,7 @@ void TransferPool::submit(size_t num_parallel_transfers)
   }
 
   if (failcount == num_parallel_transfers)
-    LOG_ERROR << "all submissions failed. Try debugging with environment variable: LIBUSB_DEBUG=4.";
+    LOG_ERROR << "all submissions failed. Try debugging with environment variable: LIBUSB_DEBUG=3.";
 }
 
 void TransferPool::cancel()
