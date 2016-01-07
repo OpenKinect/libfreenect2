@@ -49,7 +49,7 @@ No. It's a pure USB3 device due to the high bandwidth requirements.
 
 ### Protonect complains about "no device connected" or "failure opening device".
 
-Either your device is connected to an USB2-only port (see above), or you don't have permissions to access the device. On Linux, try running Protonect as root (e.g. using `sudo`). If that fixes things, place `rules/90-kinect2.rules` into `/etc/udev/rules.d/` and re-plug the device.
+Either your device is connected to an USB2-only port (see above), or you don't have permissions to access the device. On Linux, try running Protonect as root (e.g. using `sudo`). If that fixes things, place `platform/linux/udev/90-kinect2.rules` into `/etc/udev/rules.d/` and re-plug the device.
 
 On Linux, also check `dmesg`. If there are warnings like `usb 4-1.1: Not enough bandwidth for new device state.` it means the hardware does not have the capacity for USB3 even if it claims so, or its capacity is not well supported.
 
