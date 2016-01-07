@@ -305,8 +305,8 @@ public:
   Freenect2Impl(void *usb_context) :
     managed_usb_context_(usb_context == 0),
     usb_context_(reinterpret_cast<libusb_context *>(usb_context)),
-    initialized(false),
-    has_device_enumeration_(false)
+    has_device_enumeration_(false),
+    initialized(false)
   {
 #ifdef __linux__
     if (libusb_get_version()->nano < 10952)
@@ -755,7 +755,7 @@ bool Freenect2DeviceImpl::start()
   for (uint32_t status = 0, last = 0; (status & 1) == 0; last = status)
   {
     command_tx_.execute(ReadStatus0x090000Command(nextCommandSeq()), result);
-    if (result.length < sizeof(uint32_t))
+    if ((size_t)result.length < sizeof(uint32_t))
       continue; //TODO should report error
     status = *reinterpret_cast<const uint32_t *>(result.data);
     if (status != last)
@@ -769,7 +769,7 @@ bool Freenect2DeviceImpl::start()
   usb_control_.setIrInterfaceState(UsbControl::Enabled);
 
   command_tx_.execute(ReadStatus0x090000Command(nextCommandSeq()), result);
-  if (result.length >= sizeof(uint32_t))
+  if ((size_t)result.length >= sizeof(uint32_t))
     LOG_DEBUG << "status 0x090000: " << *reinterpret_cast<const uint32_t *>(result.data);
 
   command_tx_.execute(SetStreamEnabledCommand(nextCommandSeq()), result);

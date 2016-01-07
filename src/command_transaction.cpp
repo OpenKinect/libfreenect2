@@ -49,7 +49,7 @@ CommandTransaction::Result::~Result()
 
 void CommandTransaction::Result::allocate(size_t size)
 {
-  if (capacity != size)
+  if ((size_t)capacity != size)
   {
     deallocate();
     data = new unsigned char[size];
@@ -143,7 +143,7 @@ CommandTransaction::ResultCode CommandTransaction::send(const CommandBase& comma
     code = Error;
   }
 
-  if(transferred_bytes != command.size())
+  if((size_t)transferred_bytes != command.size())
   {
     LOG_ERROR << "sent number of bytes differs from expected number! expected: " << command.size() << " got: " << transferred_bytes;
     code = Error;

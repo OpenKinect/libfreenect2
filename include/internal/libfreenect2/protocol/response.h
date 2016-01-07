@@ -101,7 +101,7 @@ public:
     FWSubsystemVersion max;
     std::stringstream version_string;
     // the main blob's index
-    int i = 3;
+    size_t i = 3;
     if (i < versions_.size())
     {
       const FWSubsystemVersion &ver = versions_[i];

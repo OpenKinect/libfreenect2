@@ -6,9 +6,6 @@ Viewer::Viewer() : shader_folder("src/shader/"),
                    win_width(600),
                    win_height(400)
 {
-    // init glfw - if already initialized nothing happens
-    int init = glfwInit();
-
 }
 
 static void glfwErrorCallback(int error, const char* description)
@@ -18,6 +15,9 @@ static void glfwErrorCallback(int error, const char* description)
 
 void Viewer::initialize()
 {
+    // init glfw - if already initialized nothing happens
+    glfwInit();
+
     GLFWerrorfun prev_func = glfwSetErrorCallback(glfwErrorCallback);
     if (prev_func)
       glfwSetErrorCallback(prev_func);

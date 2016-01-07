@@ -38,6 +38,9 @@ IF(MSVC)
   # "zero-length array in struct" from libusb.h
   SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4267 /wd4244 /wd4200 /wd4305 /wd4146")
   ADD_DEFINITIONS(-D_CRT_SECURE_NO_WARNINGS) # no warning for getenv()
+ELSE()
+  # Heed warnings from non-MSVC compilers
+  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
 ENDIF()
 
 IF(ENABLE_CXX11)

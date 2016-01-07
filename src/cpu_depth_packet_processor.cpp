@@ -617,6 +617,7 @@ public:
     // if(DISABLE_DISAMBIGUATION)
     if(false)
     {
+#if 0
         //r0.yz = r3.zx + r4.zx // add
         //r0.yz = r5.xz + r0.zy // add
         float phase = m0[0] + m1[0] + m2[0]; // r0.y
@@ -628,6 +629,7 @@ public:
         //r3.zw = r4.xy // mov
         float tmp3 = m0[2] + m1[2] + m2[2]; // r3.z
         float tmp4 = m0[1] + m1[1] + m2[1]; // r3.w
+#endif
     }
     else
     {

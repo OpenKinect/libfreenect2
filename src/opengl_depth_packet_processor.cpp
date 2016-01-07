@@ -124,9 +124,9 @@ struct ShaderProgram : public WithOpenGLBindings
 
   ShaderProgram() :
     program(0),
-    is_mesa_checked(false),
     vertex_shader(0),
-    fragment_shader(0)
+    fragment_shader(0),
+    is_mesa_checked(false)
   {
   }
 
@@ -296,7 +296,7 @@ public:
   unsigned char *data;
   size_t size;
 
-  Texture() : texture(0), data(0), size(0), bytes_per_pixel(FormatT::BytesPerPixel), height(0), width(0)
+  Texture() : bytes_per_pixel(FormatT::BytesPerPixel), height(0), width(0), texture(0), data(0), size(0)
   {
   }
 
@@ -314,7 +314,7 @@ public:
 
     GLint max_size;
     glGetIntegerv(GL_MAX_RECTANGLE_TEXTURE_SIZE, &max_size);
-    if (new_width > max_size || new_height > max_size)
+    if (new_width > (size_t)max_size || new_height > (size_t)max_size)
     {
       LOG_ERROR << "GL_MAX_RECTANGLE_TEXTURE_SIZE is too small: " << max_size;
       exit(-1);
@@ -363,13 +363,13 @@ public:
   {
     typedef unsigned char type;
 
-    int linestep = width * bytes_per_pixel / sizeof(type);
+    size_t linestep = width * bytes_per_pixel / sizeof(type);
 
     type *first_line = reinterpret_cast<type *>(data), *last_line = reinterpret_cast<type *>(data) + (height - 1) * linestep;
 
-    for(int y = 0; y < height / 2; ++y)
+    for(size_t y = 0; y < height / 2; ++y)
     {
-      for(int x = 0; x < linestep; ++x, ++first_line, ++last_line)
+      for(size_t x = 0; x < linestep; ++x, ++first_line, ++last_line)
       {
         std::swap(*first_line, *last_line);
       }
@@ -431,8 +431,8 @@ public:
 
   OpenGLDepthPacketProcessorImpl(GLFWwindow *new_opengl_context_ptr, bool debug) :
     opengl_context_ptr(new_opengl_context_ptr),
-    square_vao(0),
     square_vbo(0),
+    square_vao(0),
     stage1_framebuffer(0),
     filter1_framebuffer(0),
     stage2_framebuffer(0),
