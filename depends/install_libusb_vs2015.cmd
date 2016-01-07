@@ -9,8 +9,6 @@ cd libusb_src
 git remote add joshblake https://github.com/JoshBlake/libusbx.git
 git fetch joshblake || exit /b
 git merge joshblake/winiso
-git fetch origin pull/83/head:pr83 || exit /b
-git merge pr83
 
 set CONFIG=Release
 msbuild msvc\libusb_dll_2015.vcxproj /p:Platform=x64 /p:Configuration=%CONFIG% /target:Rebuild
