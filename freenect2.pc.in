@@ -5,8 +5,7 @@ includedir=${prefix}/include
 
 Name: freenect2 
 Description: Driver for the Kinect v2 (aka K4W) 
-Version: 
-Requires: @DEPS_PKGCONFIG@
+Version: @PROJECT_VER@
 Libs: -L${libdir} -lfreenect2
 Cflags: -I${includedir}
 
