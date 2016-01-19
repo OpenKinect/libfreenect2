@@ -110,6 +110,8 @@
 <div class="fragment"><div class="line">  MyFileLogger *filelogger = <span class="keyword">new</span> MyFileLogger(getenv(<span class="stringliteral">&quot;LOGFILE&quot;</span>));</div>
 <div class="line">  <span class="keywordflow">if</span> (filelogger-&gt;good())</div>
 <div class="line">    <a class="code" href="group__logging.html#ga739dd7279f2841fc2edb8fb0a27d8f2c">libfreenect2::setGlobalLogger</a>(filelogger);</div>
+<div class="line">  <span class="keywordflow">else</span></div>
+<div class="line">    <span class="keyword">delete</span> filelogger;</div>
 </div><!-- fragment --><p> libfreenect2 uses a single global logger regardless of number of contexts and devices. You may have to implement thread safety measure in <a class="el" href="classlibfreenect2_1_1Logger.html#a15b1a05d027d43172115a135726e33bb">log()</a>, which is called from multiple threads. Console loggers are thread safe because <code>std::cout</code> and <code>std::cerr</code> are thread safe.</p>
 <h2>Initialize and Discover Devices </h2>
 <p>You need these structures for all operations. Here it uses only one device.</p>
@@ -140,7 +142,7 @@
 </div><!-- fragment --><p> You cannot configure the device after starting it.</p>
 <h2>Start the Device </h2>
 <p>After finishing configuring the device, you can start the device. You must start the device before querying any information of the device.</p>
-<div class="fragment"><div class="line">  dev-&gt;<a class="code" href="classlibfreenect2_1_1Freenect2Device.html#ac0ae5f26cd2001d772aed9d2ea97d41c">start</a>();</div>
+<div class="fragment"><div class="line">  dev-&gt;<a class="code" href="classlibfreenect2_1_1Freenect2Device.html#ad64c54ab3191981b2443c47007f38516">start</a>();</div>
 <div class="line"></div>
 <div class="line">  std::cout &lt;&lt; <span class="stringliteral">&quot;device serial: &quot;</span> &lt;&lt; dev-&gt;<a class="code" href="classlibfreenect2_1_1Freenect2Device.html#ac260b57b2365339382fc0e368bfcc001">getSerialNumber</a>() &lt;&lt; std::endl;</div>
 <div class="line">  std::cout &lt;&lt; <span class="stringliteral">&quot;device firmware: &quot;</span> &lt;&lt; dev-&gt;<a class="code" href="classlibfreenect2_1_1Freenect2Device.html#a28d9092a14e5e9162bb4580ec5fa0665">getFirmwareVersion</a>() &lt;&lt; std::endl;</div>
@@ -166,12 +168,21 @@
 <div class="line">  }</div>
 </div><!-- fragment --> <h2>Stop the Device </h2>
 <p>If you are finished and no longer need to receive more frames, you can stop the device and exit.</p>
-<div class="fragment"><div class="line">  dev-&gt;<a class="code" href="classlibfreenect2_1_1Freenect2Device.html#a0efff8623a2fb79dad94a96dcf16d966">stop</a>();</div>
-<div class="line">  dev-&gt;<a class="code" href="classlibfreenect2_1_1Freenect2Device.html#af6ee7eacbde6b379b68d954e44f6e549">close</a>();</div>
-</div><!-- fragment --></div></div><!-- contents -->
+<div class="fragment"><div class="line">  dev-&gt;<a class="code" href="classlibfreenect2_1_1Freenect2Device.html#a913e49a415a81ff266f461523a0c66da">stop</a>();</div>
+<div class="line">  dev-&gt;<a class="code" href="classlibfreenect2_1_1Freenect2Device.html#aad0a9e425479bdb0239facdf6626fbc8">close</a>();</div>
+</div><!-- fragment --> <h2>Pause the Device </h2>
+<p>You can also temporarily pause the device with <a class="el" href="classlibfreenect2_1_1Freenect2Device.html#a913e49a415a81ff266f461523a0c66da">stop()</a> and <a class="el" href="classlibfreenect2_1_1Freenect2Device.html#ad64c54ab3191981b2443c47007f38516">start()</a>.</p>
+<div class="fragment"><div class="line">  <span class="keywordflow">if</span> (protonect_paused)</div>
+<div class="line">    devtopause-&gt;start();</div>
+<div class="line">  <span class="keywordflow">else</span></div>
+<div class="line">    devtopause-&gt;stop();</div>
+<div class="line">  protonect_paused = !protonect_paused;</div>
+</div><!-- fragment --><p> Doing this during <code>waitForNewFrame()</code> should be thread safe, and tests also show well. But a guarantee of thread safety has not been checked yet.</p>
+<p>THE END. </p>
+</div></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Mon Dec 14 2015 08:27:33 for libfreenect2 by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Tue Jan 19 2016 10:44:29 for libfreenect2 by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.6
 </small></address>
