@@ -107,6 +107,7 @@ If you're using an expansion card, make sure it's not plugged into an PCI-E x1 s
 * Joshua Blake <joshblake@gmail.com>
 * Florian Echtler
 * Christian Kerl
+* Lingzhu Xiang (development/master branch)
 
 ## Installation
 
