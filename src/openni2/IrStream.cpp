@@ -59,3 +59,44 @@ void IrStream::populateFrame(libfreenect2::Frame* srcFrame, int srcX, int srcY, 
             static_cast<uint16_t*>(dstFrame->data), dstX, dstY, dstFrame->width,
             width, height, mirroring);
 }
+
+OniSensorType IrStream::getSensorType() const { return ONI_SENSOR_IR; }
+
+// from StreamBase
+OniBool IrStream::isPropertySupported(int propertyId)
+{
+  switch(propertyId)
+  {
+    default:
+      return VideoStream::isPropertySupported(propertyId);
+    case ONI_STREAM_PROPERTY_HORIZONTAL_FOV:
+    case ONI_STREAM_PROPERTY_VERTICAL_FOV:
+      return true;
+  }
+}
+
+OniStatus IrStream::getProperty(int propertyId, void* data, int* pDataSize)
+{
+  switch (propertyId)
+  {
+    default:
+      return VideoStream::getProperty(propertyId, data, pDataSize);
+
+    case ONI_STREAM_PROPERTY_HORIZONTAL_FOV:        // float (radians)
+      if (*pDataSize != sizeof(float))
+      {
+        LogError("Unexpected size for ONI_STREAM_PROPERTY_HORIZONTAL_FOV");
+        return ONI_STATUS_ERROR;
+      }
+      *(static_cast<float*>(data)) = HORIZONTAL_FOV;
+      return ONI_STATUS_OK;
+    case ONI_STREAM_PROPERTY_VERTICAL_FOV:          // float (radians)
+      if (*pDataSize != sizeof(float))
+      {
+        LogError("Unexpected size for ONI_STREAM_PROPERTY_VERTICAL_FOV");
+        return ONI_STATUS_ERROR;
+      }
+      *(static_cast<float*>(data)) = VERTICAL_FOV;
+      return ONI_STATUS_OK;
+  }
+}

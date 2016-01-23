@@ -44,7 +44,7 @@ namespace Freenect2Driver
     static const float VERTICAL_FOV;
 
   private:
-    OniSensorType getSensorType() const { return ONI_SENSOR_IR; }
+    OniSensorType getSensorType() const;
     VideoModeMap getSupportedVideoModes() const;
     void populateFrame(libfreenect2::Frame* srcFrame, int srcX, int srcY, OniFrame* dstFrame, int dstX, int dstY, int width, int height) const;
 
@@ -53,42 +53,7 @@ namespace Freenect2Driver
     //~IrStream() { }
 
     // from StreamBase
-    OniBool isPropertySupported(int propertyId)
-    {
-      switch(propertyId)
-      {
-        default:
-          return VideoStream::isPropertySupported(propertyId);
-        case ONI_STREAM_PROPERTY_HORIZONTAL_FOV:
-        case ONI_STREAM_PROPERTY_VERTICAL_FOV:
-          return true;
-      }
-    }
-
-    OniStatus getProperty(int propertyId, void* data, int* pDataSize)
-    {
-      switch (propertyId)
-      {
-        default:
-          return VideoStream::getProperty(propertyId, data, pDataSize);
-
-        case ONI_STREAM_PROPERTY_HORIZONTAL_FOV:        // float (radians)
-          if (*pDataSize != sizeof(float))
-          {
-            LogError("Unexpected size for ONI_STREAM_PROPERTY_HORIZONTAL_FOV");
-            return ONI_STATUS_ERROR;
-          }
-          *(static_cast<float*>(data)) = HORIZONTAL_FOV;
-          return ONI_STATUS_OK;
-        case ONI_STREAM_PROPERTY_VERTICAL_FOV:          // float (radians)
-          if (*pDataSize != sizeof(float))
-          {
-            LogError("Unexpected size for ONI_STREAM_PROPERTY_VERTICAL_FOV");
-            return ONI_STATUS_ERROR;
-          }
-          *(static_cast<float*>(data)) = VERTICAL_FOV;
-          return ONI_STATUS_OK;
-      }
-    }
+    OniBool isPropertySupported(int propertyId);
+    OniStatus getProperty(int propertyId, void* data, int* pDataSize);
   };
 }

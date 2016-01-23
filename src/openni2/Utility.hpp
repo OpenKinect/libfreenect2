@@ -29,45 +29,17 @@
 
 #include <iostream>
 #include "Driver/OniDriverAPI.h"
-
+#include <sstream>
 
 // Oni helpers
 
-static OniVideoMode makeOniVideoMode(OniPixelFormat pixel_format, int resolution_x, int resolution_y, int frames_per_second)
-{
-  OniVideoMode mode;
-  mode.pixelFormat = pixel_format;
-  mode.resolutionX = resolution_x;
-  mode.resolutionY = resolution_y;
-  mode.fps = frames_per_second;
-  return mode;
-}
-static bool operator==(const OniVideoMode& left, const OniVideoMode& right)
-{
-  return (left.pixelFormat == right.pixelFormat && left.resolutionX == right.resolutionX
-          && left.resolutionY == right.resolutionY && left.fps == right.fps);
-}
-static bool operator<(const OniVideoMode& left, const OniVideoMode& right)
-{
-  return (left.resolutionX * left.resolutionY < right.resolutionX * right.resolutionY);
-}
+OniVideoMode makeOniVideoMode(OniPixelFormat pixel_format, int resolution_x, int resolution_y, int frames_per_second);
 
-static bool operator<(const OniDeviceInfo& left, const OniDeviceInfo& right)
-{
-  return (strcmp(left.uri, right.uri) < 0);
-}
+bool operator==(const OniVideoMode& left, const OniVideoMode& right);
 
+bool operator<(const OniVideoMode& left, const OniVideoMode& right);
 
-/// Extracts `first` from `pair`, for transforming a map into its keys.
-struct ExtractKey
-{
-  template <typename T> typename T::first_type
-  operator()(T pair) const
-  {
-    return pair.first;
-  }
-};
-
+bool operator<(const OniDeviceInfo& left, const OniDeviceInfo& right);
 
 // holding out on C++11
 template <typename T>

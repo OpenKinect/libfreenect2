@@ -35,7 +35,7 @@ Registration::Registration(libfreenect2::Freenect2Device* dev) :
   reg(NULL),
   enabled(false)
 {
-  }
+}
 
 Registration::~Registration() {
   delete reg;
@@ -43,7 +43,7 @@ Registration::~Registration() {
 
 void Registration::depthFrame(libfreenect2::Frame* frame) {
   lastDepthFrame = frame;
-    }
+}
 
 void Registration::colorFrameRGB888(libfreenect2::Frame* colorFrame, libfreenect2::Frame* registeredFrame) 
 {
@@ -66,4 +66,8 @@ void Registration::colorFrameRGB888(libfreenect2::Frame* colorFrame, libfreenect
   libfreenect2::Frame undistorted(lastDepthFrame->width, lastDepthFrame->height, lastDepthFrame->bytes_per_pixel);
 
   reg->apply(colorFrame, lastDepthFrame, &undistorted, registeredFrame);
-  }
+}
+
+void Registration::setEnable(bool enable) { enabled = enable; }
+
+bool Registration::isEnabled() { return enabled; }

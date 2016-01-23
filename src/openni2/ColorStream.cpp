@@ -119,3 +119,93 @@ void ColorStream::copyFrame(uint8_t* srcPix, int srcX, int srcY, int srcStride, 
     }
   }
 }
+
+OniSensorType ColorStream::getSensorType() const { return ONI_SENSOR_COLOR; }
+
+OniStatus ColorStream::setImageRegistrationMode(OniImageRegistrationMode mode)
+{
+  if (mode == ONI_IMAGE_REGISTRATION_DEPTH_TO_COLOR) {
+    // XXX, switch color resolution to 512x424 for registrarion here
+    OniVideoMode video_mode = makeOniVideoMode(ONI_PIXEL_FORMAT_RGB888, 512, 424, 30);
+    setProperty(ONI_STREAM_PROPERTY_VIDEO_MODE, &video_mode, sizeof(video_mode));
+  }
+  return ONI_STATUS_OK;
+}
+
+// from StreamBase
+OniBool ColorStream::isPropertySupported(int propertyId)
+{
+  switch(propertyId)
+  {
+    default:
+      return VideoStream::isPropertySupported(propertyId);
+
+    case ONI_STREAM_PROPERTY_HORIZONTAL_FOV:
+    case ONI_STREAM_PROPERTY_VERTICAL_FOV:
+    case ONI_STREAM_PROPERTY_AUTO_WHITE_BALANCE:
+    case ONI_STREAM_PROPERTY_AUTO_EXPOSURE:
+      return true;
+  }
+}
+
+OniStatus ColorStream::getProperty(int propertyId, void* data, int* pDataSize)
+{
+  switch (propertyId)
+  {
+    default:
+      return VideoStream::getProperty(propertyId, data, pDataSize);
+
+    case ONI_STREAM_PROPERTY_HORIZONTAL_FOV:     // float (radians)
+    {
+      if (*pDataSize != sizeof(float))
+      {
+        LogError("Unexpected size for ONI_STREAM_PROPERTY_HORIZONTAL_FOV");
+        return ONI_STATUS_ERROR;
+      }
+      *(static_cast<float*>(data)) = HORIZONTAL_FOV;
+      return ONI_STATUS_OK;
+    }
+    case ONI_STREAM_PROPERTY_VERTICAL_FOV:       // float (radians)
+    {
+      if (*pDataSize != sizeof(float))
+      {
+        LogError("Unexpected size for ONI_STREAM_PROPERTY_VERTICAL_FOV");
+        return ONI_STATUS_ERROR;
+      }
+      *(static_cast<float*>(data)) = VERTICAL_FOV;
+      return ONI_STATUS_OK;
+    }
+
+    // camera
+    case ONI_STREAM_PROPERTY_AUTO_WHITE_BALANCE: // OniBool
+    {
+      if (*pDataSize != sizeof(OniBool))
+      {
+        LogError("Unexpected size for ONI_STREAM_PROPERTY_AUTO_WHITE_BALANCE");
+        return ONI_STATUS_ERROR;
+      }
+      *(static_cast<OniBool*>(data)) = auto_white_balance;
+      return ONI_STATUS_OK;
+    }
+    case ONI_STREAM_PROPERTY_AUTO_EXPOSURE:      // OniBool
+    {
+      if (*pDataSize != sizeof(OniBool))
+      {
+        LogError("Unexpected size for ONI_STREAM_PROPERTY_AUTO_EXPOSURE");
+        return ONI_STATUS_ERROR;
+      }
+      *(static_cast<OniBool*>(data)) = auto_exposure;
+      return ONI_STATUS_OK;
+    }
+  }
+}
+
+OniStatus ColorStream::setProperty(int propertyId, const void* data, int dataSize)
+{
+  switch (propertyId)
+  {
+    case 0:
+    default:
+      return VideoStream::setProperty(propertyId, data, dataSize);
+  }
+}

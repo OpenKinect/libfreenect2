@@ -56,7 +56,7 @@ namespace Freenect2Driver
     static const double EMITTER_DCMOS_DISTANCE_VAL;
 
   private:
-    OniSensorType getSensorType() const { return ONI_SENSOR_DEPTH; }
+    OniSensorType getSensorType() const;
     OniImageRegistrationMode image_registration_mode;
     VideoModeMap getSupportedVideoModes() const;
     void populateFrame(libfreenect2::Frame* srcFrame, int srcX, int srcY, OniFrame* dstFrame, int dstX, int dstY, int width, int height) const;
@@ -65,167 +65,12 @@ namespace Freenect2Driver
     DepthStream(libfreenect2::Freenect2Device* pDevice, Freenect2Driver::Registration *reg);
     //~DepthStream() { }
 
-    OniImageRegistrationMode getImageRegistrationMode() const { return image_registration_mode; }
-    OniStatus setImageRegistrationMode(OniImageRegistrationMode mode)
-    {
-      if (!isImageRegistrationModeSupported(mode))
-        return ONI_STATUS_NOT_SUPPORTED;
-      image_registration_mode = mode;
-      reg->setEnable(image_registration_mode == ONI_IMAGE_REGISTRATION_DEPTH_TO_COLOR);
-      return setVideoMode(video_mode);
-    }
+    OniImageRegistrationMode getImageRegistrationMode() const;
+    OniStatus setImageRegistrationMode(OniImageRegistrationMode mode);
 
     // from StreamBase
-    OniBool isImageRegistrationModeSupported(OniImageRegistrationMode mode) { return (mode == ONI_IMAGE_REGISTRATION_OFF || mode == ONI_IMAGE_REGISTRATION_DEPTH_TO_COLOR); }
-
-    OniBool isPropertySupported(int propertyId)
-    {
-      switch(propertyId)
-      {
-        default:
-          return VideoStream::isPropertySupported(propertyId);
-        case ONI_STREAM_PROPERTY_HORIZONTAL_FOV:
-        case ONI_STREAM_PROPERTY_VERTICAL_FOV:
-        case ONI_STREAM_PROPERTY_MAX_VALUE:
-        case XN_STREAM_PROPERTY_GAIN:
-        case XN_STREAM_PROPERTY_CONST_SHIFT:
-        case XN_STREAM_PROPERTY_MAX_SHIFT:
-        case XN_STREAM_PROPERTY_PARAM_COEFF:
-        case XN_STREAM_PROPERTY_SHIFT_SCALE:
-        case XN_STREAM_PROPERTY_ZERO_PLANE_DISTANCE:
-        case XN_STREAM_PROPERTY_ZERO_PLANE_PIXEL_SIZE:
-        case XN_STREAM_PROPERTY_EMITTER_DCMOS_DISTANCE:
-        case XN_STREAM_PROPERTY_S2D_TABLE:
-        case XN_STREAM_PROPERTY_D2S_TABLE:
-          return true;
-      }
-    }
-
-    OniStatus getProperty(int propertyId, void* data, int* pDataSize)
-    {
-      switch (propertyId)
-      {
-        default:
-          return VideoStream::getProperty(propertyId, data, pDataSize);
-
-        case ONI_STREAM_PROPERTY_HORIZONTAL_FOV:        // float (radians)
-          if (*pDataSize != sizeof(float))
-          {
-            LogError("Unexpected size for ONI_STREAM_PROPERTY_HORIZONTAL_FOV");
-            return ONI_STATUS_ERROR;
-          }
-          *(static_cast<float*>(data)) = HORIZONTAL_FOV;
-          return ONI_STATUS_OK;
-        case ONI_STREAM_PROPERTY_VERTICAL_FOV:          // float (radians)
-          if (*pDataSize != sizeof(float))
-          {
-            LogError("Unexpected size for ONI_STREAM_PROPERTY_VERTICAL_FOV");
-            return ONI_STATUS_ERROR;
-          }
-          *(static_cast<float*>(data)) = VERTICAL_FOV;
-          return ONI_STATUS_OK;
-        case ONI_STREAM_PROPERTY_MAX_VALUE:             // int
-          if (*pDataSize != sizeof(int))
-          {
-            LogError("Unexpected size for ONI_STREAM_PROPERTY_MAX_VALUE");
-            return ONI_STATUS_ERROR;
-          }
-          *(static_cast<int*>(data)) = MAX_VALUE;
-          return ONI_STATUS_OK;
-
-        case XN_STREAM_PROPERTY_PIXEL_REGISTRATION:     // XnPixelRegistration (get only)
-        case XN_STREAM_PROPERTY_WHITE_BALANCE_ENABLED:  // unsigned long long
-        case XN_STREAM_PROPERTY_HOLE_FILTER:            // unsigned long long
-        case XN_STREAM_PROPERTY_REGISTRATION_TYPE:      // XnProcessingType
-        case XN_STREAM_PROPERTY_AGC_BIN:                // XnDepthAGCBin*
-        case XN_STREAM_PROPERTY_PIXEL_SIZE_FACTOR:      // unsigned long long
-        case XN_STREAM_PROPERTY_DCMOS_RCMOS_DISTANCE:   // double
-        case XN_STREAM_PROPERTY_CLOSE_RANGE:            // unsigned long long
-          return ONI_STATUS_NOT_SUPPORTED;
-
-        case XN_STREAM_PROPERTY_GAIN:                   // unsigned long long
-          if (*pDataSize != sizeof(unsigned long long))
-          {
-            LogError("Unexpected size for XN_STREAM_PROPERTY_GAIN");
-            return ONI_STATUS_ERROR;
-          }
-          *(static_cast<unsigned long long*>(data)) = GAIN_VAL;
-          return ONI_STATUS_OK;
-        case XN_STREAM_PROPERTY_CONST_SHIFT:            // unsigned long long
-          if (*pDataSize != sizeof(unsigned long long))
-          {
-            LogError("Unexpected size for XN_STREAM_PROPERTY_CONST_SHIFT");
-            return ONI_STATUS_ERROR;
-          }
-          *(static_cast<unsigned long long*>(data)) = CONST_SHIFT_VAL;
-          return ONI_STATUS_OK;
-        case XN_STREAM_PROPERTY_MAX_SHIFT:              // unsigned long long
-          if (*pDataSize != sizeof(unsigned long long))
-          {
-            LogError("Unexpected size for XN_STREAM_PROPERTY_MAX_SHIFT");
-            return ONI_STATUS_ERROR;
-          }
-          *(static_cast<unsigned long long*>(data)) = MAX_SHIFT_VAL;
-          return ONI_STATUS_OK;
-        case XN_STREAM_PROPERTY_PARAM_COEFF:            // unsigned long long
-          if (*pDataSize != sizeof(unsigned long long))
-          {
-            LogError("Unexpected size for XN_STREAM_PROPERTY_PARAM_COEFF");
-            return ONI_STATUS_ERROR;
-          }
-          *(static_cast<unsigned long long*>(data)) = PARAM_COEFF_VAL;
-          return ONI_STATUS_OK;
-        case XN_STREAM_PROPERTY_SHIFT_SCALE:            // unsigned long long
-          if (*pDataSize != sizeof(unsigned long long))
-          {
-            LogError("Unexpected size for XN_STREAM_PROPERTY_SHIFT_SCALE");
-            return ONI_STATUS_ERROR;
-          }
-          *(static_cast<unsigned long long*>(data)) = SHIFT_SCALE_VAL;
-          return ONI_STATUS_OK;
-        case XN_STREAM_PROPERTY_ZERO_PLANE_DISTANCE:    // unsigned long long
-          if (*pDataSize != sizeof(unsigned long long))
-          {
-            LogError("Unexpected size for XN_STREAM_PROPERTY_ZERO_PLANE_DISTANCE");
-            return ONI_STATUS_ERROR;
-          }
-          *(static_cast<unsigned long long*>(data)) = ZERO_PLANE_DISTANCE_VAL;
-          return ONI_STATUS_OK;
-        case XN_STREAM_PROPERTY_ZERO_PLANE_PIXEL_SIZE:  // double
-          if (*pDataSize != sizeof(double))
-          {
-            LogError("Unexpected size for XN_STREAM_PROPERTY_ZERO_PLANE_PIXEL_SIZE");
-            return ONI_STATUS_ERROR;
-          }
-          *(static_cast<double*>(data)) = ZERO_PLANE_PIXEL_SIZE_VAL;
-          return ONI_STATUS_OK;
-        case XN_STREAM_PROPERTY_EMITTER_DCMOS_DISTANCE: // double
-          if (*pDataSize != sizeof(double))
-          {
-            LogError("Unexpected size for XN_STREAM_PROPERTY_EMITTER_DCMOS_DISTANCE");
-            return ONI_STATUS_ERROR;
-          }
-          *(static_cast<double*>(data)) = EMITTER_DCMOS_DISTANCE_VAL;
-          return ONI_STATUS_OK;
-        case XN_STREAM_PROPERTY_S2D_TABLE:              // OniDepthPixel[]
-          {
-            uint16_t *s2d = (uint16_t *)data;
-            *pDataSize = sizeof(*s2d) * 2048;
-            memset(data, 0, *pDataSize);
-            for (int i = 1; i <= 1052; i++)
-              s2d[i] = 342205.0/(1086.671 - i);
-          }
-          return ONI_STATUS_OK;
-        case XN_STREAM_PROPERTY_D2S_TABLE:              // unsigned short[]
-          {
-            uint16_t *d2s = (uint16_t *)data;
-            *pDataSize = sizeof(*d2s) * 10001;
-            memset(data, 0, *pDataSize);
-            for (int i = 315; i <= 10000; i++)
-              d2s[i] = 1086.671 - 342205.0/(i + 1);
-          }
-          return ONI_STATUS_OK;
-      }
-    }
+    OniBool isImageRegistrationModeSupported(OniImageRegistrationMode mode);
+    OniBool isPropertySupported(int propertyId);
+    OniStatus getProperty(int propertyId, void* data, int* pDataSize);
   };
 }
