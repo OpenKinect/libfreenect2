@@ -24,7 +24,8 @@
  * either License.
  */
 
-#include <string>
+#define _USE_MATH_DEFINES
+#include <cmath> // for M_PI
 #include "DepthStream.hpp"
 
 using namespace Freenect2Driver;
@@ -74,7 +75,7 @@ void DepthStream::populateFrame(libfreenect2::Frame* srcFrame, int srcX, int src
   if (reg->isEnabled())
     reg->depthFrame(srcFrame);
 
-  if (srcFrame->width < dstFrame->width || srcFrame->height < dstFrame->height)
+  if (srcFrame->width < (size_t)dstFrame->width || srcFrame->height < (size_t)dstFrame->height)
     memset(dstFrame->data, 0x00, dstFrame->width * dstFrame->height * 2);
 
   // copy stream buffer from freenect

@@ -27,8 +27,7 @@
 // This file contains symbols that may be used by any class or don't really go anywhere else.
 #pragma once
 
-#include <iostream>
-#include "Driver/OniDriverAPI.h"
+#include <Driver/OniDriverAPI.h>
 #include <sstream>
 
 // Oni helpers

@@ -28,7 +28,7 @@
 
 #include <map>
 #include <libfreenect2/libfreenect2.hpp>
-#include "PS1080.h"
+#include <PS1080.h>
 #include "Utility.hpp"
 #include "Registration.hpp"
 

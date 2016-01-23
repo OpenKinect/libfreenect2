@@ -25,7 +25,7 @@
  */
 
 // This file contains symbols that may be used by any class or don't really go anywhere else.
-#include <iostream>
+#include <cstring>
 #include "Driver/OniDriverAPI.h"
 
 

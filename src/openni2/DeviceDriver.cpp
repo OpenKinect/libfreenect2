@@ -93,7 +93,7 @@ namespace Freenect2Driver
       {
         listener.waitForNewFrame(frames);
 
-        for (int i = 0; i < sizeof(streams)/sizeof(*streams); i++) {
+        for (unsigned i = 0; i < sizeof(streams)/sizeof(*streams); i++) {
           struct streams& s = streams[i];
           VideoStream* stream = getStream(s.type);
           libfreenect2::Frame *frame = frames[s.type];
@@ -131,10 +131,10 @@ namespace Freenect2Driver
   public:
     Device(int index) : //libfreenect2::Freenect2Device(fn_ctx, index),
       dev(NULL),
-      reg(NULL),
       color(NULL),
-      ir(NULL),
       depth(NULL),
+      ir(NULL),
+      reg(NULL),
       device_stop(false),
       listener(libfreenect2::Frame::Depth | libfreenect2::Frame::Ir | libfreenect2::Frame::Color),
       thread(NULL)
@@ -427,7 +427,7 @@ namespace Freenect2Driver
 
         WriteMessage("Found device " + uri);
 
-        for (int i = 0; i < modes.size(); i++) {
+        for (unsigned i = 0; i < modes.size(); i++) {
           register_uri(uri + modes[i]);
         }
 
@@ -452,7 +452,7 @@ namespace Freenect2Driver
     {
       std::string uri(c_uri);
       std::string mode(c_mode ? c_mode : "");
-      if (uri.find("?") != -1) {
+      if (uri.find("?") != std::string::npos) {
         mode += "&";
         mode += uri.substr(uri.find("?") + 1);
         uri = uri.substr(0, uri.find("?"));
@@ -460,7 +460,7 @@ namespace Freenect2Driver
       std::stringstream ss(mode);
       std::string buf;
       while(std::getline(ss, buf, '&')) {
-        if (buf.find("=") != -1) {
+        if (buf.find("=") != std::string::npos) {
           config[buf.substr(0, buf.find("="))] = buf.substr(buf.find("=")+1);
         } else {
           if (0 < buf.length())
@@ -506,7 +506,7 @@ namespace Freenect2Driver
         if (iter->second == pDevice)
         {
           WriteMessage("Closing device " + std::string(iter->first.uri));
-          int id = uri_to_devid(iter->first.uri);
+          //int id = uri_to_devid(iter->first.uri);
 
           Device* device = (Device*)iter->second;
           device->stop();
@@ -550,7 +550,7 @@ namespace Freenect2Driver
 
 
 // macros defined in XnLib (not included) - workaround
-#define XN_NEW(type, arg...) new type(arg)
+#define XN_NEW(type, arg) new type(arg)
 #define XN_DELETE(p) delete(p)
 ONI_EXPORT_DRIVER(Freenect2Driver::Driver);
 #undef XN_NEW

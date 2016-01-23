@@ -24,7 +24,8 @@
  * either License.
  */
 
-#include <string>
+#define _USE_MATH_DEFINES
+#include <cmath> // for M_PI
 #include "ColorStream.hpp"
 
 using namespace Freenect2Driver;

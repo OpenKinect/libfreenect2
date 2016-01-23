@@ -25,7 +25,7 @@
  */
 
 #include <iostream>
-#include "Driver/OniDriverAPI.h"
+#include <Driver/OniDriverAPI.h>
 #include "Registration.hpp"
 
 using namespace Freenect2Driver;

@@ -26,8 +26,6 @@
 
 #pragma once
 
-#include <algorithm> // for transform()
-#include <cmath> // for M_PI
 #include <map>
 #include <libfreenect2/libfreenect2.hpp>
 #include <Driver/OniDriverAPI.h>
