@@ -27,6 +27,9 @@
 #ifndef LIBFREENECT2_CONFIG_H
 #define LIBFREENECT2_CONFIG_H
 
+#define LIBFREENECT2_VERSION "@PROJECT_VER@"
+#define LIBFREENECT2_API_VERSION ((@PROJECT_VER_MAJOR@ << 16) | @PROJECT_VER_MINOR@)
+
 #ifdef _MSC_VER
 #define LIBFREENECT2_PACK( __Declaration__ ) __pragma( pack(push, 1) ) __Declaration__ __pragma( pack(pop) )
 #else
