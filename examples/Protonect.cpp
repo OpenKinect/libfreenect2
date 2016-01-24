@@ -110,8 +110,9 @@ int main(int argc, char *argv[])
 /// [main]
 {
   std::string program_path(argv[0]);
+  std::cerr << "Version: " << LIBFREENECT2_VERSION << std::endl;
   std::cerr << "Environment variables: LOGFILE=<protonect.log>" << std::endl;
-  std::cerr << "Usage: " << program_path << " [gl | cl | cpu] [<device serial>] [-noviewer]" << std::endl;
+  std::cerr << "Usage: " << program_path << " [gl | cl | cpu] [<device serial>] [-noviewer] [-help] [-version]" << std::endl;
   std::cerr << "To pause and unpause: pkill -USR1 Protonect" << std::endl;
   size_t executable_name_idx = program_path.rfind("Protonect");
 
@@ -145,15 +146,7 @@ int main(int argc, char *argv[])
   libfreenect2::PacketPipeline *pipeline = 0;
 /// [context]
 
-/// [discovery]
-  if(freenect2.enumerateDevices() == 0)
-  {
-    std::cout << "no device connected!" << std::endl;
-    return -1;
-  }
-
-  std::string serial = freenect2.getDefaultDeviceSerialNumber();
-/// [discovery]
+  std::string serial = "";
 
   bool viewer_enabled = true;
 
@@ -161,7 +154,12 @@ int main(int argc, char *argv[])
   {
     const std::string arg(argv[argI]);
 
-    if(arg == "cpu")
+    if(arg == "-help" || arg == "--help" || arg == "-h" || arg == "-v" || arg == "--version" || arg == "-version")
+    {
+      // Just let the initial lines display at the beginning of main
+      return 0;
+    }
+    else if(arg == "cpu")
     {
       if(!pipeline)
 /// [pipeline]
@@ -190,7 +188,7 @@ int main(int argc, char *argv[])
     {
       serial = arg;
     }
-    else if(arg == "-noviewer")
+    else if(arg == "-noviewer" || arg == "--noviewer")
     {
       viewer_enabled = false;
     }
@@ -199,6 +197,19 @@ int main(int argc, char *argv[])
       std::cout << "Unknown argument: " << arg << std::endl;
     }
   }
+
+/// [discovery]
+  if(freenect2.enumerateDevices() == 0)
+  {
+    std::cout << "no device connected!" << std::endl;
+    return -1;
+  }
+
+  if (serial == "")
+  {
+    serial = freenect2.getDefaultDeviceSerialNumber();
+  }
+/// [discovery]
 
   if(pipeline)
   {
