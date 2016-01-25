@@ -40,6 +40,7 @@ Virtual machines likely do not work, because USB 3.0 isochronous transfer is qui
 The following minimum requirements must be met in order to enable the optional features:
 * OpenGL depth processing: OpenGL 3.1 (Windows, Linux, Mac OS X). No OpenGL ES support at the moment.
 * OpenCL depth processing: OpenCL 1.1
+* OpenNI2 driver: OpenNI2 2.2.0.33
 
 ## FAQ
 
@@ -165,6 +166,10 @@ Or `install_libusb_vs2015.cmd`. If you see some errors, you can always open the 
 
 * Intel GPU: Download `intel_sdk_for_ocl_applications_2014_x64_setup.msi` from http://www.softpedia.com/get/Programming/SDK-DDK/Intel-SDK-for-OpenCL-Applications.shtml (SDK official download is replaced by $$$ and no longer available) and install it. Then verify `INTELOCLSDKROOT` is set as an environment variable. You may need to download and install additional OpenCL runtime.
 
+#### OpenNI2 (optional)
+
+* Download OpenNI 2.2.0.33 (x64) from http://structure.io/openni, install it to default locations (`C:\Program Files...`).
+
 #### Build
 
 ```
@@ -174,13 +179,15 @@ cmake --build . --config RelWithDebInfo --target install
 ```
 Or `-G "Visual Studio 14 2015 Win64"`. Then you can run the program with `.\install\bin\Protonect.exe`, or start debugging in Visual Studio. `RelWithDebInfo` provides debug symbols with release performance. The default installation path is `install`, you may change it by editing `CMAKE_INSTALL_PREFIX`.
 
+To try OpenNI2, copy freenect2-openni2.dll, and other dll files (libusb-1.0.dll, glfw.dll, etc.) in `install\bin` to `C:\Program Files\OpenNI2\Tools\OpenNI2\Drivers`. Then run `C:\Program Files\OpenNI\Tools\NiViewer.exe`.
+
 ### Mac OSX
 
 Use your favorite package managers (brew, ports, etc.) to install most if not all dependencies:
 
 1. ``cd`` into a directory where you want to keep libfreenect2 stuff in
 1. Make sure these build tools are available: wget, git, cmake, pkg-config. Xcode may provide some of them. Install the rest via package managers.
-1. Install dependencies: libusb, TurboJPEG, GLFW.
+1. Install dependencies: libusb, TurboJPEG, GLFW, OpenNI2 (optional).
 
     ```
 brew update
@@ -189,6 +196,9 @@ brew tap homebrew/science
 brew install jpeg-turbo
 brew tap homebrew/versions
 brew install glfw3
+brew install openni2
+export OPENNI2_REDIST=/usr/local/lib/ni2
+export OPENNI2_INCLUDE=/usr/local/include/ni2
 ```
 
     It **is** now recommended to install libusb from package managers instead of building from source locally. Previously it was not recommended but that is no longer the case.
@@ -209,6 +219,7 @@ mkdir build && cd build
 cmake ..
 make
 make install
+make install-openni2  # may need sudo
 ```
 
 1. Run the program
@@ -216,6 +227,8 @@ make install
     ```
 ./bin/Protonect
 ```
+
+    Use `NiViewer` to test OpenNI2.
 
 ### Debian/Ubuntu 14.04
 
@@ -252,6 +265,8 @@ sudo dpkg -i libglfw3*_3.0.4-1_*.deb
   * Mali GPU (e.g. Odroid XU4): (with root) `mkdir -p /etc/OpenCL/vendors; echo /usr/lib/arm-linux-gnueabihf/mali-egl/libmali.so >/etc/OpenCL/vendors/mali.icd; apt-get install opencl-headers`.
   * Verify: You can install `clinfo` to verify if you have correctly set up the OpenCL stack.
 
+1. OpenNI2 dependency (optional): `sudo apt-get install libopenni2-dev`.
+
 1. Build the actual protonect executable
 
     ```
@@ -260,6 +275,7 @@ mkdir build && cd build
 cmake ..
 make
 sudo make install # without sudo if cmake -DCMAKE_INSTALL_PREFIX=$HOME/...
+sudo make install-openni2  # if OpenNI2 support is enabled
 ```
 
 1. Run the program
@@ -267,6 +283,8 @@ sudo make install # without sudo if cmake -DCMAKE_INSTALL_PREFIX=$HOME/...
     ```
 ./bin/Protonect
 ```
+
+1. Run OpenNI2: `sudo apt-get install openni2-utils && NiViewer2`.
 
 ### Other operating systems
 
