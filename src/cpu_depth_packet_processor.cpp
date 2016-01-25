@@ -318,65 +318,33 @@ public:
 
   int32_t decodePixelMeasurement(unsigned char* data, int sub, int x, int y)
   {
+    if (x < 0 || y < 0 || 511 < x || 423 < y)
+    {
+      return lut11to16[0];
+    }
+
+    int r1zi = (x >> 2) + ((x & 0x3) << 7); // Range 0..511
+    r1zi = r1zi * 11L; // Range 0..5621
+
     // 298496 = 512 * 424 * 11 / 8 = number of bytes per sub image
     uint16_t *ptr = reinterpret_cast<uint16_t *>(data + 298496 * sub);
     int i = y < 212 ? y + 212 : 423 - y;
     ptr += 352*i;
 
-    /**
-     r1.yz = r2.xxyx < l(0, 1, 0, 0) // ilt
-     r1.y = r1.z | r1.y // or
-     */
-    bool r1y = x < 1 || y < 0;
-    /*
-    r1.zw = l(0, 0, 510, 423) < r2.xxxy // ilt
-    r1.z = r1.w | r1.z // or
-    */
-    bool r1z = 510 < x || 423 < y;
-    /*
-    r1.y = r1.z | r1.y // or
-    */
-    r1y = r1y || r1z;
-    /*
-    r1.y = r1.y & l(0x1fffffff) // and
-    */
-    int r1yi = r1y ? 0xffffffff : 0x0;
-    r1yi &= 0x1fffffff;
-
-    /*
-    bfi r1.z, l(2), l(7), r2.x, l(0)
-    ushr r1.w, r2.x, l(2)
-    r1.z = r1.w + r1.z // iadd
-    */
-    int r1zi = bfi(2, 7, x, 0);
-    int r1wi = x >> 2;
-    r1zi = r1wi + r1zi;
-
-    /*
-    imul null, r1.z, r1.z, l(11)
-    ushr r1.w, r1.z, l(4)
-    r1.y = r1.w + r1.y // iadd
-    r1.w = r1.y + l(1) // iadd
-    r1.z = r1.z & l(15) // and
-    r4.w = -r1.z + l(16) // iadd
-     */
-    r1zi = (r1zi * 11L) & 0xffffffff;
-    r1wi = r1zi >> 4;
-    r1yi = r1yi + r1wi;
+    int r1yi = r1zi >> 4; // Range 0..351
     r1zi = r1zi & 15;
-    int r4wi = -r1zi + 16;
 
-    if(r1yi > 352)
+    uint16_t i1 = ptr[r1yi];
+    i1 = i1 >> r1zi;
+
+    if (r1zi > 5) // For x == 511, r1yi == 351 but r1zi == 5.
     {
-      return lut11to16[0];
+        uint16_t i2 = ptr[r1yi + 1];
+        i2 = i2 << (16 - r1zi);
+        i1 |= i2;
     }
 
-    int i1 = ptr[r1yi];
-    int i2 = ptr[r1yi + 1];
-    i1 = i1 >> r1zi;
-    i2 = i2 << r4wi;
-
-    return lut11to16[((i1 | i2) & 2047)];
+    return lut11to16[i1 & 2047];
   }
 
   /**
