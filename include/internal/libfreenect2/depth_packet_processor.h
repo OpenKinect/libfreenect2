@@ -175,6 +175,36 @@ public:
 private:
   OpenCLDepthPacketProcessorImpl *impl_;
 };
+
 #endif // LIBFREENECT2_WITH_OPENCL_SUPPORT
+
+class DumpDepthPacketProcessor : public DepthPacketProcessor
+{
+ public:
+  DumpDepthPacketProcessor();
+  virtual ~DumpDepthPacketProcessor();
+
+  virtual void process(const DepthPacket &packet);
+
+  virtual void loadP0TablesFromCommandResponse(unsigned char* buffer, size_t buffer_length);
+  virtual void loadXZTables(const float *xtable, const float *ztable);
+  virtual void loadLookupTable(const short *lut);
+
+  const unsigned char* getP0Tables();
+
+  const float* getXTable();
+  const float* getZTable();
+
+  const short* getLookupTable();
+
+ protected:
+  unsigned char* p0table_;
+
+  float* xtable_;
+  float* ztable_;
+  
+  short* lut_;
+};
+
 } /* namespace libfreenect2 */
 #endif /* DEPTH_PACKET_PROCESSOR_H_ */

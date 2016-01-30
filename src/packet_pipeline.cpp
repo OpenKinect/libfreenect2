@@ -129,4 +129,13 @@ OpenCLPacketPipeline::OpenCLPacketPipeline(const int deviceId) : deviceId(device
 OpenCLPacketPipeline::~OpenCLPacketPipeline() { }
 #endif // LIBFREENECT2_WITH_OPENCL_SUPPORT
 
+DumpPacketPipeline::DumpPacketPipeline()
+{
+  RgbPacketProcessor *rgb = new DumpRgbPacketProcessor();
+  DepthPacketProcessor *depth = new DumpDepthPacketProcessor();
+  comp_->initialize(rgb, depth);
+}
+
+DumpPacketPipeline::~DumpPacketPipeline() {}
+
 } /* namespace libfreenect2 */

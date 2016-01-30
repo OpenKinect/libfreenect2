@@ -66,6 +66,13 @@ protected:
   PacketPipelineComponents *comp_;
 };
 
+ class LIBFREENECT2_API DumpPacketPipeline: public PacketPipeline
+ {
+ public:
+   DumpPacketPipeline();
+   virtual ~DumpPacketPipeline();
+ };
+
 /** Pipeline with CPU depth processing. */
 class LIBFREENECT2_API CpuPacketPipeline : public PacketPipeline
 {

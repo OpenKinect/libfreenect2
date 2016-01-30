@@ -29,6 +29,8 @@
 #include <libfreenect2/depth_packet_processor.h>
 #include <libfreenect2/async_packet_processor.h>
 
+#include <cstring>
+
 namespace libfreenect2
 {
 
@@ -98,4 +100,63 @@ void DepthPacketProcessor::setFrameListener(libfreenect2::FrameListener *listene
   listener_ = listener;
 }
 
+DumpDepthPacketProcessor::DumpDepthPacketProcessor()
+  : p0table_(NULL), xtable_(NULL), ztable_(NULL), lut_(NULL) {
+}
+
+DumpDepthPacketProcessor::~DumpDepthPacketProcessor(){
+  delete[] p0table_;
+  delete[] xtable_;
+  delete[] ztable_;
+  delete[] lut_;
+}
+
+void DumpDepthPacketProcessor::process(const DepthPacket &packet) {
+  Frame* depth_frame = new Frame(1, 1, packet.buffer_length);
+  
+  depth_frame->timestamp = packet.timestamp;
+  depth_frame->sequence = packet.sequence;
+  depth_frame->format = Frame::Raw;
+  std::memcpy(depth_frame->data, packet.buffer, packet.buffer_length);
+
+  Frame* ir_frame = new Frame(1, 1, packet.buffer_length, depth_frame->data);
+  ir_frame->timestamp = packet.timestamp;
+  ir_frame->sequence = packet.sequence;
+  ir_frame->data = packet.buffer;
+  ir_frame->format = Frame::Raw;
+
+  if (!listener_->onNewFrame(Frame::Ir, ir_frame)) {
+    delete ir_frame;
+  }
+  ir_frame = NULL;
+  if (!listener_->onNewFrame(Frame::Depth, depth_frame)) {
+    delete depth_frame;
+  }
+  depth_frame = NULL;
+}
+  
+const unsigned char* DumpDepthPacketProcessor::getP0Tables() { return p0table_; }
+  
+const float* DumpDepthPacketProcessor::getXTable() { return xtable_; }
+const float* DumpDepthPacketProcessor::getZTable() { return ztable_; }
+
+const short* DumpDepthPacketProcessor::getLookupTable() { return lut_; }
+
+void DumpDepthPacketProcessor::loadP0TablesFromCommandResponse(unsigned char* buffer, size_t buffer_length) {
+  p0table_ = new unsigned char[buffer_length];
+  std::memcpy(p0table_, buffer, buffer_length);
+}
+  
+void DumpDepthPacketProcessor::loadXZTables(const float *xtable, const float *ztable) {
+  xtable_ = new float[TABLE_SIZE];
+  std::memcpy(xtable_, xtable, TABLE_SIZE * sizeof(float));
+
+  ztable_ = new float[TABLE_SIZE];
+  std::memcpy(ztable_, ztable, TABLE_SIZE * sizeof(float));
+}
+  
+void DumpDepthPacketProcessor::loadLookupTable(const short *lut) {
+  lut_ = new short[LUT_SIZE];
+  std::memcpy(lut_, lut, LUT_SIZE * sizeof(short));
+}
 } /* namespace libfreenect2 */
