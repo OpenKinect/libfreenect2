@@ -17,6 +17,8 @@ Driver for Kinect for Windows v2 (K4W2) devices (release and developer preview).
 
 Note: libfreenect2 does not do anything for either Kinect for Windows v1 or Kinect for Xbox 360 sensors. Use libfreenect1 for those sensors.
 
+If you are using libfreenect2 in an academic context, please cite our work using the following DOI: [![DOI](https://zenodo.org/badge/20096/OpenKinect/libfreenect2.svg)](https://zenodo.org/badge/latestdoi/20096/OpenKinect/libfreenect2)
+
 This driver supports:
 * RGB image transfer
 * IR and depth image transfer
