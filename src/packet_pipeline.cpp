@@ -31,6 +31,7 @@
 #include <libfreenect2/data_callback.h>
 #include <libfreenect2/rgb_packet_stream_parser.h>
 #include <libfreenect2/depth_packet_stream_parser.h>
+#include <libfreenect2/protocol/response.h>
 
 namespace libfreenect2
 {
@@ -137,5 +138,25 @@ DumpPacketPipeline::DumpPacketPipeline()
 }
 
 DumpPacketPipeline::~DumpPacketPipeline() {}
+
+const unsigned char* DumpPacketPipeline::getDepthP0Tables(size_t* length) {
+  *length = sizeof(libfreenect2::protocol::P0TablesResponse);
+  return static_cast<DumpDepthPacketProcessor*>(getDepthPacketProcessor())->getP0Tables();
+}
+
+const float* DumpPacketPipeline::getDepthXTable(size_t* length) {
+  *length = DepthPacketProcessor::TABLE_SIZE;
+  return static_cast<DumpDepthPacketProcessor*>(getDepthPacketProcessor())->getXTable();
+}
+
+const float* DumpPacketPipeline::getDepthZTable(size_t* length) {
+  *length = DepthPacketProcessor::TABLE_SIZE;
+  return static_cast<DumpDepthPacketProcessor*>(getDepthPacketProcessor())->getZTable();
+}
+
+const short* DumpPacketPipeline::getDepthLookupTable(size_t* length) {
+  *length = DepthPacketProcessor::LUT_SIZE;
+  return static_cast<DumpDepthPacketProcessor*>(getDepthPacketProcessor())->getLookupTable();
+}
 
 } /* namespace libfreenect2 */
