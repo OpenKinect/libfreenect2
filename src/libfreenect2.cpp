@@ -33,6 +33,10 @@
 #include <limits>
 #include <cmath>
 #include <cstdlib>
+#include <dirent.h>
+#include <iostream>
+#include <fstream>
+
 #define WRITE_LIBUSB_ERROR(__RESULT) libusb_error_name(__RESULT) << " " << libusb_strerror((libusb_error)__RESULT)
 
 #include <libfreenect2/libfreenect2.hpp>
@@ -1113,6 +1117,147 @@ Freenect2Device *Freenect2::openDefaultDevice()
 Freenect2Device *Freenect2::openDefaultDevice(const PacketPipeline *pipeline)
 {
   return openDevice(0, pipeline);
+}
+
+
+Freenect2ReplayDevice::Freenect2ReplayDevice(char* directory, PacketPipeline* pipeline) 
+  :pipeline_(pipeline), directory_(directory), running_(false) {
+}
+
+void Freenect2ReplayDevice::setColorFrameListener(FrameListener* listener) {
+  RgbPacketProcessor* proc = pipeline_->getRgbPacketProcessor();
+  if (proc != NULL) {
+    proc->setFrameListener(listener);
+  }
+}
+
+void Freenect2ReplayDevice::setIrAndDepthFrameListener(FrameListener* listener) {
+  DepthPacketProcessor* proc = pipeline_->getDepthPacketProcessor();
+  if (proc != NULL) {
+    proc->setFrameListener(listener);
+  }
+}
+
+bool Freenect2ReplayDevice::processRawFrame(Frame::Type type, Frame* frame) {
+  if (frame->format != Frame::Raw) {
+    return false;
+  }
+  switch (type) {
+  case Frame::Color:
+    processRgbFrame(frame);
+    break;
+  case Frame::Depth:
+    processDepthFrame(frame);
+    break;
+  default:
+    return false;
+  }
+  return true;
+}
+
+void Freenect2ReplayDevice::processRgbFrame(Frame* frame) {
+  RgbPacket packet;
+  packet.timestamp = frame->timestamp;
+  packet.sequence = frame->sequence;
+  packet.jpeg_buffer = frame->data;
+  packet.jpeg_buffer_length = frame->bytes_per_pixel;
+  packet.exposure = frame->exposure;
+  packet.gain = frame->gain;
+  packet.gamma = frame->gamma;
+
+  pipeline_->getRgbPacketProcessor()->process(packet);
+}
+
+void Freenect2ReplayDevice::processDepthFrame(Frame* frame) {
+  DepthPacket packet;
+  packet.timestamp = frame->timestamp;
+  packet.sequence = frame->sequence;
+  packet.buffer = frame->data;
+  packet.buffer_length = frame->bytes_per_pixel;
+ 
+  pipeline_->getDepthPacketProcessor()->process(packet);
+}
+
+void Freenect2ReplayDevice::loadP0Tables(unsigned char* buffer, size_t buffer_length) {
+  pipeline_->getDepthPacketProcessor()->loadP0TablesFromCommandResponse(buffer, buffer_length);
+}
+
+void Freenect2ReplayDevice::loadXZTables(const float *xtable, const float *ztable) {
+  pipeline_->getDepthPacketProcessor()->loadXZTables(xtable, ztable);
+}
+
+void Freenect2ReplayDevice::loadLookupTable(const short *lut) {
+  pipeline_->getDepthPacketProcessor()->loadLookupTable(lut);
+}
+
+void runner (void* arg) {
+  static_cast<Freenect2ReplayDevice*>(arg)->run();
+}
+
+void Freenect2ReplayDevice::start() {
+  running_ = true;
+  t_ = new thread(runner, this);
+}
+
+void Freenect2ReplayDevice::stop() {
+  running_ = false;
+  t_->join();
+  delete t_;
+  t_ = NULL;
+}
+
+bool hasSuffix(const std::string& str, const std::string& suffix) {
+  if (str.length() < suffix.length()) {
+    return false;
+  }
+  return str.compare(str.length() - suffix.length(), suffix.length(), suffix) == 0;
+}
+
+void Freenect2ReplayDevice::run() {
+  DIR *d;
+  struct dirent *dir;
+
+  std::vector<std::string> frames;
+
+  d = opendir(directory_);
+  while ((dir = readdir(d)) != NULL) {
+    std::string name = dir->d_name;
+    if (hasSuffix(name, ".depth")) {
+      frames.push_back(name);
+    }
+  }
+
+  for (size_t i = 0; i < frames.size() && running_; i++) {
+    std::string frame = frames[i];
+
+    size_t ix1 = frame.find("_");
+    size_t ix2 = frame.find("_", ix1 + 1);
+    size_t ix3 = frame.find(".", ix2 + 1);
+
+    std::string ts = frame.substr(0, ix1);
+    std::string seq = frame.substr(ix2 + 1, ix3);
+
+    std::string data;
+    if (hasSuffix(frame, ".depth")) {
+      std::ifstream fd(frame.c_str());
+      fd.seekg(0, fd.end);
+      int length = fd.tellg();
+      fd.seekg(0, fd.beg);
+
+      DepthPacket packet;
+      packet.timestamp = atoi(ts.c_str());
+      packet.sequence = atoi(seq.c_str());
+      packet.buffer = new unsigned char[length];
+      packet.buffer_length = length;
+
+      fd.read(reinterpret_cast<char*>(packet.buffer), length);
+      fd.close();
+
+      pipeline_->getDepthPacketProcessor()->process(packet);
+
+      delete[] packet.buffer;
+    }
+  }
 }
 
 } /* namespace libfreenect2 */
