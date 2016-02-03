@@ -55,7 +55,7 @@ private:
 
   bool send(const CommandBase& command);
 
-  bool receive(Result& result);
+  bool receive(Result& result, uint32_t min_length);
 
   bool isResponseCompleteResult(Result& result, uint32_t sequence);
 };
