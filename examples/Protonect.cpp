@@ -269,11 +269,13 @@ int main(int argc, char *argv[])
 /// [start]
   if (enable_rgb && enable_depth)
   {
-    dev->start();
+    if (!dev->start())
+      return -1;
   }
   else
   {
-    dev->startStreams(enable_rgb, enable_depth);
+    if (!dev->startStreams(enable_rgb, enable_depth))
+      return -1;
   }
 
   std::cout << "device serial: " << dev->getSerialNumber() << std::endl;

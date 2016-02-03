@@ -683,7 +683,7 @@ bool Freenect2DeviceImpl::startStreams(bool enable_rgb, bool enable_depth)
 
   CommandTransaction::Result serial_result, firmware_result, result;
 
-  usb_control_.setVideoTransferFunctionState(UsbControl::Enabled);
+  if (usb_control_.setVideoTransferFunctionState(UsbControl::Enabled) != UsbControl::Success) return false;
 
   if (!command_tx_.execute(ReadFirmwareVersionsCommand(nextCommandSeq()), firmware_result)) return false;
   firmware_ = FirmwareVersionResponse(firmware_result).toString();
@@ -725,7 +725,7 @@ bool Freenect2DeviceImpl::startStreams(bool enable_rgb, bool enable_depth)
 
   if (!command_tx_.execute(InitStreamsCommand(nextCommandSeq()), result)) return false;
 
-  usb_control_.setIrInterfaceState(UsbControl::Enabled);
+  if (usb_control_.setIrInterfaceState(UsbControl::Enabled) != UsbControl::Success) return false;
 
   if (!command_tx_.execute(ReadStatus0x090000Command(nextCommandSeq()), result)) return false;
   LOG_DEBUG << "status 0x090000: " << Status0x090000Response(result).toNumber();
@@ -753,14 +753,14 @@ bool Freenect2DeviceImpl::startStreams(bool enable_rgb, bool enable_depth)
   {
     LOG_INFO << "submitting rgb transfers...";
     rgb_transfer_pool_.enableSubmission();
-    rgb_transfer_pool_.submit(20);
+    if (!rgb_transfer_pool_.submit(20)) return false;
   }
 
   if (enable_depth)
   {
     LOG_INFO << "submitting depth transfers...";
     ir_transfer_pool_.enableSubmission();
-    ir_transfer_pool_.submit(NUM_XFERS);
+    if (!ir_transfer_pool_.submit(NUM_XFERS)) return false;
   }
 
   state_ = Streaming;
@@ -792,7 +792,7 @@ bool Freenect2DeviceImpl::stop()
     ir_transfer_pool_.cancel();
   }
 
-  usb_control_.setIrInterfaceState(UsbControl::Disabled);
+  if (!usb_control_.setIrInterfaceState(UsbControl::Disabled) != UsbControl::Success) return false;
 
   CommandTransaction::Result result;
   if (!command_tx_.execute(SetModeEnabledWith0x00640064Command(nextCommandSeq()), result)) return false;
@@ -804,7 +804,7 @@ bool Freenect2DeviceImpl::stop()
   if (!command_tx_.execute(SetModeEnabledCommand(nextCommandSeq()), result)) return false;
   if (!command_tx_.execute(SetModeDisabledCommand(nextCommandSeq()), result)) return false;
 
-  usb_control_.setVideoTransferFunctionState(UsbControl::Disabled);
+  if (!usb_control_.setVideoTransferFunctionState(UsbControl::Disabled) != UsbControl::Success) return false;
 
   state_ = Open;
   LOG_INFO << "stopped";
