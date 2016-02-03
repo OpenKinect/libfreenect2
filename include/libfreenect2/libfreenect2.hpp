@@ -34,6 +34,10 @@
 #include <libfreenect2/packet_pipeline.h>
 #include <string>
 
+namespace tthread {
+  class thread;
+}
+
 namespace libfreenect2
 {
 
@@ -259,6 +263,34 @@ public:
   Freenect2Device *openDefaultDevice(const PacketPipeline *factory);
 private:
   Freenect2Impl *impl_;
+};
+
+class LIBFREENECT2_API Freenect2ReplayDevice {
+ public:
+  Freenect2ReplayDevice(char* directory, PacketPipeline* pipeline);
+ 
+  void setColorFrameListener(FrameListener* listener);
+  void setIrAndDepthFrameListener(FrameListener* listener);
+
+
+  void loadP0Tables(unsigned char* buffer, size_t buffer_length);
+  void loadXZTables(const float *xtable, const float *ztable);
+  void loadLookupTable(const short *lut);
+
+  bool processRawFrame(Frame::Type type, Frame* frame);  
+  void start();
+  void stop();
+  void run();
+
+ protected:
+  void processRgbFrame(Frame* frame);
+  void processDepthFrame(Frame* frame);
+
+ private:
+  PacketPipeline* pipeline_;
+  char* directory_;
+  tthread::thread* t_;
+  bool running_;
 };
 
 ///@}
