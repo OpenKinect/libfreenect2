@@ -679,23 +679,23 @@ bool Freenect2DeviceImpl::start()
 
   usb_control_.setVideoTransferFunctionState(UsbControl::Enabled);
 
-  command_tx_.execute(ReadFirmwareVersionsCommand(nextCommandSeq()), firmware_result);
-  firmware_ = FirmwareVersionResponse(firmware_result.data, firmware_result.length).toString();
+  if (!command_tx_.execute(ReadFirmwareVersionsCommand(nextCommandSeq()), firmware_result)) return false;
+  firmware_ = FirmwareVersionResponse(&firmware_result[0], firmware_result.size()).toString();
 
-  command_tx_.execute(ReadHardwareInfoCommand(nextCommandSeq()), result);
+  if (!command_tx_.execute(ReadHardwareInfoCommand(nextCommandSeq()), result)) return false;
   //The hardware version is currently useless.  It is only used to select the
   //IR normalization table, but we don't have that.
 
-  command_tx_.execute(ReadSerialNumberCommand(nextCommandSeq()), serial_result);
-  std::string new_serial = SerialNumberResponse(serial_result.data, serial_result.length).toString();
+  if (!command_tx_.execute(ReadSerialNumberCommand(nextCommandSeq()), serial_result)) return false;
+  std::string new_serial = SerialNumberResponse(&serial_result[0], serial_result.size()).toString();
 
   if(serial_ != new_serial)
   {
     LOG_WARNING << "serial number reported by libusb " << serial_ << " differs from serial number " << new_serial << " in device protocol! ";
   }
 
-  command_tx_.execute(ReadDepthCameraParametersCommand(nextCommandSeq()), result);
-  DepthCameraParamsResponse *ir_p = reinterpret_cast<DepthCameraParamsResponse *>(result.data);
+  if (!command_tx_.execute(ReadDepthCameraParametersCommand(nextCommandSeq()), result)) return false;
+  DepthCameraParamsResponse *ir_p = reinterpret_cast<DepthCameraParamsResponse *>(&result[0]);
 
   IrCameraParams ir_camera_params_;
   ir_camera_params_.fx = ir_p->fx;
@@ -709,12 +709,12 @@ bool Freenect2DeviceImpl::start()
   ir_camera_params_.p2 = ir_p->p2;
   setIrCameraParams(ir_camera_params_);
 
-  command_tx_.execute(ReadP0TablesCommand(nextCommandSeq()), result);
+  if (!command_tx_.execute(ReadP0TablesCommand(nextCommandSeq()), result)) return false;
   if(pipeline_->getDepthPacketProcessor() != 0)
-    pipeline_->getDepthPacketProcessor()->loadP0TablesFromCommandResponse(result.data, result.length);
+    pipeline_->getDepthPacketProcessor()->loadP0TablesFromCommandResponse(&result[0], result.size());
 
-  command_tx_.execute(ReadRgbCameraParametersCommand(nextCommandSeq()), result);
-  RgbCameraParamsResponse *rgb_p = reinterpret_cast<RgbCameraParamsResponse *>(result.data);
+  if (!command_tx_.execute(ReadRgbCameraParametersCommand(nextCommandSeq()), result)) return false;
+  RgbCameraParamsResponse *rgb_p = reinterpret_cast<RgbCameraParamsResponse *>(&result[0]);
 
   ColorCameraParams rgb_camera_params_;
   rgb_camera_params_.fx = rgb_p->color_f;
@@ -748,30 +748,30 @@ bool Freenect2DeviceImpl::start()
   rgb_camera_params_.my_x0y0 = rgb_p->my_x0y0; // 1
   setColorCameraParams(rgb_camera_params_);
 
-  command_tx_.execute(SetModeEnabledWith0x00640064Command(nextCommandSeq()), result);
-  command_tx_.execute(SetModeDisabledCommand(nextCommandSeq()), result);
+  if (!command_tx_.execute(SetModeEnabledWith0x00640064Command(nextCommandSeq()), result)) return false;
+  if (!command_tx_.execute(SetModeDisabledCommand(nextCommandSeq()), result)) return false;
 
   for (uint32_t status = 0, last = 0; (status & 1) == 0; last = status)
   {
-    command_tx_.execute(ReadStatus0x090000Command(nextCommandSeq()), result);
-    if ((size_t)result.length < sizeof(uint32_t))
+    if (!command_tx_.execute(ReadStatus0x090000Command(nextCommandSeq()), result)) return false;
+    if ((size_t)result.size() < sizeof(uint32_t))
       continue; //TODO should report error
-    status = *reinterpret_cast<const uint32_t *>(result.data);
+    status = *reinterpret_cast<const uint32_t *>(&result[0]);
     if (status != last)
       LOG_DEBUG << "status 0x090000: " << status;
     if ((status & 1) == 0)
       this_thread::sleep_for(chrono::milliseconds(100));
   }
 
-  command_tx_.execute(InitStreamsCommand(nextCommandSeq()), result);
+  if (!command_tx_.execute(InitStreamsCommand(nextCommandSeq()), result)) return false;
 
   usb_control_.setIrInterfaceState(UsbControl::Enabled);
 
-  command_tx_.execute(ReadStatus0x090000Command(nextCommandSeq()), result);
-  if ((size_t)result.length >= sizeof(uint32_t))
-    LOG_DEBUG << "status 0x090000: " << *reinterpret_cast<const uint32_t *>(result.data);
+  if (!command_tx_.execute(ReadStatus0x090000Command(nextCommandSeq()), result)) return false;
+  if ((size_t)result.size() >= sizeof(uint32_t))
+    LOG_DEBUG << "status 0x090000: " << *reinterpret_cast<const uint32_t *>(&result[0]);
 
-  command_tx_.execute(SetStreamEnabledCommand(nextCommandSeq()), result);
+  if (!command_tx_.execute(SetStreamEnabledCommand(nextCommandSeq()), result)) return false;
 
   //command_tx_.execute(Unknown0x47Command(nextCommandSeq()), result);
   //command_tx_.execute(Unknown0x46Command(nextCommandSeq()), result);
@@ -824,14 +824,14 @@ bool Freenect2DeviceImpl::stop()
   usb_control_.setIrInterfaceState(UsbControl::Disabled);
 
   CommandTransaction::Result result;
-  command_tx_.execute(SetModeEnabledWith0x00640064Command(nextCommandSeq()), result);
-  command_tx_.execute(SetModeDisabledCommand(nextCommandSeq()), result);
-  command_tx_.execute(StopCommand(nextCommandSeq()), result);
-  command_tx_.execute(SetStreamDisabledCommand(nextCommandSeq()), result);
-  command_tx_.execute(SetModeEnabledCommand(nextCommandSeq()), result);
-  command_tx_.execute(SetModeDisabledCommand(nextCommandSeq()), result);
-  command_tx_.execute(SetModeEnabledCommand(nextCommandSeq()), result);
-  command_tx_.execute(SetModeDisabledCommand(nextCommandSeq()), result);
+  if (!command_tx_.execute(SetModeEnabledWith0x00640064Command(nextCommandSeq()), result)) return false;
+  if (!command_tx_.execute(SetModeDisabledCommand(nextCommandSeq()), result)) return false;
+  if (!command_tx_.execute(StopCommand(nextCommandSeq()), result)) return false;
+  if (!command_tx_.execute(SetStreamDisabledCommand(nextCommandSeq()), result)) return false;
+  if (!command_tx_.execute(SetModeEnabledCommand(nextCommandSeq()), result)) return false;
+  if (!command_tx_.execute(SetModeDisabledCommand(nextCommandSeq()), result)) return false;
+  if (!command_tx_.execute(SetModeEnabledCommand(nextCommandSeq()), result)) return false;
+  if (!command_tx_.execute(SetModeDisabledCommand(nextCommandSeq()), result)) return false;
 
   usb_control_.setVideoTransferFunctionState(UsbControl::Disabled);
 
