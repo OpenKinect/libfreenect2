@@ -58,12 +58,14 @@ class LIBFREENECT2_API Frame
     BGRX,
     RGBX,
     Gray,
-    Float
+    Float,
+    // Note that if format is 'raw' then 'bytes_per_pixel' actually contains the number of bytes
+    Raw
   };
 
   size_t width;           ///< Length of a line (in pixels).
   size_t height;          ///< Number of lines in the frame.
-  size_t bytes_per_pixel; ///< Number of bytes in a pixel.
+  size_t bytes_per_pixel; ///< Number of bytes in a pixel. If frame format is 'Raw' this is the buffer size.
   unsigned char* data;    ///< Data of the frame (aligned). @see See Frame::Type for pixel format.
   uint32_t timestamp;     ///< Unit: roughly or exactly 0.1 millisecond
   uint32_t sequence;      ///< Increasing frame sequence number
