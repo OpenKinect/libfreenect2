@@ -760,8 +760,6 @@ bool Freenect2DeviceImpl::startStreams(bool enable_rgb, bool enable_depth)
   for (uint32_t status = 0, last = 0; (status & 1) == 0; last = status)
   {
     if (!command_tx_.execute(ReadStatus0x090000Command(nextCommandSeq()), result)) return false;
-    if ((size_t)result.size() < sizeof(uint32_t))
-      continue; //TODO should report error
     status = *reinterpret_cast<const uint32_t *>(&result[0]);
     if (status != last)
       LOG_DEBUG << "status 0x090000: " << status;
@@ -774,8 +772,7 @@ bool Freenect2DeviceImpl::startStreams(bool enable_rgb, bool enable_depth)
   usb_control_.setIrInterfaceState(UsbControl::Enabled);
 
   if (!command_tx_.execute(ReadStatus0x090000Command(nextCommandSeq()), result)) return false;
-  if ((size_t)result.size() >= sizeof(uint32_t))
-    LOG_DEBUG << "status 0x090000: " << *reinterpret_cast<const uint32_t *>(&result[0]);
+  LOG_DEBUG << "status 0x090000: " << *reinterpret_cast<const uint32_t *>(&result[0]);
 
   if (!command_tx_.execute(SetStreamEnabledCommand(nextCommandSeq()), result)) return false;
 

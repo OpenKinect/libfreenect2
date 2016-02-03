@@ -43,7 +43,6 @@ CommandTransaction::CommandTransaction(libusb_device_handle *handle, int inbound
   outbound_endpoint_(outbound_endpoint),
   timeout_(1000)
 {
-  response_complete_result_.resize(ResponseCompleteLength);
 }
 
 CommandTransaction::~CommandTransaction() {}
@@ -51,6 +50,7 @@ CommandTransaction::~CommandTransaction() {}
 bool CommandTransaction::execute(const CommandBase& command, Result& result)
 {
   result.resize(command.maxResponseLength());
+  response_complete_result_.resize(ResponseCompleteLength);
 
   // send command
   if (!send(command))
@@ -59,7 +59,7 @@ bool CommandTransaction::execute(const CommandBase& command, Result& result)
   // receive response data
   if(command.maxResponseLength() > 0)
   {
-    if (!receive(result))
+    if (!receive(result, command.minResponseLength()))
       return false;
     if (isResponseCompleteResult(result, command.sequence()))
     {
@@ -69,7 +69,7 @@ bool CommandTransaction::execute(const CommandBase& command, Result& result)
   }
 
   // receive response complete
-  if (!receive(response_complete_result_))
+  if (!receive(response_complete_result_, ResponseCompleteLength))
     return false;
   if (!isResponseCompleteResult(response_complete_result_, command.sequence()))
   {
@@ -100,7 +100,7 @@ bool CommandTransaction::send(const CommandBase& command)
   return true;
 }
 
-bool CommandTransaction::receive(CommandTransaction::Result& result)
+bool CommandTransaction::receive(CommandTransaction::Result& result, uint32_t min_length)
 {
   int length = 0;
 
@@ -110,6 +110,12 @@ bool CommandTransaction::receive(CommandTransaction::Result& result)
   if(r != LIBUSB_SUCCESS)
   {
     LOG_ERROR << "bulk transfer failed: " << WRITE_LIBUSB_ERROR(r);
+    return false;
+  }
+
+  if ((uint32_t)length < min_length)
+  {
+    LOG_ERROR << "bulk transfer too short! expected at least: " << min_length << " got : " << length;
     return false;
   }
 
