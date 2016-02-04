@@ -61,6 +61,11 @@ void TransferPool::disableSubmission()
   enable_submit_ = false;
 }
 
+bool TransferPool::enabled()
+{
+  return enable_submit_;
+}
+
 void TransferPool::deallocate()
 {
   for(TransferQueue::iterator it = transfers_.begin(); it != transfers_.end(); ++it)

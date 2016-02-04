@@ -112,7 +112,8 @@ int main(int argc, char *argv[])
   std::string program_path(argv[0]);
   std::cerr << "Version: " << LIBFREENECT2_VERSION << std::endl;
   std::cerr << "Environment variables: LOGFILE=<protonect.log>" << std::endl;
-  std::cerr << "Usage: " << program_path << " [gl | cl | cpu] [<device serial>] [-noviewer] [-help] [-version]" << std::endl;
+  std::cerr << "Usage: " << program_path << " [gl | cl | cpu] [<device serial>]" << std::endl;
+  std::cerr << "        [-noviewer] [-norgb | -nodepth] [-help] [-version]" << std::endl;
   std::cerr << "To pause and unpause: pkill -USR1 Protonect" << std::endl;
   size_t executable_name_idx = program_path.rfind("Protonect");
 
@@ -149,6 +150,8 @@ int main(int argc, char *argv[])
   std::string serial = "";
 
   bool viewer_enabled = true;
+  bool enable_rgb = true;
+  bool enable_depth = true;
 
   for(int argI = 1; argI < argc; ++argI)
   {
@@ -192,10 +195,24 @@ int main(int argc, char *argv[])
     {
       viewer_enabled = false;
     }
+    else if(arg == "-norgb" || arg == "--norgb")
+    {
+      enable_rgb = false;
+    }
+    else if(arg == "-nodepth" || arg == "--nodepth")
+    {
+      enable_depth = false;
+    }
     else
     {
       std::cout << "Unknown argument: " << arg << std::endl;
     }
+  }
+
+  if (!enable_rgb && !enable_depth)
+  {
+    std::cerr << "Disabling both streams is not allowed!" << std::endl;
+    return -1;
   }
 
 /// [discovery]
@@ -237,7 +254,12 @@ int main(int argc, char *argv[])
   protonect_shutdown = false;
 
 /// [listeners]
-  libfreenect2::SyncMultiFrameListener listener(libfreenect2::Frame::Color | libfreenect2::Frame::Ir | libfreenect2::Frame::Depth);
+  int types = 0;
+  if (enable_rgb)
+    types |= libfreenect2::Frame::Color;
+  if (enable_depth)
+    types |= libfreenect2::Frame::Ir | libfreenect2::Frame::Depth;
+  libfreenect2::SyncMultiFrameListener listener(types);
   libfreenect2::FrameMap frames;
 
   dev->setColorFrameListener(&listener);
@@ -245,7 +267,14 @@ int main(int argc, char *argv[])
 /// [listeners]
 
 /// [start]
-  dev->start();
+  if (enable_rgb && enable_depth)
+  {
+    dev->start();
+  }
+  else
+  {
+    dev->startStreams(enable_rgb, enable_depth);
+  }
 
   std::cout << "device serial: " << dev->getSerialNumber() << std::endl;
   std::cout << "device firmware: " << dev->getFirmwareVersion() << std::endl;
@@ -274,9 +303,12 @@ int main(int argc, char *argv[])
     libfreenect2::Frame *depth = frames[libfreenect2::Frame::Depth];
 /// [loop start]
 
+    if (enable_rgb && enable_depth)
+    {
 /// [registration]
-    registration->apply(rgb, depth, &undistorted, &registered);
+      registration->apply(rgb, depth, &undistorted, &registered);
 /// [registration]
+    }
 
     framecount++;
     if (!viewer_enabled)
@@ -288,10 +320,19 @@ int main(int argc, char *argv[])
     }
 
 #ifdef EXAMPLES_WITH_OPENGL_SUPPORT
-    viewer.addFrame("RGB", rgb);
-    viewer.addFrame("ir", ir);
-    viewer.addFrame("depth", depth);
-    viewer.addFrame("registered", &registered);
+    if (enable_rgb)
+    {
+      viewer.addFrame("RGB", rgb);
+    }
+    if (enable_depth)
+    {
+      viewer.addFrame("ir", ir);
+      viewer.addFrame("depth", depth);
+    }
+    if (enable_rgb && enable_depth)
+    {
+      viewer.addFrame("registered", &registered);
+    }
 
     protonect_shutdown = protonect_shutdown || viewer.render();
 #endif
