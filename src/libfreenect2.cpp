@@ -260,6 +260,7 @@ public:
   virtual void setColorFrameListener(libfreenect2::FrameListener* rgb_frame_listener);
   virtual void setIrAndDepthFrameListener(libfreenect2::FrameListener* ir_frame_listener);
   virtual bool start();
+  virtual bool startStreams(bool rgb, bool depth);
   virtual bool stop();
   virtual bool close();
 };
@@ -672,6 +673,11 @@ bool Freenect2DeviceImpl::open()
 
 bool Freenect2DeviceImpl::start()
 {
+  return startStreams(true, true);
+}
+
+bool Freenect2DeviceImpl::startStreams(bool enable_rgb, bool enable_depth)
+{
   LOG_INFO << "starting...";
   if(state_ != Open) return false;
 
@@ -790,13 +796,19 @@ bool Freenect2DeviceImpl::start()
   command_tx_.execute(ReadData0x26Command(nextCommandSeq()), result);
   command_tx_.execute(ReadData0x26Command(nextCommandSeq()), result);
 */
-  LOG_INFO << "enabling usb transfer submission...";
-  rgb_transfer_pool_.enableSubmission();
-  ir_transfer_pool_.enableSubmission();
+  if (enable_rgb)
+  {
+    LOG_INFO << "submitting rgb transfers...";
+    rgb_transfer_pool_.enableSubmission();
+    rgb_transfer_pool_.submit(20);
+  }
 
-  LOG_INFO << "submitting usb transfers...";
-  rgb_transfer_pool_.submit(20);
-  ir_transfer_pool_.submit(NUM_XFERS);
+  if (enable_depth)
+  {
+    LOG_INFO << "submitting depth transfers...";
+    ir_transfer_pool_.enableSubmission();
+    ir_transfer_pool_.submit(NUM_XFERS);
+  }
 
   state_ = Streaming;
   LOG_INFO << "started";
@@ -813,13 +825,19 @@ bool Freenect2DeviceImpl::stop()
     return false;
   }
 
-  LOG_INFO << "disabling usb transfer submission...";
-  rgb_transfer_pool_.disableSubmission();
-  ir_transfer_pool_.disableSubmission();
+  if (rgb_transfer_pool_.enabled())
+  {
+    LOG_INFO << "canceling rgb transfers...";
+    rgb_transfer_pool_.disableSubmission();
+    rgb_transfer_pool_.cancel();
+  }
 
-  LOG_INFO << "canceling usb transfers...";
-  rgb_transfer_pool_.cancel();
-  ir_transfer_pool_.cancel();
+  if (ir_transfer_pool_.enabled())
+  {
+    LOG_INFO << "canceling depth transfers...";
+    ir_transfer_pool_.disableSubmission();
+    ir_transfer_pool_.cancel();
+  }
 
   usb_control_.setIrInterfaceState(UsbControl::Disabled);
 

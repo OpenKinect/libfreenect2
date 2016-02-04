@@ -51,6 +51,8 @@ public:
 
   void disableSubmission();
 
+  bool enabled();
+
   void submit(size_t num_parallel_transfers);
 
   void cancel();
