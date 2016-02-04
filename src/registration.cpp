@@ -50,7 +50,9 @@ public:
 
   void apply(int dx, int dy, float dz, float& cx, float &cy) const;
   void apply(const Frame* rgb, const Frame* depth, Frame* undistorted, Frame* registered, const bool enable_filter, Frame* bigdepth, int* color_depth_map) const;
+  void undistortDepth(const Frame *depth, Frame *undistorted) const;
   void getPointXYZRGB (const Frame* undistorted, const Frame* registered, int r, int c, float& x, float& y, float& z, float& rgb) const;
+  void getPointXYZ (const Frame* undistorted, int r, int c, float& x, float& y, float& z) const;
   void distort(int mx, int my, float& dx, float& dy) const;
   void depth_to_color(float mx, float my, float& rx, float& ry) const;
 
@@ -271,6 +273,47 @@ void RegistrationImpl::apply(const Frame *rgb, const Frame *depth, Frame *undist
   if (!color_depth_map) delete[] depth_to_c_off;
 }
 
+void Registration::undistortDepth(const Frame *depth, Frame *undistorted) const
+{
+  impl_->undistortDepth(depth, undistorted);
+}
+
+void RegistrationImpl::undistortDepth(const Frame *depth, Frame *undistorted) const
+{
+  // Check if all frames are valid and have the correct size
+  if (!depth || !undistorted ||
+      depth->width != 512 || depth->height != 424 || depth->bytes_per_pixel != 4 ||
+      undistorted->width != 512 || undistorted->height != 424 || undistorted->bytes_per_pixel != 4)
+    return;
+
+  const float *depth_data = (float*)depth->data;
+  float *undistorted_data = (float*)undistorted->data;
+  const int *map_dist = distort_map;
+
+  const int size_depth = 512 * 424;
+
+  /* Fix depth distortion, and compute pixel to use from 'rgb' based on depth measurement,
+   * stored as x/y offset in the rgb data.
+   */
+
+  // iterating over all pixels from undistorted depth and registered color image
+  // the four maps have the same structure as the images, so their pointers are increased each iteration as well
+  for(int i = 0; i < size_depth; ++i, ++undistorted_data, ++map_dist){
+    // getting index of distorted depth pixel
+    const int index = *map_dist;
+
+    // check if distorted depth pixel is outside of the depth image
+    if(index < 0){
+      *undistorted_data = 0;
+      continue;
+    }
+
+    // getting depth value for current pixel
+    const float z = depth_data[index];
+    *undistorted_data = z;
+  }
+}
+
 void Registration::getPointXYZRGB (const Frame* undistorted, const Frame* registered, int r, int c, float& x, float& y, float& z, float& rgb) const
 {
   impl_->getPointXYZRGB(undistorted, registered, r, c, x, y, z, rgb);
@@ -278,26 +321,41 @@ void Registration::getPointXYZRGB (const Frame* undistorted, const Frame* regist
 
 void RegistrationImpl::getPointXYZRGB (const Frame* undistorted, const Frame* registered, int r, int c, float& x, float& y, float& z, float& rgb) const
 {
+  getPointXYZ(undistorted, r, c, x, y, z);
+
+  if(isnan(z))
+  {
+    rgb = 0;
+  }
+  else
+  {
+    float* registered_data = (float *)registered->data;
+    rgb = registered_data[512*r+c];
+  }
+}
+
+void Registration::getPointXYZ(const Frame *undistorted, int r, int c, float &x, float &y, float &z) const
+{
+  impl_->getPointXYZ(undistorted,r,c,x,y,z);
+}
+
+void RegistrationImpl::getPointXYZ (const Frame *undistorted, int r, int c, float &x, float &y, float &z) const
+{
   const float bad_point = std::numeric_limits<float>::quiet_NaN();
   const float cx(depth.cx), cy(depth.cy);
   const float fx(1/depth.fx), fy(1/depth.fy);
   float* undistorted_data = (float *)undistorted->data;
-  float* registered_data = (float *)registered->data;
   const float depth_val = undistorted_data[512*r+c]/1000.0f; //scaling factor, so that value of 1 is one meter.
   if (isnan(depth_val) || depth_val <= 0.001)
   {
     //depth value is not valid
     x = y = z = bad_point;
-    rgb = 0;
-    return;
   }
   else
   {
     x = (c + 0.5 - cx) * fx * depth_val;
     y = (r + 0.5 - cy) * fy * depth_val;
     z = depth_val;
-    rgb = *reinterpret_cast<float*>(&registered_data[512*r+c]);
-    return;
   }
 }
 

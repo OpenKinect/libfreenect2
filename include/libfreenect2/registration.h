@@ -81,6 +81,12 @@ public:
    */
   void apply(const Frame* rgb, const Frame* depth, Frame* undistorted, Frame* registered, const bool enable_filter = true, Frame* bigdepth = 0, int* color_depth_map = 0) const;
 
+  /** Undistort depth
+   * @param depth Depth image (512x424 float)
+   * @param[out] undistorted Undistorted depth image
+   */
+  void undistortDepth(const Frame* depth, Frame* undistorted) const;
+
   /** Construct a 3-D point with color in a point cloud.
    * @param undistorted Undistorted depth frame from apply().
    * @param registered Registered color frame from apply().
@@ -97,6 +103,16 @@ public:
    *     uint8_t r = p[2];
    */
   void getPointXYZRGB (const Frame* undistorted, const Frame* registered, int r, int c, float& x, float& y, float& z, float& rgb) const;
+
+  /** Construct a 3-D point in a point cloud.
+   * @param undistorted Undistorted depth frame from apply().
+   * @param r Row (y) index in depth image.
+   * @param c Column (x) index in depth image.
+   * @param[out] x X coordinate of the 3-D point (meter).
+   * @param[out] y Y coordinate of the 3-D point (meter).
+   * @param[out] z Z coordinate of the 3-D point (meter).
+   */
+  void getPointXYZ (const Frame* undistorted, int r, int c, float& x, float& y, float& z) const;
 
 private:
   RegistrationImpl *impl_;
