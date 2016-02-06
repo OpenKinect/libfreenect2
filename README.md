@@ -189,13 +189,12 @@ Use your favorite package managers (brew, ports, etc.) to install most if not al
 
 1. ``cd`` into a directory where you want to keep libfreenect2 stuff in
 1. Make sure these build tools are available: wget, git, cmake, pkg-config. Xcode may provide some of them. Install the rest via package managers.
-1. Install dependencies: libusb, TurboJPEG, GLFW, OpenNI2 (optional).
+1. Install dependencies: libusb, TurboJPEG (optional), GLFW, OpenNI2 (optional).
 
     ```
 brew update
 brew install libusb
 brew tap homebrew/science
-brew install jpeg-turbo
 brew tap homebrew/versions
 brew install glfw3
 brew install openni2
@@ -204,6 +203,8 @@ export OPENNI2_INCLUDE=/usr/local/include/ni2
 ```
 
     It **is** now recommended to install libusb from package managers instead of building from source locally. Previously it was not recommended but that is no longer the case.
+
+    You are still able to build with optional TurboJPEG support with ```brew install jpeg-turbo``` along with other dependencies
 
     It is not recommended to build TurboJPEG from source, which may produce corrupted results on Mac OSX according to user reports. Install TurboJPEG binary only from package managers.
 

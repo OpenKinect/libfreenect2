@@ -36,6 +36,17 @@
 namespace libfreenect2
 {
 
+static RgbPacketProcessor *getDefaultRgbPacketProcessor()
+{
+  #ifdef LIBFREENECT2_WITH_VT_SUPPORT
+    return new VTRgbPacketProcessor();
+  #endif
+  #ifdef LIBFREENECT2_WITH_TURBOJPEG_SUPPORT
+    return new TurboJpegRgbPacketProcessor();
+  #endif
+  return NULL;
+}
+
 class PacketPipelineComponents
 {
 public:
@@ -104,16 +115,16 @@ DepthPacketProcessor *PacketPipeline::getDepthPacketProcessor() const
 }
 
 CpuPacketPipeline::CpuPacketPipeline()
-{ 
-  comp_->initialize(new TurboJpegRgbPacketProcessor(), new CpuDepthPacketProcessor());
+{
+  comp_->initialize(getDefaultRgbPacketProcessor(), new CpuDepthPacketProcessor());
 }
 
 CpuPacketPipeline::~CpuPacketPipeline() { }
 
 #ifdef LIBFREENECT2_WITH_OPENGL_SUPPORT
 OpenGLPacketPipeline::OpenGLPacketPipeline(void *parent_opengl_context, bool debug) : parent_opengl_context_(parent_opengl_context), debug_(debug)
-{ 
-  comp_->initialize(new TurboJpegRgbPacketProcessor(), new OpenGLDepthPacketProcessor(parent_opengl_context_, debug_));
+{
+  comp_->initialize(getDefaultRgbPacketProcessor(), new OpenGLDepthPacketProcessor(parent_opengl_context_, debug_));
 }
 
 OpenGLPacketPipeline::~OpenGLPacketPipeline() { }
@@ -123,8 +134,8 @@ OpenGLPacketPipeline::~OpenGLPacketPipeline() { }
 #ifdef LIBFREENECT2_WITH_OPENCL_SUPPORT
 
 OpenCLPacketPipeline::OpenCLPacketPipeline(const int deviceId) : deviceId(deviceId)
-{ 
-  comp_->initialize(new TurboJpegRgbPacketProcessor(), new OpenCLDepthPacketProcessor(deviceId));
+{
+  comp_->initialize(getDefaultRgbPacketProcessor(), new OpenCLDepthPacketProcessor(deviceId));
 }
 
 OpenCLPacketPipeline::~OpenCLPacketPipeline() { }
