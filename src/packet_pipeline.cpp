@@ -40,11 +40,9 @@ static RgbPacketProcessor *getDefaultRgbPacketProcessor()
 {
   #ifdef LIBFREENECT2_WITH_VT_SUPPORT
     return new VTRgbPacketProcessor();
-  #endif
-  #ifdef LIBFREENECT2_WITH_TURBOJPEG_SUPPORT
+  #else
     return new TurboJpegRgbPacketProcessor();
   #endif
-  return NULL;
 }
 
 class PacketPipelineComponents
