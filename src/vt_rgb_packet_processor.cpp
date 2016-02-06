@@ -67,7 +67,7 @@ class VTRgbPacketProcessorImpl: public WithPerfLogging
   VTRgbPacketProcessorImpl() {
     int32_t width = 1920, height = 1080;
 
-    CMVideoFormatDescriptionCreate(NULL, kCMVideoCodecType_JPEG, width, height, nil, &format);
+    CMVideoFormatDescriptionCreate(NULL, kCMVideoCodecType_JPEG, width, height, NULL, &format);
 
     const void *decoderSpecificationKeys[] = {kVTVideoDecoderSpecification_EnableHardwareAcceleratedVideoDecoder};
     const void *decoderSpecificationValues[] = {kCFBooleanTrue};
@@ -166,6 +166,9 @@ void VTRgbPacketProcessor::process(const RgbPacket &packet)
 
     frame->timestamp = packet.timestamp;
     frame->sequence = packet.sequence;
+    frame->exposure = packet.exposure;
+    frame->gain = packet.gain;
+    frame->gamma = packet.gamma;
 
     listener_->onNewFrame(Frame::Color, frame);
 
