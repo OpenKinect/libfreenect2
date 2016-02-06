@@ -245,7 +245,8 @@ int main(int argc, char *argv[])
 /// [listeners]
 
 /// [start]
-  dev->start();
+  if (!dev->start())
+    return -1;
 
   std::cout << "device serial: " << dev->getSerialNumber() << std::endl;
   std::cout << "device firmware: " << dev->getFirmwareVersion() << std::endl;
