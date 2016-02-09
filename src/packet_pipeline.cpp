@@ -38,13 +38,13 @@ namespace libfreenect2
 
 static RgbPacketProcessor *getDefaultRgbPacketProcessor()
 {
-  #ifdef LIBFREENECT2_WITH_VT_SUPPORT
-    return new VTRgbPacketProcessor();
-  #endif
-  #ifdef LIBFREENECT2_WITH_TURBOJPEG_SUPPORT
-    return new TurboJpegRgbPacketProcessor();
-  #endif
-  return NULL;
+#if defined(LIBFREENECT2_WITH_VT_SUPPORT)
+  return new VTRgbPacketProcessor();
+#elif defined(LIBFREENECT2_WITH_TURBOJPEG_SUPPORT)
+  return new TurboJpegRgbPacketProcessor();
+#else
+  #error No jpeg decoder is enabled
+#endif
 }
 
 class PacketPipelineComponents
