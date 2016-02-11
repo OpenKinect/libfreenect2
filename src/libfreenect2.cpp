@@ -792,7 +792,7 @@ bool Freenect2DeviceImpl::stop()
     ir_transfer_pool_.cancel();
   }
 
-  if (!usb_control_.setIrInterfaceState(UsbControl::Disabled) != UsbControl::Success) return false;
+  if (usb_control_.setIrInterfaceState(UsbControl::Disabled) != UsbControl::Success) return false;
 
   CommandTransaction::Result result;
   if (!command_tx_.execute(SetModeEnabledWith0x00640064Command(nextCommandSeq()), result)) return false;
@@ -804,7 +804,7 @@ bool Freenect2DeviceImpl::stop()
   if (!command_tx_.execute(SetModeEnabledCommand(nextCommandSeq()), result)) return false;
   if (!command_tx_.execute(SetModeDisabledCommand(nextCommandSeq()), result)) return false;
 
-  if (!usb_control_.setVideoTransferFunctionState(UsbControl::Disabled) != UsbControl::Success) return false;
+  if (usb_control_.setVideoTransferFunctionState(UsbControl::Disabled) != UsbControl::Success) return false;
 
   state_ = Open;
   LOG_INFO << "stopped";
