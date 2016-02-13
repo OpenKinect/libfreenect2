@@ -315,7 +315,7 @@ IF(ENABLE_CUDA)
       "${CUDA_TOOLKIT_ROOT_DIR}/samples/common/inc"
       "$ENV{NVCUDASAMPLES_ROOT}/common/inc"
     )
-    SET(CUDA_FLAGS)
+    SET(CUDA_FLAGS -use_fast_math)
     IF(NOT MSVC)
       SET(CUDA_FLAGS "${CUDA_FLAGS} -Xcompiler -fPIC")
     ENDIF()
