@@ -177,8 +177,30 @@ public:
 private:
   OpenCLDepthPacketProcessorImpl *impl_;
 };
-
 #endif // LIBFREENECT2_WITH_OPENCL_SUPPORT
+
+#ifdef LIBFREENECT2_WITH_CUDA_SUPPORT
+class CudaDepthPacketProcessorImpl;
+
+class CudaDepthPacketProcessor : public DepthPacketProcessor
+{
+public:
+  CudaDepthPacketProcessor(const int deviceId = -1);
+  virtual ~CudaDepthPacketProcessor();
+  virtual void setConfiguration(const libfreenect2::DepthPacketProcessor::Config &config);
+
+  virtual void loadP0TablesFromCommandResponse(unsigned char* buffer, size_t buffer_length);
+
+  virtual void loadXZTables(const float *xtable, const float *ztable);
+  virtual void loadLookupTable(const short *lut);
+
+  virtual bool good();
+
+  virtual void process(const DepthPacket &packet);
+private:
+  CudaDepthPacketProcessorImpl *impl_;
+};
+#endif // LIBFREENECT2_WITH_CUDA_SUPPORT
 
 class DumpDepthPacketProcessor : public DepthPacketProcessor
 {
