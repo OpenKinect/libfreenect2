@@ -50,6 +50,8 @@ public:
    */
   virtual bool ready() { return true; }
 
+  virtual bool good() { return true; }
+
   /**
    * A new packet has arrived, process it.
    * @param packet Packet to process.

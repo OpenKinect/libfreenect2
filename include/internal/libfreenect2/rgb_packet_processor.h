@@ -106,5 +106,20 @@ private:
 };
 #endif
 
+#ifdef LIBFREENECT2_WITH_VAAPI_SUPPORT
+class VaapiRgbPacketProcessorImpl;
+
+class VaapiRgbPacketProcessor : public RgbPacketProcessor
+{
+public:
+  VaapiRgbPacketProcessor();
+  virtual ~VaapiRgbPacketProcessor();
+  virtual bool good();
+  virtual void process(const libfreenect2::RgbPacket &packet);
+private:
+  VaapiRgbPacketProcessorImpl *impl_;
+};
+#endif //LIBFREENECT2_WITH_VAAPI_SUPPORT
+
 } /* namespace libfreenect2 */
 #endif /* RGB_PACKET_PROCESSOR_H_ */

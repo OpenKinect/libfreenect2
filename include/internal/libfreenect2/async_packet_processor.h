@@ -78,6 +78,11 @@ public:
     return locked;
   }
 
+  virtual bool good()
+  {
+    return processor_->good();
+  }
+
   virtual void process(const PacketT &packet)
   {
     {
