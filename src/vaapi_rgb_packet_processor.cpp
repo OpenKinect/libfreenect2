@@ -27,12 +27,14 @@
 #include <libfreenect2/rgb_packet_processor.h>
 
 #include <cstring>
+#include <cstdio> //jpeglib.h does not include stdio.h
 #include <jpeglib.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <va/va.h>
 #include <va/va_drm.h>
 #include "libfreenect2/logging.h"
+#include "libfreenect2/allocator.h"
 
 #define CHECK_COND(cond) do { if (!(cond)) { LOG_ERROR << #cond " failed"; return false; } } while(0)
 #define CHECK_VA(expr) do { VAStatus err = (expr); if (err != VA_STATUS_SUCCESS) { LOG_ERROR << #expr ": " << vaErrorStr(err); return false; } } while(0)
@@ -84,6 +86,53 @@ public:
   }
 };
 
+class VaapiBuffer: public Buffer
+{
+public:
+  VABufferID id;
+
+  VaapiBuffer(): Buffer(), id(VA_INVALID_ID) {}
+};
+
+class VaapiAllocator: public Allocator
+{
+private:
+  VADisplay display;
+  VAContextID context;
+
+  bool allocate_va(VaapiBuffer *b, size_t size)
+  {
+    CHECK_VA(vaCreateBuffer(display, context, VASliceDataBufferType, size, 1, NULL, &b->id));
+    CHECK_VA(vaMapBuffer(display, b->id, (void**)&b->data));
+    b->capacity = size;
+    return true;
+  }
+
+public:
+  VaapiAllocator(VADisplay display, VAContextID context):
+    display(display), context(context) {}
+
+  virtual Buffer *allocate(size_t size)
+  {
+    VaapiBuffer *vb = new VaapiBuffer();
+    if (!allocate_va(vb, size))
+      vb->data = NULL;
+    return vb;
+  }
+
+  virtual void free(Buffer *b)
+  {
+    if (b == NULL)
+      return;
+    VaapiBuffer *vb = static_cast<VaapiBuffer *>(b);
+    if (vb->data) {
+      CALL_VA(vaUnmapBuffer(display, vb->id));
+      CALL_VA(vaDestroyBuffer(display, vb->id));
+    }
+    delete vb;
+  }
+};
+
 class VaapiRgbPacketProcessorImpl: public WithPerfLogging
 {
 public:
@@ -92,6 +141,14 @@ public:
   VAConfigID config;
   VASurfaceID surface;
   VAContextID context;
+
+  VABufferID pic_param_buf;
+  VABufferID iq_buf;
+  VABufferID huff_buf;
+  VABufferID slice_param_buf;
+
+  bool jpeg_first_packet;
+  size_t jpeg_header_size;
 
   struct jpeg_decompress_struct dinfo;
   struct jpeg_error_mgr jerr;
@@ -103,8 +160,11 @@ public:
 
   VaapiFrame *frame;
 
+  Allocator *allocator_;
+
   VaapiRgbPacketProcessorImpl():
-    frame(NULL)
+    frame(NULL),
+    allocator_(NULL)
   {
     dinfo.err = jpeg_std_error(&jerr);
     jpeg_create_decompress(&dinfo);
@@ -114,11 +174,22 @@ public:
       return;
 
     newFrame();
+
+    allocator_ = new PoolAllocator(new VaapiAllocator(display, context));
+
+    jpeg_first_packet = true;
   }
 
   ~VaapiRgbPacketProcessorImpl()
   {
     delete frame;
+    delete allocator_;
+    if (good && !jpeg_first_packet) {
+      CALL_VA(vaDestroyBuffer(display, pic_param_buf));
+      CALL_VA(vaDestroyBuffer(display, iq_buf));
+      CALL_VA(vaDestroyBuffer(display, huff_buf));
+      CALL_VA(vaDestroyBuffer(display, slice_param_buf));
+    }
     if (good) {
       CALL_VA(vaDestroyContext(display, context));
       CALL_VA(vaDestroySurfaces(display, &surface, 1));
@@ -206,7 +277,7 @@ public:
     return buffer;
   }
 
-  void createParameters(struct jpeg_decompress_struct &dinfo, VABufferID va_bufs[3], VABufferID slice_bufs[2])
+  bool createParameters(struct jpeg_decompress_struct &dinfo, const unsigned char *vb_start)
   {
     /* Picture Parameter */
     VAPictureParameterBufferJPEGBaseline pic = {0};
@@ -219,7 +290,7 @@ public:
       pic.components[i].quantiser_table_selector = dinfo.comp_info[i].quant_tbl_no;
     }
     pic.num_components = dinfo.num_components;
-    va_bufs[0] = createBuffer(VAPictureParameterBufferType, sizeof(pic), &pic);
+    pic_param_buf = createBuffer(VAPictureParameterBufferType, sizeof(pic), &pic);
 
     /* IQ Matrix */
     VAIQMatrixBufferJPEGBaseline iq = {0};
@@ -242,7 +313,7 @@ public:
       for (int j = 0; j < DCTSIZE2; j++)
         iq.quantiser_table[i][j] = dinfo.quant_tbl_ptrs[i]->quantval[natural_order[j]];
     }
-    va_bufs[1] = createBuffer(VAIQMatrixBufferType, sizeof(iq), &iq);
+    iq_buf = createBuffer(VAIQMatrixBufferType, sizeof(iq), &iq);
 
     /* Huffman Table */
     VAHuffmanTableBufferJPEGBaseline huff = {0};
@@ -260,11 +331,15 @@ public:
       memcpy(huff.huffman_table[i].ac_values, dinfo.ac_huff_tbl_ptrs[i]->huffval,
            sizeof(huff.huffman_table[i].ac_values));
     }
-    va_bufs[2] = createBuffer(VAHuffmanTableBufferType, sizeof(huff), &huff);
+    huff_buf = createBuffer(VAHuffmanTableBufferType, sizeof(huff), &huff);
 
     /* Slice Parameter */
-    VASliceParameterBufferJPEGBaseline slice = {0};
-    slice.slice_data_size = dinfo.src->bytes_in_buffer;
+    VASliceParameterBufferJPEGBaseline *pslice;
+    slice_param_buf = createBuffer(VASliceParameterBufferType, sizeof(*pslice), NULL);
+    CHECK_VA(vaMapBuffer(display, slice_param_buf, (void**)&pslice));
+    VASliceParameterBufferJPEGBaseline &slice = *pslice;
+
+    slice.slice_data_offset = dinfo.src->next_input_byte - vb_start;
     slice.slice_data_flag = VA_SLICE_DATA_FLAG_ALL;
     for (int i = 0; i < dinfo.comps_in_scan; i++) {
       slice.components[i].component_selector = dinfo.cur_comp_info[i]->component_id;
@@ -278,27 +353,39 @@ public:
     unsigned int mcus_per_row = (WIDTH + mcu_h_size - 1) / mcu_h_size;
     unsigned int mcu_rows_in_scan = (HEIGHT + mcu_v_size - 1) / mcu_v_size;
     slice.num_mcus = mcus_per_row * mcu_rows_in_scan;
-    slice_bufs[0] = createBuffer(VASliceParameterBufferType, sizeof(slice), &slice);
-    slice_bufs[1] = createBuffer(VASliceDataBufferType, dinfo.src->bytes_in_buffer, (void*)dinfo.src->next_input_byte);
+
+    CHECK_VA(vaUnmapBuffer(display, slice_param_buf));
+    return true;
   }
 
-  bool decompress(unsigned char *buf, size_t len)
+  bool decompress(unsigned char *buf, size_t len, VaapiBuffer *vb)
   {
-    jpeg_mem_src(&dinfo, buf, len);
-    int header_status = jpeg_read_header(&dinfo, true);
-    CHECK_COND(header_status == JPEG_HEADER_OK);
-    CHECK_COND(dinfo.image_width == WIDTH && dinfo.image_height == HEIGHT);
+    if (jpeg_first_packet) {
+      jpeg_mem_src(&dinfo, buf, len);
+      int header_status = jpeg_read_header(&dinfo, true);
+      CHECK_COND(header_status == JPEG_HEADER_OK);
+      CHECK_COND(dinfo.image_width == WIDTH && dinfo.image_height == HEIGHT);
 
-    VABufferID va_bufs[3];
-    VABufferID slice_bufs[2];
-    createParameters(dinfo, va_bufs, slice_bufs);
+      jpeg_first_packet = false;
+      if (!createParameters(dinfo, vb->data))
+        return false;
 
-    jpeg_abort_decompress(&dinfo);
+      jpeg_header_size = len - dinfo.src->bytes_in_buffer;
+      jpeg_abort_decompress(&dinfo);
+    }
+    /* Grab the packet buffer for VAAPI backend */
+    CHECK_VA(vaUnmapBuffer(display, vb->id));
+
+    /* The only parameter that changes after the first packet */
+    VASliceParameterBufferJPEGBaseline *slice;
+    CHECK_VA(vaMapBuffer(display, slice_param_buf, (void**)&slice));
+    slice->slice_data_size = len - jpeg_header_size;
+    CHECK_VA(vaUnmapBuffer(display, slice_param_buf));
 
     /* Commit buffers */
     CHECK_VA(vaBeginPicture(display, context, surface));
-    CHECK_VA(vaRenderPicture(display, context, va_bufs, 3));
-    CHECK_VA(vaRenderPicture(display, context, slice_bufs, 2));
+    VABufferID va_bufs[5] = {pic_param_buf, iq_buf, huff_buf, slice_param_buf, vb->id};
+    CHECK_VA(vaRenderPicture(display, context, va_bufs, 5));
     CHECK_VA(vaEndPicture(display, context));
 
     /* Sync surface */
@@ -306,6 +393,8 @@ public:
 
     if (!frame->draw(surface))
       return false;
+
+    CHECK_VA(vaMapBuffer(display, vb->id, (void**)&vb->data));
 
     return true;
   }
@@ -346,7 +435,8 @@ void VaapiRgbPacketProcessor::process(const RgbPacket &packet)
 
   unsigned char *buf = packet.jpeg_buffer;
   size_t len = packet.jpeg_buffer_length;
-  impl_->good = impl_->decompress(buf, len);
+  VaapiBuffer *vb = static_cast<VaapiBuffer *>(packet.memory);
+  impl_->good = impl_->decompress(buf, len, vb);
 
   impl_->stopTiming(LOG_INFO);
 
@@ -354,5 +444,10 @@ void VaapiRgbPacketProcessor::process(const RgbPacket &packet)
     if (listener_->onNewFrame(Frame::Color, impl_->frame))
       impl_->newFrame();
   }
+}
+
+Allocator *VaapiRgbPacketProcessor::getAllocator()
+{
+  return impl_->allocator_;
 }
 } /* namespace libfreenect2 */

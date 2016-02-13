@@ -116,6 +116,8 @@ public:
   virtual ~VaapiRgbPacketProcessor();
   virtual bool good();
   virtual void process(const libfreenect2::RgbPacket &packet);
+protected:
+  virtual Allocator *getAllocator();
 private:
   VaapiRgbPacketProcessorImpl *impl_;
 };
