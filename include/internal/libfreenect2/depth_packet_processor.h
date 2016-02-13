@@ -47,6 +47,8 @@ struct DepthPacket
   uint32_t timestamp;
   unsigned char *buffer; ///< Depth data.
   size_t buffer_length;  ///< Size of depth data.
+
+  Buffer *memory;
 };
 
 /** Class for processing depth information. */

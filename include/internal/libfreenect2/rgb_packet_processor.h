@@ -51,6 +51,7 @@ struct RgbPacket
   float gain;
   float gamma;
 
+  Buffer *memory;
 };
 
 typedef PacketProcessor<RgbPacket> BaseRgbPacketProcessor;

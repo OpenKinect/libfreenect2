@@ -103,7 +103,7 @@ SET(SOURCES
   include/internal/libfreenect2/async_packet_processor.h
   include/internal/libfreenect2/depth_packet_processor.h
   include/internal/libfreenect2/depth_packet_stream_parser.h
-  include/internal/libfreenect2/double_buffer.h
+  include/internal/libfreenect2/allocator.h
   include/libfreenect2/frame_listener.hpp
   include/libfreenect2/frame_listener_impl.h
   include/libfreenect2/libfreenect2.hpp
@@ -118,7 +118,7 @@ SET(SOURCES
   src/transfer_pool.cpp
   src/event_loop.cpp
   src/usb_control.cpp
-  src/double_buffer.cpp
+  src/allocator.cpp
   src/frame_listener_impl.cpp
   src/packet_pipeline.cpp
   src/rgb_packet_stream_parser.cpp
