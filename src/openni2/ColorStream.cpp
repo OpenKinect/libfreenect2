@@ -35,7 +35,7 @@ const float ColorStream::DIAGONAL_FOV = 73.9 * (M_PI / 180);
 const float ColorStream::HORIZONTAL_FOV = 62 * (M_PI / 180);
 const float ColorStream::VERTICAL_FOV = 48.6 * (M_PI / 180);
 
-ColorStream::ColorStream(libfreenect2::Freenect2Device* pDevice, Freenect2Driver::Registration *reg) : VideoStream(pDevice, reg)
+ColorStream::ColorStream(Device* driver_dev, libfreenect2::Freenect2Device* pDevice, Freenect2Driver::Registration *reg) : VideoStream(driver_dev, pDevice, reg)
 {
   video_mode = makeOniVideoMode(ONI_PIXEL_FORMAT_RGB888, 1920, 1080, 30);
   setVideoMode(video_mode);

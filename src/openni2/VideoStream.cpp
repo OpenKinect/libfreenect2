@@ -76,9 +76,10 @@ void VideoStream::raisePropertyChanged(int propertyId, const void* data, int dat
     StreamBase::raisePropertyChanged(propertyId, data, dataSize);
 }
 
-VideoStream::VideoStream(libfreenect2::Freenect2Device* device, Freenect2Driver::Registration *reg) :
+VideoStream::VideoStream(Device* drvdev, libfreenect2::Freenect2Device* device, Freenect2Driver::Registration *reg) :
   frame_id(1),
   device(device),
+  driver_dev(drvdev),
   running(false),
   mirroring(false),
   reg(reg),

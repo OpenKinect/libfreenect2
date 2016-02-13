@@ -34,7 +34,7 @@ using namespace Freenect2Driver;
 const float IrStream::HORIZONTAL_FOV = 58.5 * (M_PI / 180);
 const float IrStream::VERTICAL_FOV = 45.6 * (M_PI / 180);
 
-IrStream::IrStream(libfreenect2::Freenect2Device* pDevice, Freenect2Driver::Registration *reg) : VideoStream(pDevice, reg)
+IrStream::IrStream(Device* driver_dev, libfreenect2::Freenect2Device* pDevice, Freenect2Driver::Registration *reg) : VideoStream(driver_dev, pDevice, reg)
 {
   video_mode = makeOniVideoMode(ONI_PIXEL_FORMAT_GRAY16, 512, 424, 30);
   setVideoMode(video_mode);

@@ -46,7 +46,7 @@ namespace Freenect2Driver
 {
   typedef std::map<std::string, std::string> ConfigStrings;
 
-  class Device : public oni::driver::DeviceBase
+  class DeviceImpl : public Device
   {
   private:
     libfreenect2::Freenect2Device *dev;
@@ -61,7 +61,7 @@ namespace Freenect2Driver
 
     static void static_run(void* cookie)
     {
-      static_cast<Device*>(cookie)->run();
+      static_cast<DeviceImpl*>(cookie)->run();
     }
 
     VideoStream* getStream(libfreenect2::Frame::Type type)
@@ -129,7 +129,7 @@ namespace Freenect2Driver
     }
 
   public:
-    Device(int index) : //libfreenect2::Freenect2Device(fn_ctx, index),
+    DeviceImpl(int index) : //libfreenect2::Freenect2Device(fn_ctx, index),
       dev(NULL),
       color(NULL),
       depth(NULL),
@@ -139,9 +139,9 @@ namespace Freenect2Driver
       listener(libfreenect2::Frame::Depth | libfreenect2::Frame::Ir | libfreenect2::Frame::Color),
       thread(NULL)
     {
-      thread = new libfreenect2::thread(&Device::static_run, this);
+      thread = new libfreenect2::thread(&DeviceImpl::static_run, this);
     }
-    ~Device()
+    ~DeviceImpl()
     {
       destroyStream(color);
       destroyStream(ir);
@@ -168,15 +168,15 @@ namespace Freenect2Driver
       //device_stop = false;
       //thread = new libfreenect2::thread(&Device::static_run, this);
       if (! color) {
-        color = new ColorStream(dev, reg);
+        color = new ColorStream(this, dev, reg);
         setStreamProperties(color, "color");
       }
       if (! depth) {
-        depth = new DepthStream(dev, reg);
+        depth = new DepthStream(this, dev, reg);
         setStreamProperties(depth, "depth");
       }
       if (! ir) {
-        ir = new IrStream(dev, reg);
+        ir = new IrStream(this, dev, reg);
         setStreamProperties(ir, "ir");
       }
       dev->start();
@@ -485,7 +485,7 @@ namespace Freenect2Driver
           {
             WriteMessage("Opening device " + std::string(uri));
             int id = uri_to_devid(iter->first.uri);
-            Device* device = new Device(id);
+            DeviceImpl* device = new DeviceImpl(id);
             device->setFreenect2Device(freenect2.openDevice(id)); // XXX, detault pipeline // const PacketPipeline *factory);
             device->setConfigStrings(config);
             device->start();
@@ -508,7 +508,7 @@ namespace Freenect2Driver
           WriteMessage("Closing device " + std::string(iter->first.uri));
           //int id = uri_to_devid(iter->first.uri);
 
-          Device* device = (Device*)iter->second;
+          DeviceImpl* device = (DeviceImpl*)iter->second;
           device->stop();
           device->close();
 
