@@ -56,6 +56,7 @@ It has been reported to work for up to 5 devices on a high-end PC using multiple
 
 * OpenGL depth processing: OpenGL 3.1 (Windows, Linux, Mac OS X). OpenGL ES is not supported at the moment.
 * OpenCL depth processing: OpenCL 1.1
+* VAAPI JPEG decoding: Intel and Linux only
 * OpenNI2 integration: OpenNI2 2.2.0.33
 
 ## Troubleshooting and reporting bugs
@@ -216,6 +217,10 @@ sudo apt-get install build-essential cmake pkg-config
     - Nvidia discrete/Intel integrated GPUs: this gets tricky, but the rule of thumb is to make sure the actually used OpenCL headers and the driver libraries have matching versions.
     - Mali GPU (e.g. Odroid XU4): (with root) `mkdir -p /etc/OpenCL/vendors; echo /usr/lib/arm-linux-gnueabihf/mali-egl/libmali.so >/etc/OpenCL/vendors/mali.icd; apt-get install opencl-headers`.
     - Verify: You can install `clinfo` to verify if you have correctly set up the OpenCL stack.
+* Install VAAPI (optional, Intel only)
+    1. (Ubuntu 14.04 only) `sudo dpkg -i debs/{libva,i965}*deb; sudo apt-get install -f`
+    2. (Other) `sudo apt-get install libva-dev libjpeg-dev`
+    3. Linux kernels 4.1 to 4.3 have performance regression. Use 4.0 and earlier or 4.4 and later (Though Ubuntu kernel 4.2.0-28.33~14.04.1 has backported the fix).
 * Install OpenNI2 (optional)
     1. (Ubuntu 14.04 only) `sudo apt-add-repository ppa:deb-rob/ros-trusty && sudo apt-get update` (You don't need this if you have ROS repos), then `sudo apt-get install libopenni2-dev`
     2. (Other) `sudo apt-get install libopenni2-dev`.
