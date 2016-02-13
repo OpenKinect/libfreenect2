@@ -73,7 +73,6 @@ class DumpRgbPacketProcessor : public RgbPacketProcessor
 public:
   DumpRgbPacketProcessor();
   virtual ~DumpRgbPacketProcessor();
-protected:
   virtual void process(const libfreenect2::RgbPacket &packet);
 };
 
@@ -86,7 +85,6 @@ class TurboJpegRgbPacketProcessor : public RgbPacketProcessor
 public:
   TurboJpegRgbPacketProcessor();
   virtual ~TurboJpegRgbPacketProcessor();
-protected:
   virtual void process(const libfreenect2::RgbPacket &packet);
 private:
   TurboJpegRgbPacketProcessorImpl *impl_; ///< Decoder implementation.
@@ -101,7 +99,6 @@ class VTRgbPacketProcessor : public RgbPacketProcessor
 public:
   VTRgbPacketProcessor();
   virtual ~VTRgbPacketProcessor();
-protected:
   virtual void process(const libfreenect2::RgbPacket &packet);
 private:
   VTRgbPacketProcessorImpl *impl_;
