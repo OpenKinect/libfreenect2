@@ -139,7 +139,6 @@ OpenGLPacketPipeline::~OpenGLPacketPipeline() { }
 
 
 #ifdef LIBFREENECT2_WITH_OPENCL_SUPPORT
-
 OpenCLPacketPipeline::OpenCLPacketPipeline(const int deviceId) : deviceId(deviceId)
 {
   comp_->initialize(getDefaultRgbPacketProcessor(), new OpenCLDepthPacketProcessor(deviceId));
@@ -147,6 +146,15 @@ OpenCLPacketPipeline::OpenCLPacketPipeline(const int deviceId) : deviceId(device
 
 OpenCLPacketPipeline::~OpenCLPacketPipeline() { }
 #endif // LIBFREENECT2_WITH_OPENCL_SUPPORT
+
+#ifdef LIBFREENECT2_WITH_CUDA_SUPPORT
+CudaPacketPipeline::CudaPacketPipeline(const int deviceId) : deviceId(deviceId)
+{
+  comp_->initialize(getDefaultRgbPacketProcessor(), new CudaDepthPacketProcessor(deviceId));
+}
+
+CudaPacketPipeline::~CudaPacketPipeline() { }
+#endif // LIBFREENECT2_WITH_CUDA_SUPPORT
 
 DumpPacketPipeline::DumpPacketPipeline()
 {

@@ -865,14 +865,14 @@ bool Freenect2DeviceImpl::close()
 
 PacketPipeline *createDefaultPacketPipeline()
 {
-#ifdef LIBFREENECT2_WITH_OPENGL_SUPPORT
+#if defined(LIBFREENECT2_WITH_OPENGL_SUPPORT)
   return new OpenGLPacketPipeline();
+#elif defined(LIBFREENECT2_WITH_CUDA_SUPPORT)
+  return new CudaPacketPipeline();
+#elif defined(LIBFREENECT2_WITH_OPENCL_SUPPORT)
+  return new OpenCLPacketPipeline();
 #else
-  #ifdef LIBFREENECT2_WITH_OPENCL_SUPPORT
-    return new OpenCLPacketPipeline();
-  #else
   return new CpuPacketPipeline();
-  #endif
 #endif
 }
 

@@ -32,6 +32,7 @@ OPTION(BUILD_EXAMPLES "Build examples" ON)
 OPTION(BUILD_OPENNI2_DRIVER "Build OpenNI2 driver" ON)
 OPTION(ENABLE_CXX11 "Enable C++11 support" OFF)
 OPTION(ENABLE_OPENCL "Enable OpenCL support" ON)
+OPTION(ENABLE_CUDA "Enable CUDA support" ON)
 OPTION(ENABLE_OPENGL "Enable OpenGL support" ON)
 OPTION(ENABLE_VAAPI "Enable VA-API support" ON)
 
@@ -300,6 +301,40 @@ IF(ENABLE_OPENCL)
     ENDIF()
   ENDIF(OpenCL_FOUND)
 ENDIF(ENABLE_OPENCL)
+
+SET(HAVE_CUDA disablsed)
+IF(ENABLE_CUDA)
+  FIND_PACKAGE(CUDA)
+  SET(HAVE_CUDA no)
+  IF(CUDA_FOUND)
+    SET(LIBFREENECT2_WITH_CUDA_SUPPORT 1)
+    SET(HAVE_CUDA yes)
+
+    CUDA_INCLUDE_DIRECTORIES(
+      "${MY_DIR}/include/"
+      "${CUDA_TOOLKIT_ROOT_DIR}/samples/common/inc"
+      "$ENV{NVCUDASAMPLES_ROOT}/common/inc"
+    )
+    SET(CUDA_FLAGS)
+    IF(NOT MSVC)
+      SET(CUDA_FLAGS "${CUDA_FLAGS} -Xcompiler -fPIC")
+    ENDIF()
+    CUDA_COMPILE(CUDA_OBJECTS
+      src/cuda_depth_packet_processor.cu
+      OPTIONS ${CUDA_FLAGS}
+    )
+
+    INCLUDE_DIRECTORIES(${CUDA_INCLUDE_DIRS})
+
+    LIST(APPEND SOURCES
+      ${CUDA_OBJECTS}
+    )
+
+    LIST(APPEND LIBRARIES
+      ${CUDA_LIBRARIES}
+    )
+  ENDIF(CUDA_FOUND)
+ENDIF(ENABLE_CUDA)
 
 # RPATH handling for private libusb copies
 # Users have two options:
