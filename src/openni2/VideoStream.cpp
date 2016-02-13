@@ -148,10 +148,15 @@ bool VideoStream::buildFrame(libfreenect2::Frame* lf2Frame)
 
 OniStatus VideoStream::start()
 {
+  driver_dev->start();
   running = true;
   return ONI_STATUS_OK;
 }
-void VideoStream::stop() { running = false; }
+void VideoStream::stop()
+{
+  driver_dev->stop();
+  running = false;
+}
 
 // only add to property handlers if the property is generic to all children
 // otherwise, implement in child and call these in default case

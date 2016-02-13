@@ -56,6 +56,7 @@ namespace Freenect2Driver
     Registration *reg;
     ConfigStrings config;
     bool device_stop;
+    bool device_used;
     libfreenect2::SyncMultiFrameListener listener;
     libfreenect2::thread* thread;
 
@@ -128,45 +129,7 @@ namespace Freenect2Driver
       return res;
     }
 
-  public:
-    DeviceImpl(int index) : //libfreenect2::Freenect2Device(fn_ctx, index),
-      dev(NULL),
-      color(NULL),
-      depth(NULL),
-      ir(NULL),
-      reg(NULL),
-      device_stop(false),
-      listener(libfreenect2::Frame::Depth | libfreenect2::Frame::Ir | libfreenect2::Frame::Color),
-      thread(NULL)
-    {
-      thread = new libfreenect2::thread(&DeviceImpl::static_run, this);
-    }
-    ~DeviceImpl()
-    {
-      destroyStream(color);
-      destroyStream(ir);
-      destroyStream(depth);
-      close();
-      if (reg) {
-        delete reg;
-        reg = NULL;
-      }
-    }
-
-    // for Freenect2Device
-    void setFreenect2Device(libfreenect2::Freenect2Device *dev) {
-      this->dev = dev;
-      dev->setColorFrameListener(&listener);
-      dev->setIrAndDepthFrameListener(&listener);
-      reg = new Registration(dev);
-    }
-    void setConfigStrings(ConfigStrings& config) {
-      this->config = config;
-    }
-    void start() { 
-      //TODO: start thread executing the run() method
-      //device_stop = false;
-      //thread = new libfreenect2::thread(&Device::static_run, this);
+    void allocStream() { 
       if (! color) {
         color = new ColorStream(this, dev, reg);
         setStreamProperties(color, "color");
@@ -179,14 +142,9 @@ namespace Freenect2Driver
         ir = new IrStream(this, dev, reg);
         setStreamProperties(ir, "ir");
       }
-      dev->start();
     }
-    void stop() { 
-      if (!device_stop) {
-        device_stop = true;
-        thread->join();
-        dev->stop();
-      }
+
+    void deallocStream() { 
       if (color != NULL)
       {
         delete color;
@@ -203,8 +161,64 @@ namespace Freenect2Driver
         ir = NULL;
       }
     }
+
+  public:
+    DeviceImpl(int index) : //libfreenect2::Freenect2Device(fn_ctx, index),
+      dev(NULL),
+      color(NULL),
+      depth(NULL),
+      ir(NULL),
+      reg(NULL),
+      device_stop(true),
+      device_used(false),
+      listener(libfreenect2::Frame::Depth | libfreenect2::Frame::Ir | libfreenect2::Frame::Color),
+      thread(NULL)
+    {
+    }
+    ~DeviceImpl()
+    {
+      destroyStream(color);
+      destroyStream(ir);
+      destroyStream(depth);
+      deallocStream();
+      close();
+      if (reg) {
+        delete reg;
+        reg = NULL;
+      }
+    }
+
+    // for Freenect2Device
+    void setFreenect2Device(libfreenect2::Freenect2Device *dev) {
+      this->dev = dev;
+      dev->setColorFrameListener(&listener);
+      dev->setIrAndDepthFrameListener(&listener);
+      reg = new Registration(dev);
+      allocStream();
+    }
+    void setConfigStrings(ConfigStrings& config) {
+      this->config = config;
+    }
+    void start() {
+      WriteMessage("Freenect2Driver::Device: start()");
+      if (device_stop) {
+        device_used = true;
+        device_stop = false;
+        thread = new libfreenect2::thread(&DeviceImpl::static_run, this);
+        dev->start();
+      }
+    }
+    void stop() { 
+      WriteMessage("Freenect2Driver::Device: stop()");
+      if (!device_stop) {
+        device_stop = true;
+        thread->join();
+        dev->stop();
+      }
+    }
     void close() { 
-      if (this->dev) {
+      WriteMessage("Freenect2Driver::Device: close()");
+      if (this->dev && device_used) {
         stop();
         dev->close();
       }
@@ -488,7 +502,6 @@ namespace Freenect2Driver
             DeviceImpl* device = new DeviceImpl(id);
             device->setFreenect2Device(freenect2.openDevice(id)); // XXX, detault pipeline // const PacketPipeline *factory);
             device->setConfigStrings(config);
-            device->start();
             iter->second = device;
             return device;
           }
