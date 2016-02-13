@@ -41,6 +41,49 @@
 namespace libfreenect2
 {
 
+class VaapiFrame: public Frame
+{
+public:
+  VADisplay display;
+  VAImage image;
+
+  VaapiFrame(VADisplay display, size_t width, size_t height, size_t bytes_per_pixel):
+    Frame(width, height, bytes_per_pixel, (unsigned char*)-1),
+    display(display)
+  {
+    data = NULL;
+
+    /* Create image */
+    VAImageFormat format = {0};
+    format.fourcc = VA_FOURCC_BGRX;
+    format.byte_order = VA_LSB_FIRST;
+    format.bits_per_pixel = bytes_per_pixel*8;
+    format.depth = 8;
+
+    CALL_VA(vaCreateImage(display, &format, width, height, &image));
+  }
+
+  bool draw(VASurfaceID surface)
+  {
+    if (data != NULL) {
+      data = NULL;
+      CHECK_VA(vaUnmapBuffer(display, image.buf));
+    }
+    CHECK_VA(vaGetImage(display, surface, 0, 0, width, height, image.image_id));
+    CHECK_VA(vaMapBuffer(display, image.buf, (void**)&data));
+    return true;
+  }
+
+  ~VaapiFrame()
+  {
+    if (data != NULL) {
+      CALL_VA(vaUnmapBuffer(display, image.buf));
+      data = NULL;
+    }
+    CALL_VA(vaDestroyImage(display, image.image_id));
+  }
+};
+
 class VaapiRgbPacketProcessorImpl: public WithPerfLogging
 {
 public:
@@ -49,7 +92,6 @@ public:
   VAConfigID config;
   VASurfaceID surface;
   VAContextID context;
-  VAImage image;
 
   struct jpeg_decompress_struct dinfo;
   struct jpeg_error_mgr jerr;
@@ -59,7 +101,7 @@ public:
   static const int WIDTH = 1920;
   static const int HEIGHT = 1080;
 
-  Frame *frame;
+  VaapiFrame *frame;
 
   VaapiRgbPacketProcessorImpl():
     frame(NULL)
@@ -78,7 +120,6 @@ public:
   {
     delete frame;
     if (good) {
-      CALL_VA(vaDestroyImage(display, image.image_id));
       CALL_VA(vaDestroyContext(display, context));
       CALL_VA(vaDestroySurfaces(display, &surface, 1));
       CALL_VA(vaDestroyConfig(display, config));
@@ -91,7 +132,7 @@ public:
 
   void newFrame()
   {
-    frame = new Frame(1920, 1080, 4);
+    frame = new VaapiFrame(display, WIDTH, HEIGHT, 4);
   }
 
   bool initializeVaapi()
@@ -152,15 +193,6 @@ public:
     CHECK_VA(vaCreateSurfaces(display, rtformat, WIDTH, HEIGHT, &surface, 1, NULL, 0));
 
     CHECK_VA(vaCreateContext(display, config, WIDTH, HEIGHT, 0, &surface, 1, &context));
-
-    /* Create image */
-    VAImageFormat format = {0};
-    format.fourcc = VA_FOURCC_BGRX;
-    format.byte_order = VA_LSB_FIRST;
-    format.bits_per_pixel = 4*8;
-    format.depth = 8;
-
-    CHECK_VA(vaCreateImage(display, &format, WIDTH, HEIGHT, &image));
 
     return true;
   }
@@ -272,12 +304,8 @@ public:
     /* Sync surface */
     CHECK_VA(vaSyncSurface(display, surface));
 
-    CHECK_VA(vaGetImage(display, surface, 0, 0, WIDTH, HEIGHT, image.image_id));
-
-    unsigned char *image_mem;
-    CHECK_VA(vaMapBuffer(display, image.buf, (void**)&image_mem));
-    memcpy(frame->data, image_mem, 1920*1080*4);
-    CHECK_VA(vaUnmapBuffer(display, image.buf));
+    if (!frame->draw(surface))
+      return false;
 
     return true;
   }
