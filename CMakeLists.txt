@@ -45,6 +45,7 @@ ELSE()
   SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
 ENDIF()
 
+SET(HAVE_CXX11 disabled)
 IF(ENABLE_CXX11)
   INCLUDE(CheckCXXCompilerFlag)
   CHECK_CXX_COMPILER_FLAG("-std=c++11" COMPILER_SUPPORTS_CXX11)
@@ -52,9 +53,12 @@ IF(ENABLE_CXX11)
   IF(COMPILER_SUPPORTS_CXX11)
     SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
     SET(LIBFREENECT2_WITH_CXX11_SUPPORT 1)
+    SET(HAVE_CXX11 yes)
   ELSEIF(COMPILER_SUPPORTS_CXX0X)
     SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
+    SET(HAVE_CXX11 c++0x)
   ELSE()
+    SET(HAVE_CXX11 no)
     MESSAGE(STATUS "The compiler ${CMAKE_CXX_COMPILER} has no C++11 support. Please use a different C++ compiler.")
   ENDIF()
 ENDIF(ENABLE_CXX11)
@@ -148,11 +152,14 @@ SET(LIBFREENECT2_DLLS
   ${LibUSB_DLL}
 )
 
+SET(HAVE_VideoToolbox "no (Apple only)")
 IF(APPLE)
   FIND_LIBRARY(VIDEOTOOLBOX_LIBRARY VideoToolbox)
 
+  SET(HAVE_VideoToolbox no)
   IF(VIDEOTOOLBOX_LIBRARY)
     SET(LIBFREENECT2_WITH_VT_SUPPORT 1)
+    SET(HAVE_VideoToolbox yes)
 
     FIND_LIBRARY(COREFOUNDATION_LIBRARY CoreFoundation REQUIRED)
     FIND_LIBRARY(COREMEDIA_LIBRARY CoreMedia REQUIRED)
@@ -171,14 +178,17 @@ IF(APPLE)
   ENDIF(VIDEOTOOLBOX_LIBRARY)
 ENDIF(APPLE)
 
+SET(HAVE_VAAPI disabled)
 IF(ENABLE_VAAPI)
   IF(PKG_CONFIG_FOUND)
     PKG_CHECK_MODULES(VAAPI libva libva-drm)
   ENDIF()
   FIND_PACKAGE(JPEG)
 
+  SET(HAVE_VAAPI no)
   IF(VAAPI_FOUND AND JPEG_FOUND)
     SET(LIBFREENECT2_WITH_VAAPI_SUPPORT 1)
+    SET(HAVE_VAAPI yes)
 
     INCLUDE_DIRECTORIES(${VAAPI_INCLUDE_DIRS})
 
@@ -199,8 +209,10 @@ ELSE()
   FIND_PACKAGE(TurboJPEG REQUIRED)
 ENDIF()
 
+SET(HAVE_TurboJPEG no)
 IF(TurboJPEG_FOUND)
   SET(LIBFREENECT2_WITH_TURBOJPEG_SUPPORT 1)
+  SET(HAVE_TurboJPEG yes)
 
   INCLUDE_DIRECTORIES(${TurboJPEG_INCLUDE_DIRS})
 
@@ -217,10 +229,15 @@ IF(TurboJPEG_FOUND)
   )
 ENDIF()
 
+SET(HAVE_OpenGL disablsed)
 IF(ENABLE_OPENGL)
   FIND_PACKAGE(GLFW3)
   FIND_PACKAGE(OpenGL)
-  IF(GLFW3_FOUND)
+  SET(HAVE_OpenGL no)
+  IF(GLFW3_FOUND AND OPENGL_FOUND)
+    SET(LIBFREENECT2_WITH_OPENGL_SUPPORT 1)
+    SET(HAVE_OpenGL yes)
+
     INCLUDE_DIRECTORIES(${GLFW3_INCLUDE_DIRS})
 
     LIST(APPEND LIBFREENECT2_DLLS ${GLFW3_DLL})
@@ -228,35 +245,39 @@ IF(ENABLE_OPENGL)
       ${GLFW3_LIBRARIES}
       ${OPENGL_gl_LIBRARY}
     )
-  SET(LIBFREENECT2_WITH_OPENGL_SUPPORT 1)
-  LIST(APPEND SOURCES
-    src/flextGL.cpp
-    src/opengl_depth_packet_processor.cpp
-  )
+    LIST(APPEND SOURCES
+      src/flextGL.cpp
+      src/opengl_depth_packet_processor.cpp
+    )
 
-  LIST(APPEND RESOURCES
-    src/shader/debug.fs
-    src/shader/default.vs
-    src/shader/filter1.fs
-    src/shader/filter2.fs
-    src/shader/stage1.fs
-    src/shader/stage2.fs
-  )
+    LIST(APPEND RESOURCES
+      src/shader/debug.fs
+      src/shader/default.vs
+      src/shader/filter1.fs
+      src/shader/filter2.fs
+      src/shader/stage1.fs
+      src/shader/stage2.fs
+    )
   ENDIF()
 ENDIF(ENABLE_OPENGL)
 
+SET(HAVE_OpenCL disablsed)
 IF(ENABLE_OPENCL)
   FIND_PACKAGE(OpenCL)
 
+  SET(HAVE_OpenCL no)
   IF(OpenCL_FOUND)
+    SET(LIBFREENECT2_WITH_OPENCL_SUPPORT 1)
+    SET(HAVE_OpenCL yes)
+
     IF(UNIX AND NOT APPLE)
       INCLUDE(CheckOpenCLICDLoader)
       IF(OpenCL_C_WORKS AND NOT OpenCL_CXX_WORKS)
         SET(LIBFREENECT2_OPENCL_ICD_LOADER_IS_OLD 1)
+        SET(HAVE_OpenCL "yes but buggy")
         MESSAGE(WARNING "Your libOpenCL.so is incompatible with CL/cl.h. Install ocl-icd-opencl-dev to update libOpenCL.so?")
       ENDIF()
     ENDIF()
-    SET(LIBFREENECT2_WITH_OPENCL_SUPPORT 1)
     INCLUDE_DIRECTORIES(${OpenCL_INCLUDE_DIRS})
 
     LIST(APPEND SOURCES
@@ -334,14 +355,19 @@ INSTALL(FILES "${PROJECT_BINARY_DIR}/freenect2.pc" DESTINATION lib/pkgconfig/)
 
 ADD_SUBDIRECTORY(${MY_DIR}/doc)
 
+SET(HAVE_Examples disablsed)
 IF(BUILD_EXAMPLES)
+  SET(HAVE_Examples yes)
   MESSAGE(STATUS "Configurating examples")
   ADD_SUBDIRECTORY(${MY_DIR}/examples)
 ENDIF()
 
+SET(HAVE_OpenNI2 disablsed)
 IF(BUILD_OPENNI2_DRIVER)
   FIND_PACKAGE(OpenNI2)
+  SET(HAVE_OpenNI2 no)
   IF(OpenNI2_FOUND)
+    SET(HAVE_OpenNI2 yes)
     FILE(GLOB OPENNI2_DRIVER_SOURCES src/openni2/*.cpp)
     ADD_LIBRARY(freenect2-openni2 ${OPENNI2_DRIVER_SOURCES} ${LIBFREENECT2_THREADING_SOURCE})
     TARGET_INCLUDE_DIRECTORIES(freenect2-openni2 PRIVATE ${OpenNI2_INCLUDE_DIRS})
@@ -358,3 +384,12 @@ IF(BUILD_OPENNI2_DRIVER)
     )
   ENDIF()
 ENDIF()
+
+GET_CMAKE_PROPERTY(vars VARIABLES)
+MESSAGE(STATUS "Feature list:")
+FOREACH(var ${vars})
+  IF(var MATCHES ^HAVE_)
+    STRING(REPLACE HAVE_ "" feature ${var})
+    MESSAGE(STATUS "  ${feature}    ${${var}}")
+  ENDIF()
+ENDFOREACH()
