@@ -33,6 +33,7 @@ OPTION(BUILD_OPENNI2_DRIVER "Build OpenNI2 driver" ON)
 OPTION(ENABLE_CXX11 "Enable C++11 support" OFF)
 OPTION(ENABLE_OPENCL "Enable OpenCL support" ON)
 OPTION(ENABLE_OPENGL "Enable OpenGL support" ON)
+OPTION(ENABLE_VAAPI "Enable VA-API support" ON)
 
 IF(MSVC)
   # suppress several "possible loss of data" warnings, and
@@ -170,9 +171,31 @@ IF(APPLE)
   ENDIF(VIDEOTOOLBOX_LIBRARY)
 ENDIF(APPLE)
 
+IF(ENABLE_VAAPI)
+  IF(PKG_CONFIG_FOUND)
+    PKG_CHECK_MODULES(VAAPI libva libva-drm)
+  ENDIF()
+  FIND_PACKAGE(JPEG)
+
+  IF(VAAPI_FOUND AND JPEG_FOUND)
+    SET(LIBFREENECT2_WITH_VAAPI_SUPPORT 1)
+
+    INCLUDE_DIRECTORIES(${VAAPI_INCLUDE_DIRS})
+
+    LIST(APPEND SOURCES
+      src/vaapi_rgb_packet_processor.cpp
+    )
+    LIST(APPEND LIBRARIES
+      ${VAAPI_LIBRARIES}
+      ${JPEG_LIBRARY}
+    )
+  ENDIF()
+ENDIF(ENABLE_VAAPI)
+
 IF(LIBFREENECT2_WITH_VT_SUPPORT)
   FIND_PACKAGE(TurboJPEG)
 ELSE()
+  # VAAPI can fail to start at runtime. It must have a fallback.
   FIND_PACKAGE(TurboJPEG REQUIRED)
 ENDIF()
 
@@ -192,7 +215,6 @@ IF(TurboJPEG_FOUND)
   LIST(APPEND LIBFREENECT2_DLLS
    ${TurboJPEG_DLL}
   )
-
 ENDIF()
 
 IF(ENABLE_OPENGL)

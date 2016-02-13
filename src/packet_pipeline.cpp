@@ -40,6 +40,13 @@ static RgbPacketProcessor *getDefaultRgbPacketProcessor()
 {
 #if defined(LIBFREENECT2_WITH_VT_SUPPORT)
   return new VTRgbPacketProcessor();
+#elif defined(LIBFREENECT2_WITH_VAAPI_SUPPORT)
+  RgbPacketProcessor *vaapi = new VaapiRgbPacketProcessor();
+  if (vaapi->good())
+    return vaapi;
+  else
+    delete vaapi;
+  return new TurboJpegRgbPacketProcessor();
 #elif defined(LIBFREENECT2_WITH_TURBOJPEG_SUPPORT)
   return new TurboJpegRgbPacketProcessor();
 #else
