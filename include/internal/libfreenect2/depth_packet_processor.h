@@ -197,6 +197,8 @@ public:
   virtual bool good();
 
   virtual void process(const DepthPacket &packet);
+protected:
+  virtual Allocator *getAllocator();
 private:
   CudaDepthPacketProcessorImpl *impl_;
 };

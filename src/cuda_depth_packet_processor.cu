@@ -505,6 +505,62 @@ void filterPixelStage2(const float* __restrict__ depth, const float* __restrict_
 
 namespace libfreenect2
 {
+class CudaFrame: public Frame
+{
+public:
+  CudaFrame(size_t width, size_t height, size_t bytes_per_pixel):
+    Frame(width, height, bytes_per_pixel, (unsigned char*)-1)
+  {
+    data = NULL;
+
+    size_t size = width*height*bytes_per_pixel;
+    cudaError_t err = cudaHostAlloc(&rawdata, size, cudaHostAllocPortable);
+    if (err != cudaSuccess) {
+      LOG_ERROR << "cudaHostAlloc: " << cudaGetErrorString(err);
+      rawdata = NULL;
+    }
+    data = rawdata;
+  }
+
+  virtual ~CudaFrame()
+  {
+    CALL_CUDA(cudaFreeHost(rawdata));
+    rawdata = NULL;
+  }
+};
+
+class CudaAllocator: public Allocator
+{
+private:
+  bool allocate_cuda(Buffer *b, size_t size)
+  {
+    CHECK_CUDA(cudaHostAlloc(&b->data, size, cudaHostAllocWriteCombined | cudaHostAllocPortable));
+    b->length = 0;
+    b->capacity = size;
+    return true;
+  }
+
+public:
+  virtual Buffer *allocate(size_t size)
+  {
+    Buffer *b = new Buffer();
+    if (!allocate_cuda(b, size)) {
+      delete b;
+      b = NULL;
+    }
+    return b;
+  }
+
+  virtual void free(Buffer *b)
+  {
+    if (b == NULL || b->data == NULL)
+      return;
+
+    CALL_CUDA(cudaFreeHost(b->data));
+    delete b;
+  }
+};
+
 class CudaDepthPacketProcessorImpl: public WithPerfLogging
 {
 public:
@@ -544,6 +600,8 @@ public:
 
   Frame *ir_frame, *depth_frame;
 
+  Allocator *allocator;
+
   bool good;
 
   CudaDepthPacketProcessorImpl(const int deviceId):
@@ -552,7 +610,8 @@ public:
     config(),
     params(),
     ir_frame(NULL),
-    depth_frame(NULL)
+    depth_frame(NULL),
+    allocator(NULL)
   {
     good = initDevice(deviceId);
     if (!good)
@@ -560,10 +619,13 @@ public:
 
     newIrFrame();
     newDepthFrame();
+
+    allocator = new PoolAllocator(new CudaAllocator);
   }
 
   ~CudaDepthPacketProcessorImpl()
   {
+    delete allocator;
     delete ir_frame;
     delete depth_frame;
     if (good)
@@ -793,12 +855,12 @@ public:
 
   void newIrFrame()
   {
-    ir_frame = new Frame(512, 424, 4);
+    ir_frame = new CudaFrame(512, 424, 4);
   }
 
   void newDepthFrame()
   {
-    depth_frame = new Frame(512, 424, 4);
+    depth_frame = new CudaFrame(512, 424, 4);
   }
 
   void fill_trig_table(const protocol::P0TablesResponse *p0table)
@@ -884,5 +946,10 @@ void CudaDepthPacketProcessor::process(const DepthPacket &packet)
     if (listener_->onNewFrame(Frame::Depth, impl_->depth_frame))
       impl_->newDepthFrame();
   }
+}
+
+Allocator *CudaDepthPacketProcessor::getAllocator()
+{
+  return impl_->allocator;
 }
 } // namespace libfreenect2
