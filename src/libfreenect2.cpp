@@ -829,7 +829,10 @@ bool Freenect2DeviceImpl::close()
   CommandTransaction::Result result;
   command_tx_.execute(SetModeEnabledWith0x00640064Command(nextCommandSeq()), result);
   command_tx_.execute(SetModeDisabledCommand(nextCommandSeq()), result);
-  command_tx_.execute(ShutdownCommand(nextCommandSeq()), result);
+  /* This command actually reboots the device and makes it disappear for 3 seconds.
+   * Protonect can restart instantly without it.
+   */
+  //command_tx_.execute(ShutdownCommand(nextCommandSeq()), result);
 
   if(pipeline_->getRgbPacketProcessor() != 0)
     pipeline_->getRgbPacketProcessor()->setFrameListener(0);
