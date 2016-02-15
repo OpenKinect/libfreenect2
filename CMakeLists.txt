@@ -310,10 +310,11 @@ IF(ENABLE_CUDA)
     SET(LIBFREENECT2_WITH_CUDA_SUPPORT 1)
     SET(HAVE_CUDA yes)
 
+    STRING(REPLACE "\\" "/" NVCUDASAMPLES_ROOT "$ENV{NVCUDASAMPLES_ROOT}")
     CUDA_INCLUDE_DIRECTORIES(
       "${MY_DIR}/include/"
       "${CUDA_TOOLKIT_ROOT_DIR}/samples/common/inc"
-      "$ENV{NVCUDASAMPLES_ROOT}/common/inc"
+      "${NVCUDASAMPLES_ROOT}/common/inc"
     )
     SET(CUDA_FLAGS -use_fast_math)
     IF(NOT MSVC)
