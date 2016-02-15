@@ -43,46 +43,77 @@
 namespace libfreenect2
 {
 
-class VaapiFrame: public Frame
+class VaapiImage: public Buffer
+{
+public:
+  VAImage image;
+};
+
+class VaapiImageAllocator: public Allocator
 {
 public:
   VADisplay display;
-  VAImage image;
+  unsigned short width;
+  unsigned short height;
+  VAImageFormat format;
+  Allocator *pool;
 
-  VaapiFrame(VADisplay display, size_t width, size_t height, size_t bytes_per_pixel):
-    Frame(width, height, bytes_per_pixel, (unsigned char*)-1),
-    display(display)
+  VaapiImageAllocator(VADisplay display, unsigned short width, unsigned short height, const VAImageFormat &format):
+    display(display), width(width), height(height), format(format)
   {
-    data = NULL;
-
-    /* Create image */
-    VAImageFormat format = {0};
-    format.fourcc = VA_FOURCC_BGRX;
-    format.byte_order = VA_LSB_FIRST;
-    format.bits_per_pixel = bytes_per_pixel*8;
-    format.depth = 8;
-
-    CALL_VA(vaCreateImage(display, &format, width, height, &image));
   }
 
-  bool draw(VASurfaceID surface)
+  virtual Buffer *allocate(size_t size)
   {
+    VaapiImage *vi = new VaapiImage();
+    vi->allocator = this;
+    CALL_VA(vaCreateImage(display, &format, width, height, &vi->image));
+    return vi;
+  }
+
+  virtual void free(Buffer *b)
+  {
+    if (b == NULL)
+      return;
+    VaapiImage *vi = static_cast<VaapiImage *>(b);
+    if (vi->data) {
+      CALL_VA(vaUnmapBuffer(display, vi->image.buf));
+      vi->data = NULL;
+    }
+    CALL_VA(vaDestroyImage(display, vi->image.image_id));
+    delete vi;
+  }
+};
+
+class VaapiFrame: public Frame
+{
+public:
+  VaapiFrame(VaapiImage *vi):
+    Frame(vi->image.width, vi->image.height, vi->image.format.bits_per_pixel/8, (unsigned char*)-1)
+  {
+    data = NULL;
+    rawdata = reinterpret_cast<unsigned char*>(vi);
+  }
+
+  virtual ~VaapiFrame()
+  {
+    VaapiImage *vi = reinterpret_cast<VaapiImage *>(rawdata);
+    vi->allocator->free(vi);
+    rawdata = NULL;
+  }
+
+  bool draw(VADisplay display, VASurfaceID surface)
+  {
+    VaapiImage *vi = reinterpret_cast<VaapiImage *>(rawdata);
+    VAImage &image = vi->image;
+    data = NULL;
     if (data != NULL) {
       data = NULL;
       CHECK_VA(vaUnmapBuffer(display, image.buf));
     }
-    CHECK_VA(vaGetImage(display, surface, 0, 0, width, height, image.image_id));
+    CHECK_VA(vaGetImage(display, surface, 0, 0, image.width, image.height, image.image_id));
     CHECK_VA(vaMapBuffer(display, image.buf, (void**)&data));
     return true;
-  }
-
-  ~VaapiFrame()
-  {
-    if (data != NULL) {
-      CALL_VA(vaUnmapBuffer(display, image.buf));
-      data = NULL;
-    }
-    CALL_VA(vaDestroyImage(display, image.image_id));
   }
 };
 
@@ -160,11 +191,13 @@ public:
 
   VaapiFrame *frame;
 
-  Allocator *allocator_;
+  Allocator *buffer_allocator;
+  Allocator *image_allocator;
 
   VaapiRgbPacketProcessorImpl():
     frame(NULL),
-    allocator_(NULL)
+    buffer_allocator(NULL),
+    image_allocator(NULL)
   {
     dinfo.err = jpeg_std_error(&jerr);
     jpeg_create_decompress(&dinfo);
@@ -173,9 +206,17 @@ public:
     if (!good)
       return;
 
-    newFrame();
+    buffer_allocator = new PoolAllocator(new VaapiAllocator(display, context));
 
-    allocator_ = new PoolAllocator(new VaapiAllocator(display, context));
+    VAImageFormat format = {0};
+    format.fourcc = VA_FOURCC_BGRX;
+    format.byte_order = VA_LSB_FIRST;
+    format.bits_per_pixel = 4*8;
+    format.depth = 8;
+
+    image_allocator = new PoolAllocator(new VaapiImageAllocator(display, WIDTH, HEIGHT, format));
+
+    newFrame();
 
     jpeg_first_packet = true;
   }
@@ -183,7 +224,8 @@ public:
   ~VaapiRgbPacketProcessorImpl()
   {
     delete frame;
-    delete allocator_;
+    delete buffer_allocator;
+    delete image_allocator;
     if (good && !jpeg_first_packet) {
       CALL_VA(vaDestroyBuffer(display, pic_param_buf));
       CALL_VA(vaDestroyBuffer(display, iq_buf));
@@ -203,7 +245,7 @@ public:
 
   void newFrame()
   {
-    frame = new VaapiFrame(display, WIDTH, HEIGHT, 4);
+    frame = new VaapiFrame(static_cast<VaapiImage *>(image_allocator->allocate(0)));
   }
 
   bool initializeVaapi()
@@ -391,7 +433,7 @@ public:
     /* Sync surface */
     CHECK_VA(vaSyncSurface(display, surface));
 
-    if (!frame->draw(surface))
+    if (!frame->draw(display, surface))
       return false;
 
     CHECK_VA(vaMapBuffer(display, vb->id, (void**)&vb->data));
@@ -448,6 +490,6 @@ void VaapiRgbPacketProcessor::process(const RgbPacket &packet)
 
 Allocator *VaapiRgbPacketProcessor::getAllocator()
 {
-  return impl_->allocator_;
+  return impl_->buffer_allocator;
 }
 } /* namespace libfreenect2 */
