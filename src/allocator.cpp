@@ -40,6 +40,7 @@ public:
     b->data = new unsigned char[size];
     b->length = 0;
     b->capacity = size;
+    b->allocator = this;
     return b;
   }
 
@@ -52,33 +53,53 @@ public:
   }
 };
 
-class PoolAllocatorImpl
+class PoolAllocatorImpl: public Allocator
 {
 private:
   Allocator *allocator;
   Buffer *buffers[2];
-  mutex locks[2];
-  int next;
+  bool used[2];
+  mutex used_lock;
+  condition_variable available_cond;
 public:
-  PoolAllocatorImpl(Allocator *a): allocator(a), buffers(), next(0) {}
+  PoolAllocatorImpl(Allocator *a): allocator(a), buffers(), used() {}
 
   Buffer *allocate(size_t size)
   {
-    locks[next].lock();
-    if (buffers[next] == NULL)
-      buffers[next] = allocator->allocate(size);
-    buffers[next]->length = 0;
-    Buffer *b = buffers[next];
-    next = !next;
-    return b;
+    lock_guard guard(used_lock);
+    while (used[0] && used[1])
+      available_cond.wait(used_lock);
+
+    if (!used[0]) {
+      if (buffers[0] == NULL)
+        buffers[0] = allocator->allocate(size);
+      buffers[0]->length = 0;
+      buffers[0]->allocator = this;
+      used[0] = true;
+      return buffers[0];
+    } else if (!used[1]) {
+      if (buffers[1] == NULL)
+        buffers[1] = allocator->allocate(size);
+      buffers[1]->length = 0;
+      buffers[1]->allocator = this;
+      used[1] = true;
+      return buffers[1];
+    } else {
+      // should never happen
+      return NULL;
+    }
   }
 
   void free(Buffer *b)
   {
-    if (b == buffers[0])
-      locks[0].unlock();
-    else if (b == buffers[1])
-      locks[1].unlock();
+    lock_guard guard(used_lock);
+    if (b == buffers[0]) {
+      used[0] = false;
+      available_cond.notify_one();
+    } else if (b == buffers[1]) {
+      used[1] = false;
+      available_cond.notify_one();
+    }
   }
 
   ~PoolAllocatorImpl()

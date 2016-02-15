@@ -34,12 +34,15 @@
 namespace libfreenect2
 {
 
+class Allocator;
+
 class Buffer
 {
 public:
   size_t capacity; ///< Capacity of the buffer.
   size_t length;   ///< Used length of the buffer.
   unsigned char* data; ///< Start address of the buffer.
+  Allocator *allocator;
 };
 
 class Allocator
