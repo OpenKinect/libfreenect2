@@ -44,10 +44,12 @@ public:
 
   const unsigned int subscribed_frame_types_;
   unsigned int ready_frame_types_;
+  bool current_frame_released_;
 
   SyncMultiFrameListenerImpl(unsigned int frame_types) :
     subscribed_frame_types_(frame_types),
-    ready_frame_types_(0)
+    ready_frame_types_(0),
+    current_frame_released_(true)
   {
   }
 
@@ -112,6 +114,7 @@ void SyncMultiFrameListener::waitForNewFrame(FrameMap &frame)
   frame = impl_->next_frame_;
   impl_->next_frame_.clear();
   impl_->ready_frame_types_ = 0;
+  impl_->current_frame_released_ = false;
 }
 
 void SyncMultiFrameListener::release(FrameMap &frame)
@@ -123,6 +126,11 @@ void SyncMultiFrameListener::release(FrameMap &frame)
   }
 
   frame.clear();
+
+  {
+    libfreenect2::lock_guard l(impl_->mutex_);
+    impl_->current_frame_released_ = true;
+  }
 }
 
 bool SyncMultiFrameListener::onNewFrame(Frame::Type type, Frame *frame)
@@ -131,6 +139,9 @@ bool SyncMultiFrameListener::onNewFrame(Frame::Type type, Frame *frame)
 
   {
     libfreenect2::lock_guard l(impl_->mutex_);
+
+    if (!impl_->current_frame_released_)
+      return false;
 
     FrameMap::iterator it = impl_->next_frame_.find(type);
 
