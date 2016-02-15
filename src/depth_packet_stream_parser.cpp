@@ -51,6 +51,7 @@ DepthPacketStreamParser::DepthPacketStreamParser() :
 
 DepthPacketStreamParser::~DepthPacketStreamParser()
 {
+  delete[] work_buffer_.data;
 }
 
 void DepthPacketStreamParser::setPacketProcessor(libfreenect2::BaseDepthPacketProcessor *processor)
