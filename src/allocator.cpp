@@ -66,7 +66,7 @@ public:
 
   Buffer *allocate(size_t size)
   {
-    lock_guard guard(used_lock);
+    unique_lock guard(used_lock);
     while (used[0] && used[1])
       available_cond.wait(used_lock);
 
