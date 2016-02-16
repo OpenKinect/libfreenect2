@@ -68,7 +68,7 @@ public:
   {
     unique_lock guard(used_lock);
     while (used[0] && used[1])
-      available_cond.wait(used_lock);
+      WAIT_CONDITION(available_cond, used_lock, guard);
 
     if (!used[0]) {
       if (buffers[0] == NULL)
