@@ -107,12 +107,13 @@ public:
     VaapiImage *vi = reinterpret_cast<VaapiImage *>(rawdata);
     VAImage &image = vi->image;
     data = NULL;
-    if (data != NULL) {
-      data = NULL;
+    if (vi->data != NULL) {
+      vi->data = NULL;
       CHECK_VA(vaUnmapBuffer(display, image.buf));
     }
     CHECK_VA(vaGetImage(display, surface, 0, 0, image.width, image.height, image.image_id));
-    CHECK_VA(vaMapBuffer(display, image.buf, (void**)&data));
+    CHECK_VA(vaMapBuffer(display, image.buf, (void**)&vi->data));
+    data = vi->data;
     return true;
   }
 };
