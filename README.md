@@ -117,6 +117,8 @@ cd depends/
     Download from http://www.glfw.org/download.html (64-bit), extract as `depends/glfw` (rename `glfw-3.x.x.bin.WIN64` to `glfw`), or anywhere as specified by the environment variable `GLFW_ROOT`.
 * Install OpenCL (optional)
     1. Intel GPU: Download "Intel® SDK for OpenCL™ Applications 2016" from https://software.intel.com/en-us/intel-opencl (requires free registration) and install it.
+* Install CUDA (optional, Nvidia only)
+    1. Download CUDA Toolkit and install it. NOTE: CUDA 7.5 does not support Visual Studio 2015.
 * Install OpenNI2 (optional)
 
     Download OpenNI 2.2.0.33 (x64) from http://structure.io/openni, install it to default locations (`C:\Program Files...`).
@@ -159,6 +161,7 @@ brew install glfw3
 brew tap homebrew/science
 brew install jpeg-turbo
 ```
+* Install CUDA (optional): TODO
 * Install OpenNI2 (optional)
 
     ```
@@ -213,10 +216,12 @@ sudo apt-get install build-essential cmake pkg-config
         2. (Other) `sudo apt-get install beignet-dev`
         3. For older kernels, `# echo 0 >/sys/module/i915/parameters/enable_cmd_parser` is needed. See more known issues at https://www.freedesktop.org/wiki/Software/Beignet/.
     - AMD GPU: Install the latest version of the AMD Catalyst drivers from https://support.amd.com and `apt-get install opencl-headers`.
-    - Nvidia GPU: Install the latest version of the Nvidia drivers, for example nvidia-346 from `ppa:xorg-edgers` and `apt-get install opencl-headers`. Make sure that `dpkg -S libOpenCL.so` shows `ocl-icd-libopencl1` instead of nvidia opencl packages which are incompatible with `opencl-headers`. CUDA toolkit is not required for OpenCL.
-    - Nvidia discrete/Intel integrated GPUs: this gets tricky, but the rule of thumb is to make sure the actually used OpenCL headers and the driver libraries have matching versions.
     - Mali GPU (e.g. Odroid XU4): (with root) `mkdir -p /etc/OpenCL/vendors; echo /usr/lib/arm-linux-gnueabihf/mali-egl/libmali.so >/etc/OpenCL/vendors/mali.icd; apt-get install opencl-headers`.
     - Verify: You can install `clinfo` to verify if you have correctly set up the OpenCL stack.
+* Install CUDA (optional, Nvidia only):
+    - (Ubuntu 14.04 only) Download `cuda-repo-ubuntu1404...*.deb` ("deb (network)") from Nvidia website, follow their installation instructions, including `apt-get install cuda` which installs Nvidia graphics driver.
+    - (Nvidia/Intel dual GPUs) After `apt-get install cuda`, use `sudo prime-select intel` to use Intel GPU for desktop.
+    - (Other) Follow Nvidia website's instructions.
 * Install VAAPI (optional, Intel only)
     1. (Ubuntu 14.04 only) `sudo dpkg -i debs/{libva,i965}*deb; sudo apt-get install -f`
     2. (Other) `sudo apt-get install libva-dev libjpeg-dev`
