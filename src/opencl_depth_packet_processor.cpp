@@ -58,6 +58,8 @@
 #define CHECK_CL_ERROR(err, str) do {if (err != CL_SUCCESS) {LOG_ERROR << str << " failed: " << err; return false; } } while(0)
 #define LOG_CL_ERROR(err, str) if (err != CL_SUCCESS) LOG_ERROR << str << " failed: " << err
 
+#define WITH_PROFILING 0
+
 namespace libfreenect2
 {
 
@@ -167,8 +169,7 @@ public:
   size_t buf_packet_size;
 
   cl::Buffer buf_lut11to16;
-  cl::Buffer buf_p0_sin_table;
-  cl::Buffer buf_p0_cos_table;
+  cl::Buffer buf_p0_table;
   cl::Buffer buf_x_table;
   cl::Buffer buf_z_table;
   cl::Buffer buf_packet;
@@ -200,6 +201,11 @@ public:
   bool programBuilt;
   bool programInitialized;
   std::string sourceCode;
+
+#if WITH_PROFILING
+  std::vector<double> timings;
+  int count;
+#endif
 
   OpenCLDepthPacketProcessorImpl(const int deviceId = -1)
     : image_size(512 * 424)
@@ -266,12 +272,9 @@ public:
     oss << " -D AB_MULTIPLIER_PER_FRQ2=" << params.ab_multiplier_per_frq[2] << "f";
     oss << " -D AB_OUTPUT_MULTIPLIER=" << params.ab_output_multiplier << "f";
 
-    oss << " -D PHASE_IN_RAD0_SIN=" << std::sin(-params.phase_in_rad[0]) << "f";
-    oss << " -D PHASE_IN_RAD0_COS=" << std::cos(params.phase_in_rad[0]) << "f";
-    oss << " -D PHASE_IN_RAD1_SIN=" << std::sin(-params.phase_in_rad[1]) << "f";
-    oss << " -D PHASE_IN_RAD1_COS=" << std::cos(params.phase_in_rad[1]) << "f";
-    oss << " -D PHASE_IN_RAD2_SIN=" << std::sin(-params.phase_in_rad[2]) << "f";
-    oss << " -D PHASE_IN_RAD2_COS=" << std::cos(params.phase_in_rad[2]) << "f";
+    oss << " -D PHASE_IN_RAD0=" << params.phase_in_rad[0] << "f";
+    oss << " -D PHASE_IN_RAD1=" << params.phase_in_rad[1] << "f";
+    oss << " -D PHASE_IN_RAD2=" << params.phase_in_rad[2] << "f";
 
     oss << " -D JOINT_BILATERAL_AB_THRESHOLD=" << params.joint_bilateral_ab_threshold << "f";
     oss << " -D JOINT_BILATERAL_MAX_EDGE=" << params.joint_bilateral_max_edge << "f";
@@ -430,7 +433,12 @@ public:
   bool initBuffers()
   {
     cl_int err = CL_SUCCESS;
+#if WITH_PROFILING
+    count = 0;
+    queue = cl::CommandQueue(context, device, CL_QUEUE_PROFILING_ENABLE, &err);
+#else
     queue = cl::CommandQueue(context, device, 0, &err);
+#endif
     CHECK_CL_ERROR(err, "cl::CommandQueue");
 
     //Read only
@@ -442,9 +450,7 @@ public:
 
     buf_lut11to16 = cl::Buffer(context, CL_MEM_READ_ONLY, buf_lut11to16_size, NULL, &err);
     CHECK_CL_ERROR(err, "cl::Buffer");
-    buf_p0_sin_table = cl::Buffer(context, CL_MEM_READ_ONLY, buf_p0_table_size, NULL, &err);
-    CHECK_CL_ERROR(err, "cl::Buffer");
-    buf_p0_cos_table = cl::Buffer(context, CL_MEM_READ_ONLY, buf_p0_table_size, NULL, &err);
+    buf_p0_table = cl::Buffer(context, CL_MEM_READ_ONLY, buf_p0_table_size, NULL, &err);
     CHECK_CL_ERROR(err, "cl::Buffer");
     buf_x_table = cl::Buffer(context, CL_MEM_READ_ONLY, buf_x_table_size, NULL, &err);
     CHECK_CL_ERROR(err, "cl::Buffer");
@@ -471,7 +477,7 @@ public:
     CHECK_CL_ERROR(err, "cl::Buffer");
     buf_n = cl::Buffer(context, CL_MEM_READ_WRITE, buf_n_size, NULL, &err);
     CHECK_CL_ERROR(err, "cl::Buffer");
-    buf_ir = cl::Buffer(context, CL_MEM_READ_WRITE, buf_ir_size, NULL, &err);
+    buf_ir = cl::Buffer(context, CL_MEM_WRITE_ONLY, buf_ir_size, NULL, &err);
     CHECK_CL_ERROR(err, "cl::Buffer");
     buf_a_filtered = cl::Buffer(context, CL_MEM_READ_WRITE, buf_a_filtered_size, NULL, &err);
     CHECK_CL_ERROR(err, "cl::Buffer");
@@ -507,19 +513,17 @@ public:
     CHECK_CL_ERROR(err, "setArg");
     err = kernel_processPixelStage1.setArg(1, buf_z_table);
     CHECK_CL_ERROR(err, "setArg");
-    err = kernel_processPixelStage1.setArg(2, buf_p0_sin_table);
+    err = kernel_processPixelStage1.setArg(2, buf_p0_table);
     CHECK_CL_ERROR(err, "setArg");
-    err = kernel_processPixelStage1.setArg(3, buf_p0_cos_table);
+    err = kernel_processPixelStage1.setArg(3, buf_packet);
     CHECK_CL_ERROR(err, "setArg");
-    err = kernel_processPixelStage1.setArg(4, buf_packet);
+    err = kernel_processPixelStage1.setArg(4, buf_a);
     CHECK_CL_ERROR(err, "setArg");
-    err = kernel_processPixelStage1.setArg(5, buf_a);
+    err = kernel_processPixelStage1.setArg(5, buf_b);
     CHECK_CL_ERROR(err, "setArg");
-    err = kernel_processPixelStage1.setArg(6, buf_b);
+    err = kernel_processPixelStage1.setArg(6, buf_n);
     CHECK_CL_ERROR(err, "setArg");
-    err = kernel_processPixelStage1.setArg(7, buf_n);
-    CHECK_CL_ERROR(err, "setArg");
-    err = kernel_processPixelStage1.setArg(8, buf_ir);
+    err = kernel_processPixelStage1.setArg(7, buf_ir);
     CHECK_CL_ERROR(err, "setArg");
 
     kernel_filterPixelStage1 = cl::Kernel(program, "filterPixelStage1", &err);
@@ -571,14 +575,14 @@ public:
   {
     cl_int err;
     std::vector<cl::Event> eventWrite(1), eventPPS1(1), eventFPS1(1), eventPPS2(1), eventFPS2(1);
-    cl::Event event0, event1;
+    cl::Event eventReadIr, eventReadDepth;
 
     err = queue.enqueueWriteBuffer(buf_packet, CL_FALSE, 0, buf_packet_size, packet.buffer, NULL, &eventWrite[0]);
-    CHECK_CL_ERROR(err, "enqueueMapBuffer");
+    CHECK_CL_ERROR(err, "enqueueWriteBuffer");
 
     err = queue.enqueueNDRangeKernel(kernel_processPixelStage1, cl::NullRange, cl::NDRange(image_size), cl::NullRange, &eventWrite, &eventPPS1[0]);
     CHECK_CL_ERROR(err, "enqueueNDRangeKernel");
-    err = queue.enqueueReadBuffer(buf_ir, CL_FALSE, 0, buf_ir_size, ir_frame->data, &eventPPS1, &event0);
+    err = queue.enqueueReadBuffer(buf_ir, CL_FALSE, 0, buf_ir_size, ir_frame->data, &eventPPS1, &eventReadIr);
     CHECK_CL_ERROR(err, "enqueueReadBuffer");
 
     if(config.EnableBilateralFilter)
@@ -597,19 +601,49 @@ public:
     if(config.EnableEdgeAwareFilter)
     {
       err = queue.enqueueNDRangeKernel(kernel_filterPixelStage2, cl::NullRange, cl::NDRange(image_size), cl::NullRange, &eventPPS2, &eventFPS2[0]);
-      CHECK_CL_ERROR(err, "enqueueWriteBuffer");
+      CHECK_CL_ERROR(err, "enqueueNDRangeKernel");
     }
     else
     {
       eventFPS2[0] = eventPPS2[0];
     }
 
-    err = queue.enqueueReadBuffer(config.EnableEdgeAwareFilter ? buf_filtered : buf_depth, CL_FALSE, 0, buf_depth_size, depth_frame->data, &eventFPS2, &event1);
+    err = queue.enqueueReadBuffer(config.EnableEdgeAwareFilter ? buf_filtered : buf_depth, CL_FALSE, 0, buf_depth_size, depth_frame->data, &eventFPS2, &eventReadDepth);
     CHECK_CL_ERROR(err, "enqueueReadBuffer");
-    err = event0.wait();
+    err = eventReadIr.wait();
     CHECK_CL_ERROR(err, "wait");
-    err = event1.wait();
+    err = eventReadDepth.wait();
     CHECK_CL_ERROR(err, "wait");
+
+#if WITH_PROFILING
+    if(count == 0)
+    {
+      timings.clear();
+      timings.resize(7, 0.0);
+    }
+
+    timings[0] += eventWrite[0].getProfilingInfo<CL_PROFILING_COMMAND_END>() - eventWrite[0].getProfilingInfo<CL_PROFILING_COMMAND_START>();
+    timings[1] += eventPPS1[0].getProfilingInfo<CL_PROFILING_COMMAND_END>() - eventPPS1[0].getProfilingInfo<CL_PROFILING_COMMAND_START>();
+    timings[2] += eventFPS1[0].getProfilingInfo<CL_PROFILING_COMMAND_END>() - eventFPS1[0].getProfilingInfo<CL_PROFILING_COMMAND_START>();
+    timings[3] += eventPPS2[0].getProfilingInfo<CL_PROFILING_COMMAND_END>() - eventPPS2[0].getProfilingInfo<CL_PROFILING_COMMAND_START>();
+    timings[4] += eventFPS2[0].getProfilingInfo<CL_PROFILING_COMMAND_END>() - eventFPS2[0].getProfilingInfo<CL_PROFILING_COMMAND_START>();
+    timings[5] += eventReadIr.getProfilingInfo<CL_PROFILING_COMMAND_END>() - eventReadIr.getProfilingInfo<CL_PROFILING_COMMAND_START>();
+    timings[6] += eventReadDepth.getProfilingInfo<CL_PROFILING_COMMAND_END>() - eventReadDepth.getProfilingInfo<CL_PROFILING_COMMAND_START>();
+
+    if(++count == 100)
+    {
+      double sum = timings[0] + timings[1] + timings[2] + timings[3] + timings[4] + timings[5] + timings[6];
+      LOG_INFO << "writing package: " << timings[0] / 100000000.0 << " ms.";
+      LOG_INFO << "stage 1: " << timings[1] / 100000000.0 << " ms.";
+      LOG_INFO << "filter 1: " << timings[2] / 100000000.0 << " ms.";
+      LOG_INFO << "stage 2: " << timings[3] / 100000000.0 << " ms.";
+      LOG_INFO << "filter 2: " << timings[4] / 100000000.0 << " ms.";
+      LOG_INFO << "reading ir: " << timings[5] / 100000000.0 << " ms.";
+      LOG_INFO << "reading depth: " << timings[6] / 100000000.0 << " ms.";
+      LOG_INFO << "overall: " << sum / 100000000.0 << " ms.";
+      count = 0;
+    }
+#endif
 
     return true;
   }
@@ -665,46 +699,32 @@ public:
       return;
     }
 
-    cl_float3 *p0_sin_table = new cl_float3[image_size];
-    cl_float3 *p0_cos_table = new cl_float3[image_size];
+    cl_float3 *p0_table = new cl_float3[image_size];
 
     for(int r = 0; r < 424; ++r)
     {
-      cl_float3 *itS = &p0_sin_table[r * 512];
-      cl_float3 *itC = &p0_cos_table[r * 512];
+      cl_float3 *it = &p0_table[r * 512];
       const uint16_t *it0 = &p0table->p0table0[r * 512];
       const uint16_t *it1 = &p0table->p0table1[r * 512];
       const uint16_t *it2 = &p0table->p0table2[r * 512];
-      for(int c = 0; c < 512; ++c, ++itS, ++itC, ++it0, ++it1, ++it2)
+      for(int c = 0; c < 512; ++c, ++it, ++it0, ++it1, ++it2)
       {
-        const float x = ((float)*it0) * 0.000031 * M_PI;
-        const float y = ((float)*it1) * 0.000031 * M_PI;
-        const float z = ((float)*it2) * 0.000031 * M_PI;
-        itS->s[0] = std::sin(x);
-        itS->s[1] = std::sin(y);
-        itS->s[2] = std::sin(z);
-        itS->s[3] = 0.0f;
-        itC->s[0] = std::cos(-x);
-        itC->s[1] = std::cos(-y);
-        itC->s[2] = std::cos(-z);
-        itC->s[3] = 0.0f;
+        it->s[0] = -((float)*it0) * 0.000031 * M_PI;
+        it->s[1] = -((float)*it1) * 0.000031 * M_PI;
+        it->s[2] = -((float)*it2) * 0.000031 * M_PI;
+        it->s[3] = 0.0f;
       }
     }
 
     cl_int err = CL_SUCCESS;
-    cl::Event event0, event1;
-    err = queue.enqueueWriteBuffer(buf_p0_sin_table, CL_FALSE, 0, buf_p0_table_size, p0_sin_table, NULL, &event0);
-    LOG_CL_ERROR(err, "enqueueWriteBuffer");
-    err = queue.enqueueWriteBuffer(buf_p0_cos_table, CL_FALSE, 0, buf_p0_table_size, p0_cos_table, NULL, &event1);
+    cl::Event event0;
+    err = queue.enqueueWriteBuffer(buf_p0_table, CL_FALSE, 0, buf_p0_table_size, p0_table, NULL, &event0);
     LOG_CL_ERROR(err, "enqueueWriteBuffer");
 
     err = event0.wait();
     LOG_CL_ERROR(err, "wait");
-    err = event1.wait();
-    LOG_CL_ERROR(err, "wait");
 
-    delete[] p0_sin_table;
-    delete[] p0_cos_table;
+    delete[] p0_table;
   }
 
   void fill_xz_tables(const float *xtable, const float *ztable)
