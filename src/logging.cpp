@@ -131,6 +131,28 @@ LogMessage::LogMessage(Logger *logger, Logger::Level level) : logger_(logger), l
 
 }
 
+std::string getShortName(const char *func)
+{
+  std::string src(func);
+  size_t end = src.rfind('(');
+  if (end == std::string::npos)
+    end = src.size();
+  size_t begin = 1 + src.rfind(' ', end);
+  size_t first_ns = src.find("::", begin);
+  if (first_ns != std::string::npos)
+    begin = first_ns + 2;
+  size_t last_ns = src.rfind("::", end);
+  if (last_ns != std::string::npos)
+    end = last_ns;
+  return src.substr(begin, end - begin);
+}
+
+LogMessage::LogMessage(Logger *logger, Logger::Level level, const char *source):
+  logger_(logger), level_(level)
+{
+  stream_ << "[" << getShortName(source) << "] ";
+}
+
 LogMessage::~LogMessage()
 {
   if(logger_ != 0 && stream_.good())
@@ -252,22 +274,6 @@ void WithPerfLogging::startTiming()
 std::ostream &WithPerfLogging::stopTiming(std::ostream &stream)
 {
   return impl_->stop(stream);
-}
-
-std::string getShortName(const char *func)
-{
-  std::string src(func);
-  size_t end = src.rfind('(');
-  if (end == std::string::npos)
-    end = src.size();
-  size_t begin = 1 + src.rfind(' ', end);
-  size_t first_ns = src.find("::", begin);
-  if (first_ns != std::string::npos)
-    begin = first_ns + 2;
-  size_t last_ns = src.rfind("::", end);
-  if (last_ns != std::string::npos)
-    end = last_ns;
-  return src.substr(begin, end - begin);
 }
 
 } /* namespace libfreenect2 */
