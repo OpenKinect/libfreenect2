@@ -35,6 +35,7 @@ OPTION(ENABLE_OPENCL "Enable OpenCL support" ON)
 OPTION(ENABLE_CUDA "Enable CUDA support" ON)
 OPTION(ENABLE_OPENGL "Enable OpenGL support" ON)
 OPTION(ENABLE_VAAPI "Enable VA-API support" ON)
+OPTION(ENABLE_TEGRAJPEG "Enable Tegra HW JPEG support" ON)
 
 IF(MSVC)
   # suppress several "possible loss of data" warnings, and
@@ -202,6 +203,27 @@ IF(ENABLE_VAAPI)
     )
   ENDIF()
 ENDIF(ENABLE_VAAPI)
+
+SET(HAVE_TegraJPEG disabled)
+IF(ENABLE_TEGRAJPEG)
+  FIND_PACKAGE(TegraJPEG)
+
+  SET(HAVE_TegraJPEG no)
+  IF(TegraJPEG_FOUND)
+    SET(LIBFREENECT2_WITH_TEGRAJPEG_SUPPORT 1)
+    SET(HAVE_TegraJPEG yes)
+
+    INCLUDE_DIRECTORIES(${TegraJPEG_INCLUDE_DIRS})
+
+    LIST(APPEND SOURCES
+      src/tegra_jpeg_rgb_packet_processor.cpp
+    )
+
+    LIST(APPEND LIBRARIES
+      ${CMAKE_DL_LIBS}
+    )
+  ENDIF()
+ENDIF()
 
 IF(LIBFREENECT2_WITH_VT_SUPPORT)
   FIND_PACKAGE(TurboJPEG)

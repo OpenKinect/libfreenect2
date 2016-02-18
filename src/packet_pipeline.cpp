@@ -47,6 +47,13 @@ static RgbPacketProcessor *getDefaultRgbPacketProcessor()
   else
     delete vaapi;
   return new TurboJpegRgbPacketProcessor();
+#elif defined(LIBFREENECT2_WITH_TEGRAJPEG_SUPPORT)
+  RgbPacketProcessor *tegra = new TegraJpegRgbPacketProcessor();
+  if (tegra->good())
+    return tegra;
+  else
+    delete tegra;
+  return new TurboJpegRgbPacketProcessor();
 #elif defined(LIBFREENECT2_WITH_TURBOJPEG_SUPPORT)
   return new TurboJpegRgbPacketProcessor();
 #else
