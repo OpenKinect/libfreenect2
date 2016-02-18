@@ -177,6 +177,8 @@ public:
 
   virtual const char *name() { return "OpenCL"; }
   virtual void process(const DepthPacket &packet);
+protected:
+  virtual Allocator *getAllocator();
 private:
   OpenCLDepthPacketProcessorImpl *impl_;
 };

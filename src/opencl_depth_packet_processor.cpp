@@ -55,6 +55,9 @@
 
 #include <cstdlib>
 
+#define CHECK_CL_ERROR(err, str) do {if (err != CL_SUCCESS) {LOG_ERROR << str << " failed: " << err; return false; } } while(0)
+#define LOG_CL_ERROR(err, str) if (err != CL_SUCCESS) LOG_ERROR << str << " failed: " << err
+
 namespace libfreenect2
 {
 
@@ -72,6 +75,67 @@ std::string loadCLSource(const std::string &filename)
   return std::string(reinterpret_cast<const char *>(data), length);
 }
 
+class OpenCLDepthPacketProcessorImpl;
+
+class OpenCLBuffer: public Buffer
+{
+public:
+  cl::Buffer buffer;
+};
+
+class OpenCLAllocator: public Allocator
+{
+private:
+  OpenCLDepthPacketProcessorImpl *impl_;
+  cl::Buffer buffer;
+
+  bool allocate_opencl(OpenCLBuffer *b, size_t size);
+
+public:
+  OpenCLAllocator(OpenCLDepthPacketProcessorImpl *impl_) : impl_(impl_)
+  {
+  }
+
+  virtual Buffer *allocate(size_t size)
+  {
+    OpenCLBuffer *b = new OpenCLBuffer();
+    if (!allocate_opencl(b, size)) {
+      delete b;
+      b = NULL;
+    }
+    return b;
+  }
+
+  virtual void free(Buffer *b)
+  {
+    if (b == NULL || b->data == NULL)
+      return;
+    delete b;
+  }
+};
+
+class OpenCLFrame: public Frame
+{
+  bool allocate_opencl(size_t size, OpenCLDepthPacketProcessorImpl *impl_);
+
+public:
+  cl::Buffer frameBuffer;
+
+  OpenCLFrame(size_t width, size_t height, size_t bytes_per_pixel, OpenCLDepthPacketProcessorImpl *impl_):
+    Frame(width, height, bytes_per_pixel, (unsigned char*)-1)
+  {
+    data = NULL;
+
+    size_t size = width*height*bytes_per_pixel;
+    allocate_opencl(size, impl_);
+  }
+
+  virtual ~OpenCLFrame()
+  {
+    data = NULL;
+  }
+};
+
 class OpenCLDepthPacketProcessorImpl: public WithPerfLogging
 {
 public:
@@ -79,6 +143,7 @@ public:
   DepthPacketProcessor::Parameters params;
 
   Frame *ir_frame, *depth_frame;
+  Allocator *allocator;
 
   cl::Context context;
   cl::Device device;
@@ -148,10 +213,12 @@ public:
     setenv("OCL_STRICT_CONFORMANCE", "0", 0);
 #endif
 
+    deviceInitialized = initDevice(deviceId);
+
     newIrFrame();
     newDepthFrame();
 
-    deviceInitialized = initDevice(deviceId);
+    allocator = new PoolAllocator(new OpenCLAllocator(this));
 
     const int CL_ICDL_VERSION = 2;
     typedef cl_int (*icdloader_func)(int, size_t, void*, size_t*);
@@ -181,6 +248,7 @@ public:
 
   ~OpenCLDepthPacketProcessorImpl()
   {
+    delete allocator;
     delete ir_frame;
     delete depth_frame;
   }
@@ -238,6 +306,8 @@ public:
 
     oss << " -D MIN_DEPTH=" << config.MinDepth * 1000.0f << "f";
     oss << " -D MAX_DEPTH=" << config.MaxDepth * 1000.0f << "f";
+
+    oss << " -cl-mad-enable -cl-no-signed-zeros -cl-fast-relaxed-math";
     options = oss.str();
   }
 
@@ -320,9 +390,6 @@ public:
     return selected;
   }
 
-#define CHECK_CL_ERROR(err, str) do {if (err != CL_SUCCESS) {LOG_ERROR << str << " failed: " << err; return false; } } while(0)
-#define LOG_CL_ERROR(err, str) if (err != CL_SUCCESS) LOG_ERROR << str << " failed: " << err
-
   bool initDevice(const int deviceId)
   {
     if(!readProgram(sourceCode))
@@ -373,17 +440,17 @@ public:
     buf_z_table_size = image_size * sizeof(cl_float);
     buf_packet_size = ((image_size * 11) / 16) * 10 * sizeof(cl_ushort);
 
-    buf_lut11to16 = cl::Buffer(context, CL_READ_ONLY_CACHE, buf_lut11to16_size, NULL, &err);
+    buf_lut11to16 = cl::Buffer(context, CL_MEM_READ_ONLY, buf_lut11to16_size, NULL, &err);
     CHECK_CL_ERROR(err, "cl::Buffer");
-    buf_p0_sin_table = cl::Buffer(context, CL_READ_ONLY_CACHE, buf_p0_table_size, NULL, &err);
+    buf_p0_sin_table = cl::Buffer(context, CL_MEM_READ_ONLY, buf_p0_table_size, NULL, &err);
     CHECK_CL_ERROR(err, "cl::Buffer");
-    buf_p0_cos_table = cl::Buffer(context, CL_READ_ONLY_CACHE, buf_p0_table_size, NULL, &err);
+    buf_p0_cos_table = cl::Buffer(context, CL_MEM_READ_ONLY, buf_p0_table_size, NULL, &err);
     CHECK_CL_ERROR(err, "cl::Buffer");
-    buf_x_table = cl::Buffer(context, CL_READ_ONLY_CACHE, buf_x_table_size, NULL, &err);
+    buf_x_table = cl::Buffer(context, CL_MEM_READ_ONLY, buf_x_table_size, NULL, &err);
     CHECK_CL_ERROR(err, "cl::Buffer");
-    buf_z_table = cl::Buffer(context, CL_READ_ONLY_CACHE, buf_z_table_size, NULL, &err);
+    buf_z_table = cl::Buffer(context, CL_MEM_READ_ONLY, buf_z_table_size, NULL, &err);
     CHECK_CL_ERROR(err, "cl::Buffer");
-    buf_packet = cl::Buffer(context, CL_READ_ONLY_CACHE, buf_packet_size, NULL, &err);
+    buf_packet = cl::Buffer(context, CL_MEM_READ_ONLY, buf_packet_size, NULL, &err);
     CHECK_CL_ERROR(err, "cl::Buffer");
 
     //Read-Write
@@ -398,25 +465,25 @@ public:
     buf_ir_sum_size = image_size * sizeof(cl_float);
     buf_filtered_size = image_size * sizeof(cl_float);
 
-    buf_a = cl::Buffer(context, CL_READ_WRITE_CACHE, buf_a_size, NULL, &err);
+    buf_a = cl::Buffer(context, CL_MEM_READ_WRITE, buf_a_size, NULL, &err);
     CHECK_CL_ERROR(err, "cl::Buffer");
-    buf_b = cl::Buffer(context, CL_READ_WRITE_CACHE, buf_b_size, NULL, &err);
+    buf_b = cl::Buffer(context, CL_MEM_READ_WRITE, buf_b_size, NULL, &err);
     CHECK_CL_ERROR(err, "cl::Buffer");
-    buf_n = cl::Buffer(context, CL_READ_WRITE_CACHE, buf_n_size, NULL, &err);
+    buf_n = cl::Buffer(context, CL_MEM_READ_WRITE, buf_n_size, NULL, &err);
     CHECK_CL_ERROR(err, "cl::Buffer");
-    buf_ir = cl::Buffer(context, CL_READ_WRITE_CACHE, buf_ir_size, NULL, &err);
+    buf_ir = cl::Buffer(context, CL_MEM_READ_WRITE, buf_ir_size, NULL, &err);
     CHECK_CL_ERROR(err, "cl::Buffer");
-    buf_a_filtered = cl::Buffer(context, CL_READ_WRITE_CACHE, buf_a_filtered_size, NULL, &err);
+    buf_a_filtered = cl::Buffer(context, CL_MEM_READ_WRITE, buf_a_filtered_size, NULL, &err);
     CHECK_CL_ERROR(err, "cl::Buffer");
-    buf_b_filtered = cl::Buffer(context, CL_READ_WRITE_CACHE, buf_b_filtered_size, NULL, &err);
+    buf_b_filtered = cl::Buffer(context, CL_MEM_READ_WRITE, buf_b_filtered_size, NULL, &err);
     CHECK_CL_ERROR(err, "cl::Buffer");
-    buf_edge_test = cl::Buffer(context, CL_READ_WRITE_CACHE, buf_edge_test_size, NULL, &err);
+    buf_edge_test = cl::Buffer(context, CL_MEM_READ_WRITE, buf_edge_test_size, NULL, &err);
     CHECK_CL_ERROR(err, "cl::Buffer");
-    buf_depth = cl::Buffer(context, CL_READ_WRITE_CACHE, buf_depth_size, NULL, &err);
+    buf_depth = cl::Buffer(context, CL_MEM_READ_WRITE, buf_depth_size, NULL, &err);
     CHECK_CL_ERROR(err, "cl::Buffer");
-    buf_ir_sum = cl::Buffer(context, CL_READ_WRITE_CACHE, buf_ir_sum_size, NULL, &err);
+    buf_ir_sum = cl::Buffer(context, CL_MEM_READ_WRITE, buf_ir_sum_size, NULL, &err);
     CHECK_CL_ERROR(err, "cl::Buffer");
-    buf_filtered = cl::Buffer(context, CL_READ_WRITE_CACHE, buf_filtered_size, NULL, &err);
+    buf_filtered = cl::Buffer(context, CL_MEM_WRITE_ONLY, buf_filtered_size, NULL, &err);
     CHECK_CL_ERROR(err, "cl::Buffer");
 
     return true;
@@ -507,7 +574,7 @@ public:
     cl::Event event0, event1;
 
     err = queue.enqueueWriteBuffer(buf_packet, CL_FALSE, 0, buf_packet_size, packet.buffer, NULL, &eventWrite[0]);
-    CHECK_CL_ERROR(err, "enqueueWriteBuffer");
+    CHECK_CL_ERROR(err, "enqueueMapBuffer");
 
     err = queue.enqueueNDRangeKernel(kernel_processPixelStage1, cl::NullRange, cl::NDRange(image_size), cl::NullRange, &eventWrite, &eventPPS1[0]);
     CHECK_CL_ERROR(err, "enqueueNDRangeKernel");
@@ -582,12 +649,12 @@ public:
 
   void newIrFrame()
   {
-    ir_frame = new Frame(512, 424, 4);
+    ir_frame = new OpenCLFrame(512, 424, 4, this);
   }
 
   void newDepthFrame()
   {
-    depth_frame = new Frame(512, 424, 4);
+    depth_frame = new OpenCLFrame(512, 424, 4, this);
   }
 
   void fill_trig_table(const libfreenect2::protocol::P0TablesResponse *p0table)
@@ -678,6 +745,39 @@ public:
     LOG_CL_ERROR(err, "wait");
   }
 };
+
+bool OpenCLFrame::allocate_opencl(size_t size, OpenCLDepthPacketProcessorImpl *impl_)
+{
+  if(!impl_->deviceInitialized)
+    return false;
+
+  cl_int err = CL_SUCCESS;
+
+  frameBuffer = cl::Buffer(impl_->context, CL_MEM_WRITE_ONLY | CL_MEM_ALLOC_HOST_PTR, size, NULL, &err);
+  CHECK_CL_ERROR(err, "cl::Buffer");
+
+  data = (unsigned char*)impl_->queue.enqueueMapBuffer(frameBuffer, CL_TRUE, CL_MAP_READ, 0, size, NULL, NULL, &err);
+  CHECK_CL_ERROR(err, "cl::Buffer");
+  return true;
+}
+
+bool OpenCLAllocator::allocate_opencl(OpenCLBuffer *b, size_t size)
+{
+  if(!impl_->deviceInitialized)
+    return false;
+
+  cl_int err = CL_SUCCESS;
+
+  b->buffer = cl::Buffer(impl_->context, CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, size, NULL, &err);
+  CHECK_CL_ERROR(err, "cl::Buffer");
+
+  b->data = (unsigned char*)impl_->queue.enqueueMapBuffer(b->buffer, CL_TRUE, CL_MAP_WRITE, 0, size, NULL, NULL, &err);
+  CHECK_CL_ERROR(err, "enqueueMapBuffer");
+
+  b->length = 0;
+  b->capacity = size;
+  return true;
+}
 
 OpenCLDepthPacketProcessor::OpenCLDepthPacketProcessor(const int deviceId) :
   impl_(new OpenCLDepthPacketProcessorImpl(deviceId))
@@ -770,5 +870,9 @@ void OpenCLDepthPacketProcessor::process(const DepthPacket &packet)
   }
 }
 
+Allocator *OpenCLDepthPacketProcessor::getAllocator()
+{
+  return impl_->allocator;
+}
 } /* namespace libfreenect2 */
 
