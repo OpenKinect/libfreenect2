@@ -24,8 +24,7 @@
  * either License.
  */
 
-#define PHASE_SIN (float3)(PHASE_IN_RAD0_SIN, PHASE_IN_RAD1_SIN, PHASE_IN_RAD2_SIN)
-#define PHASE_COS (float3)(PHASE_IN_RAD0_COS, PHASE_IN_RAD1_COS, PHASE_IN_RAD2_COS)
+#define PHASE (float3)(PHASE_IN_RAD0, PHASE_IN_RAD1, PHASE_IN_RAD2)
 #define AB_MULTIPLIER_PER_FRQ (float3)(AB_MULTIPLIER_PER_FRQ0, AB_MULTIPLIER_PER_FRQ1, AB_MULTIPLIER_PER_FRQ2)
 
 /*******************************************************************************
@@ -47,8 +46,8 @@ float decodePixelMeasurement(global const ushort *data, global const short *lut1
   return (float)lut11to16[(x < 1 || 510 < x || col_idx > 352) ? 0 : ((data[data_idx0] >> upper_bytes) | (data[data_idx1] << lower_bytes)) & 2047];
 }
 
-void kernel processPixelStage1(global const short *lut11to16, global const float *z_table, global const float3 *p0_sin_table, global const float3 *p0_cos_table,
-                               global const ushort *data, global float3 *a_out, global float3 *b_out, global float3 *n_out, global float *ir_out)
+void kernel processPixelStage1(global const short *lut11to16, global const float *z_table, global const float3 *p0_table, global const ushort *data,
+                               global float3 *a_out, global float3 *b_out, global float3 *n_out, global float *ir_out)
 {
   const uint i = get_global_id(0);
 
@@ -59,8 +58,13 @@ void kernel processPixelStage1(global const short *lut11to16, global const float
   const uint y_in = (y_tmp < 212 ? y_tmp + 212 : 423 - y_tmp);
 
   const int3 invalid = (int)(0.0f >= z_table[i]);
-  const float3 p0_sin = p0_sin_table[i];
-  const float3 p0_cos = p0_cos_table[i];
+  const float3 p0 = p0_table[i];
+  float3 p0x_sin, p0y_sin, p0z_sin;
+  float3 p0x_cos, p0y_cos, p0z_cos;
+
+  p0x_sin = -sincos(PHASE + p0.x, &p0x_cos);
+  p0y_sin = -sincos(PHASE + p0.y, &p0y_cos);
+  p0z_sin = -sincos(PHASE + p0.z, &p0z_cos);
 
   int3 invalid_pixel = (int3)(invalid);
 
@@ -74,12 +78,12 @@ void kernel processPixelStage1(global const short *lut11to16, global const float
                              decodePixelMeasurement(data, lut11to16, 7, x, y_in),
                              decodePixelMeasurement(data, lut11to16, 8, x, y_in));
 
-  float3 a = (float3)(dot(v0, PHASE_COS * p0_cos.x - PHASE_SIN * p0_sin.x),
-                      dot(v1, PHASE_COS * p0_cos.y - PHASE_SIN * p0_sin.y),
-                      dot(v2, PHASE_COS * p0_cos.z - PHASE_SIN * p0_sin.z)) * AB_MULTIPLIER_PER_FRQ;
-  float3 b = (float3)(dot(v0, PHASE_COS * p0_sin.x + PHASE_SIN * p0_cos.x),
-                      dot(v1, PHASE_COS * p0_sin.y + PHASE_SIN * p0_cos.y),
-                      dot(v2, PHASE_COS * p0_sin.z + PHASE_SIN * p0_cos.z)) * AB_MULTIPLIER_PER_FRQ;
+  float3 a = (float3)(dot(v0, p0x_cos),
+                      dot(v1, p0y_cos),
+                      dot(v2, p0z_cos)) * AB_MULTIPLIER_PER_FRQ;
+  float3 b = (float3)(dot(v0, p0x_sin),
+                      dot(v1, p0y_sin),
+                      dot(v2, p0z_sin)) * AB_MULTIPLIER_PER_FRQ;
 
   a = select(a, (float3)(0.0f), invalid_pixel);
   b = select(b, (float3)(0.0f), invalid_pixel);
