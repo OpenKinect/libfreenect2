@@ -85,6 +85,9 @@ __constant__ static float MAX_DEPTH;
 #define max(x, y) fmaxf(x, y)
 #define min(x, y) fminf(x, y)
 #define M_PI_F CUDART_PI_F
+#ifndef M_PI
+#define M_PI CUDART_PI
+#endif
 
 typedef unsigned char uchar;
 
