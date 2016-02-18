@@ -125,6 +125,7 @@ private:
   /** Asynchronously process a provided packet. */
   void execute()
   {
+    this_thread::set_name(processor_->name());
     libfreenect2::unique_lock l(packet_mutex_);
 
     while(!shutdown_)

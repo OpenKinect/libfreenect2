@@ -130,6 +130,7 @@ public:
   virtual void loadXZTables(const float *xtable, const float *ztable);
   virtual void loadLookupTable(const short *lut);
 
+  virtual const char *name() { return "OpenGL"; }
   virtual void process(const DepthPacket &packet);
 private:
   OpenGLDepthPacketProcessorImpl *impl_;
@@ -152,6 +153,7 @@ public:
   virtual void loadXZTables(const float *xtable, const float *ztable);
   virtual void loadLookupTable(const short *lut);
 
+  virtual const char *name() { return "CPU"; }
   virtual void process(const DepthPacket &packet);
 private:
   CpuDepthPacketProcessorImpl *impl_;
@@ -173,6 +175,7 @@ public:
   virtual void loadXZTables(const float *xtable, const float *ztable);
   virtual void loadLookupTable(const short *lut);
 
+  virtual const char *name() { return "OpenCL"; }
   virtual void process(const DepthPacket &packet);
 private:
   OpenCLDepthPacketProcessorImpl *impl_;
@@ -195,6 +198,7 @@ public:
   virtual void loadLookupTable(const short *lut);
 
   virtual bool good();
+  virtual const char *name() { return "CUDA"; }
 
   virtual void process(const DepthPacket &packet);
 protected:

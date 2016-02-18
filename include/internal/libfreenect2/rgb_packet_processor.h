@@ -87,6 +87,7 @@ public:
   TurboJpegRgbPacketProcessor();
   virtual ~TurboJpegRgbPacketProcessor();
   virtual void process(const libfreenect2::RgbPacket &packet);
+  virtual const char *name() { return "TurboJPEG"; }
 private:
   TurboJpegRgbPacketProcessorImpl *impl_; ///< Decoder implementation.
 };
@@ -101,6 +102,7 @@ public:
   VTRgbPacketProcessor();
   virtual ~VTRgbPacketProcessor();
   virtual void process(const libfreenect2::RgbPacket &packet);
+  virtual const char *name() { return "VideoToolbox"; }
 private:
   VTRgbPacketProcessorImpl *impl_;
 };
@@ -115,6 +117,7 @@ public:
   VaapiRgbPacketProcessor();
   virtual ~VaapiRgbPacketProcessor();
   virtual bool good();
+  virtual const char *name() { return "VAAPI"; }
   virtual void process(const libfreenect2::RgbPacket &packet);
 protected:
   virtual Allocator *getAllocator();
@@ -132,6 +135,7 @@ public:
   TegraJpegRgbPacketProcessor();
   virtual ~TegraJpegRgbPacketProcessor();
   virtual bool good();
+  virtual const char *name() { return "TegraJPEG"; }
   virtual void process(const libfreenect2::RgbPacket &packet);
 private:
   TegraJpegRgbPacketProcessorImpl *impl_;

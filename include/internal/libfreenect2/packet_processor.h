@@ -52,6 +52,8 @@ public:
 
   virtual bool good() { return true; }
 
+  virtual const char *name() { return "a packet processor"; }
+
   /**
    * A new packet has arrived, process it.
    * @param packet Packet to process.
