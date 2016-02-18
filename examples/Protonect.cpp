@@ -27,6 +27,7 @@
 /** @file Protonect.cpp Main application file. */
 
 #include <iostream>
+#include <cstdlib>
 #include <signal.h>
 
 /// [headers]
@@ -112,7 +113,7 @@ int main(int argc, char *argv[])
   std::string program_path(argv[0]);
   std::cerr << "Version: " << LIBFREENECT2_VERSION << std::endl;
   std::cerr << "Environment variables: LOGFILE=<protonect.log>" << std::endl;
-  std::cerr << "Usage: " << program_path << " [gl | cl | cuda | cpu] [<device serial>]" << std::endl;
+  std::cerr << "Usage: " << program_path << " [-gpu=<id>] [gl | cl | cuda | cpu] [<device serial>]" << std::endl;
   std::cerr << "        [-noviewer] [-norgb | -nodepth] [-help] [-version]" << std::endl;
   std::cerr << "To pause and unpause: pkill -USR1 Protonect" << std::endl;
   size_t executable_name_idx = program_path.rfind("Protonect");
@@ -152,6 +153,7 @@ int main(int argc, char *argv[])
   bool viewer_enabled = true;
   bool enable_rgb = true;
   bool enable_depth = true;
+  int deviceId = -1;
 
   for(int argI = 1; argI < argc; ++argI)
   {
@@ -161,6 +163,15 @@ int main(int argc, char *argv[])
     {
       // Just let the initial lines display at the beginning of main
       return 0;
+    }
+    else if(arg.find("-gpu=") == 0)
+    {
+      if (pipeline)
+      {
+        std::cerr << "-gpu must be specified before pipeline argument" << std::endl;
+        return -1;
+      }
+      deviceId = atoi(argv[argI] + 5);
     }
     else if(arg == "cpu")
     {
@@ -182,7 +193,7 @@ int main(int argc, char *argv[])
     {
 #ifdef LIBFREENECT2_WITH_OPENCL_SUPPORT
       if(!pipeline)
-        pipeline = new libfreenect2::OpenCLPacketPipeline();
+        pipeline = new libfreenect2::OpenCLPacketPipeline(deviceId);
 #else
       std::cout << "OpenCL pipeline is not supported!" << std::endl;
 #endif
@@ -191,7 +202,7 @@ int main(int argc, char *argv[])
     {
 #ifdef LIBFREENECT2_WITH_CUDA_SUPPORT
       if(!pipeline)
-        pipeline = new libfreenect2::CudaPacketPipeline();
+        pipeline = new libfreenect2::CudaPacketPipeline(deviceId);
 #else
       std::cout << "CUDA pipeline is not supported!" << std::endl;
 #endif
