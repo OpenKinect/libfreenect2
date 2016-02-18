@@ -36,6 +36,11 @@ OPTION(ENABLE_CUDA "Enable CUDA support" ON)
 OPTION(ENABLE_OPENGL "Enable OpenGL support" ON)
 OPTION(ENABLE_VAAPI "Enable VA-API support" ON)
 OPTION(ENABLE_TEGRAJPEG "Enable Tegra HW JPEG support" ON)
+OPTION(ENABLE_PROFILING "Collect profiling stats (memory consuming)" OFF)
+
+IF(ENABLE_PROFILING)
+  SET(LIBFREENECT2_WITH_PROFILING 1)
+ENDIF()
 
 IF(MSVC)
   # suppress several "possible loss of data" warnings, and
