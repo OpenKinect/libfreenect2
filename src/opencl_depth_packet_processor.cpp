@@ -56,7 +56,6 @@
 #include <cstdlib>
 
 #define CHECK_CL_ERROR(err, str) do {if (err != CL_SUCCESS) {LOG_ERROR << str << " failed: " << err; return false; } } while(0)
-#define LOG_CL_ERROR(err, str) if (err != CL_SUCCESS) LOG_ERROR << str << " failed: " << err
 
 #define WITH_PROFILING 0
 
@@ -691,12 +690,12 @@ public:
     depth_frame = new OpenCLFrame(512, 424, 4, this);
   }
 
-  void fill_trig_table(const libfreenect2::protocol::P0TablesResponse *p0table)
+  bool fill_trig_table(const libfreenect2::protocol::P0TablesResponse *p0table)
   {
     if(!deviceInitialized)
     {
       LOG_ERROR << "OpenCLDepthPacketProcessor is not initialized!";
-      return;
+      return false;
     }
 
     cl_float3 *p0_table = new cl_float3[image_size];
@@ -719,50 +718,63 @@ public:
     cl_int err = CL_SUCCESS;
     cl::Event event0;
     err = queue.enqueueWriteBuffer(buf_p0_table, CL_FALSE, 0, buf_p0_table_size, p0_table, NULL, &event0);
-    LOG_CL_ERROR(err, "enqueueWriteBuffer");
+    if(err != CL_SUCCESS)
+    {
+      LOG_ERROR << "enqueueWriteBuffer failed: " << err;
+      delete[] p0_table;
+      return false;
+    }
 
     err = event0.wait();
-    LOG_CL_ERROR(err, "wait");
+    if(err != CL_SUCCESS)
+    {
+      LOG_ERROR << "wait failed: " << err;
+      delete[] p0_table;
+      return false;
+    }
 
     delete[] p0_table;
+    return true;
   }
 
-  void fill_xz_tables(const float *xtable, const float *ztable)
+  bool fill_xz_tables(const float *xtable, const float *ztable)
   {
     if(!deviceInitialized)
     {
       LOG_ERROR << "OpenCLDepthPacketProcessor is not initialized!";
-      return;
+      return false;
     }
 
     cl_int err = CL_SUCCESS;
     cl::Event event0, event1;
     err = queue.enqueueWriteBuffer(buf_x_table, CL_FALSE, 0, buf_x_table_size, xtable, NULL, &event0);
-    LOG_CL_ERROR(err, "enqueueWriteBuffer");
+    CHECK_CL_ERROR(err, "enqueueWriteBuffer");
     err = queue.enqueueWriteBuffer(buf_z_table, CL_FALSE, 0, buf_z_table_size, ztable, NULL, &event1);
-    LOG_CL_ERROR(err, "enqueueWriteBuffer");
+    CHECK_CL_ERROR(err, "enqueueWriteBuffer");
 
     err = event0.wait();
-    LOG_CL_ERROR(err, "wait");
+    CHECK_CL_ERROR(err, "wait");
     err = event1.wait();
-    LOG_CL_ERROR(err, "wait");
+    CHECK_CL_ERROR(err, "wait");
+    return true;
   }
 
-  void fill_lut(const short *lut)
+  bool fill_lut(const short *lut)
   {
     if(!deviceInitialized)
     {
       LOG_ERROR << "OpenCLDepthPacketProcessor is not initialized!";
-      return;
+      return false;
     }
 
     cl_int err = CL_SUCCESS;
     cl::Event event0;
     err = queue.enqueueWriteBuffer(buf_lut11to16, CL_FALSE, 0, buf_lut11to16_size, lut, NULL, &event0);
-    LOG_CL_ERROR(err, "enqueueWriteBuffer");
+    CHECK_CL_ERROR(err, "enqueueWriteBuffer");
 
     err = event0.wait();
-    LOG_CL_ERROR(err, "wait");
+    CHECK_CL_ERROR(err, "wait");
+    return true;
   }
 };
 
