@@ -225,7 +225,7 @@ public:
   bool programInitialized;
   std::string sourceCode;
 
-#if LIBFREENECT2_WITH_PROFILING
+#ifdef LIBFREENECT2_WITH_PROFILING_CL
   std::vector<double> timings;
   int count;
 #endif
@@ -454,7 +454,7 @@ public:
 
   bool initBuffers()
   {
-#if LIBFREENECT2_WITH_PROFILING
+#ifdef LIBFREENECT2_WITH_PROFILING_CL
     count = 0;
     CHECK_CL_PARAM(queue = cl::CommandQueue(context, device, CL_QUEUE_PROFILING_ENABLE, &err));
 #else
@@ -580,7 +580,7 @@ public:
     CHECK_CL_RETURN(eventReadIr.wait());
     CHECK_CL_RETURN(eventReadDepth.wait());
 
-#if LIBFREENECT2_WITH_PROFILING
+#ifdef LIBFREENECT2_WITH_PROFILING_CL
     if(count == 0)
     {
       timings.clear();
