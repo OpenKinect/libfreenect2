@@ -175,7 +175,9 @@ public:
   virtual void loadXZTables(const float *xtable, const float *ztable);
   virtual void loadLookupTable(const short *lut);
 
+  virtual bool good();
   virtual const char *name() { return "OpenCL"; }
+
   virtual void process(const DepthPacket &packet);
 protected:
   virtual Allocator *getAllocator();
