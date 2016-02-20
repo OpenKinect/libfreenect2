@@ -147,9 +147,12 @@ void VTRgbPacketProcessor::process(const RgbPacket &packet)
     );
 
     CMSampleBufferRef sampleBuffer;
-    CMSampleBufferCreateReady(
+    CMSampleBufferCreate(
         NULL,
         blockBuffer,
+        true,
+        NULL,
+        NULL,
         impl_->format,
         1,
         0,
