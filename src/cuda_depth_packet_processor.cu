@@ -508,26 +508,21 @@ void filterPixelStage2(const float* __restrict__ depth, const float* __restrict_
 
 namespace libfreenect2
 {
+
 class CudaFrame: public Frame
 {
 public:
-  CudaFrame(size_t width, size_t height, size_t bytes_per_pixel):
-    Frame(width, height, bytes_per_pixel, (unsigned char*)-1)
+  CudaFrame(Buffer *buffer):
+    Frame(512, 424, 4, (unsigned char*)-1)
   {
-    data = NULL;
-
-    size_t size = width*height*bytes_per_pixel;
-    cudaError_t err = cudaHostAlloc(&rawdata, size, cudaHostAllocPortable);
-    if (err != cudaSuccess) {
-      LOG_ERROR << "cudaHostAlloc: " << cudaGetErrorString(err);
-      rawdata = NULL;
-    }
-    data = rawdata;
+    data = buffer->data;
+    rawdata = reinterpret_cast<unsigned char *>(buffer);
   }
 
   virtual ~CudaFrame()
   {
-    CALL_CUDA(cudaFreeHost(rawdata));
+    Buffer *buffer = reinterpret_cast<Buffer*>(rawdata);
+    buffer->allocator->free(buffer);
     rawdata = NULL;
   }
 };
@@ -535,31 +530,36 @@ public:
 class CudaAllocator: public Allocator
 {
 private:
+  const bool input;
+
   bool allocate_cuda(Buffer *b, size_t size)
   {
-    CHECK_CUDA(cudaHostAlloc(&b->data, size, cudaHostAllocWriteCombined | cudaHostAllocPortable));
+    unsigned int flags = cudaHostAllocPortable;
+    if (!input)
+      flags |= cudaHostAllocWriteCombined;
+    CHECK_CUDA(cudaHostAlloc(&b->data, size, flags));
     b->length = 0;
     b->capacity = size;
     return true;
   }
 
 public:
+  CudaAllocator(bool input): input(input) {}
+
   virtual Buffer *allocate(size_t size)
   {
     Buffer *b = new Buffer();
-    if (!allocate_cuda(b, size)) {
-      delete b;
-      b = NULL;
-    }
+    if (!allocate_cuda(b, size))
+      b->data = NULL;
     return b;
   }
 
   virtual void free(Buffer *b)
   {
-    if (b == NULL || b->data == NULL)
+    if (b == NULL)
       return;
-
-    CALL_CUDA(cudaFreeHost(b->data));
+    if (b->data)
+      CALL_CUDA(cudaFreeHost(b->data));
     delete b;
   }
 };
@@ -603,7 +603,9 @@ public:
 
   Frame *ir_frame, *depth_frame;
 
-  Allocator *allocator;
+  Allocator *input_allocator;
+  Allocator *ir_allocator;
+  Allocator *depth_allocator;
 
   bool good;
 
@@ -614,23 +616,29 @@ public:
     params(),
     ir_frame(NULL),
     depth_frame(NULL),
-    allocator(NULL)
+    input_allocator(NULL),
+    ir_allocator(NULL),
+    depth_allocator(NULL)
   {
     good = initDevice(deviceId);
     if (!good)
       return;
 
+    input_allocator = new PoolAllocator(new CudaAllocator(true));
+    ir_allocator = new PoolAllocator(new CudaAllocator(false));
+    depth_allocator = new PoolAllocator(new CudaAllocator(false));
+
     newIrFrame();
     newDepthFrame();
-
-    allocator = new PoolAllocator(new CudaAllocator);
   }
 
   ~CudaDepthPacketProcessorImpl()
   {
-    delete allocator;
     delete ir_frame;
     delete depth_frame;
+    delete input_allocator;
+    delete ir_allocator;
+    delete depth_allocator;
     if (good)
       freeDeviceMemory();
   }
@@ -858,12 +866,12 @@ public:
 
   void newIrFrame()
   {
-    ir_frame = new CudaFrame(512, 424, 4);
+    ir_frame = new CudaFrame(ir_allocator->allocate(IMAGE_SIZE*sizeof(float)));
   }
 
   void newDepthFrame()
   {
-    depth_frame = new CudaFrame(512, 424, 4);
+    depth_frame = new CudaFrame(depth_allocator->allocate(IMAGE_SIZE*sizeof(float)));
   }
 
   void fill_trig_table(const protocol::P0TablesResponse *p0table)
@@ -953,6 +961,6 @@ void CudaDepthPacketProcessor::process(const DepthPacket &packet)
 
 Allocator *CudaDepthPacketProcessor::getAllocator()
 {
-  return impl_->allocator;
+  return impl_->input_allocator;
 }
 } // namespace libfreenect2
