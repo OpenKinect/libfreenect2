@@ -115,6 +115,7 @@ int main(int argc, char *argv[])
   std::cerr << "Environment variables: LOGFILE=<protonect.log>" << std::endl;
   std::cerr << "Usage: " << program_path << " [-gpu=<id>] [gl | cl | cuda | cpu] [<device serial>]" << std::endl;
   std::cerr << "        [-noviewer] [-norgb | -nodepth] [-help] [-version]" << std::endl;
+  std::cerr << "        [-frames <number of frames to process>]" << std::endl;
   std::cerr << "To pause and unpause: pkill -USR1 Protonect" << std::endl;
   size_t executable_name_idx = program_path.rfind("Protonect");
 
@@ -154,6 +155,7 @@ int main(int argc, char *argv[])
   bool enable_rgb = true;
   bool enable_depth = true;
   int deviceId = -1;
+  size_t framemax = -1;
 
   for(int argI = 1; argI < argc; ++argI)
   {
@@ -222,6 +224,15 @@ int main(int argc, char *argv[])
     else if(arg == "-nodepth" || arg == "--nodepth")
     {
       enable_depth = false;
+    }
+    else if(arg == "-frames")
+    {
+      ++argI;
+      framemax = strtol(argv[argI], NULL, 0);
+      if (framemax == 0) {
+        std::cerr << "invalid frame count '" << argv[argI] << "'" << std::endl;
+        return -1;
+      }
     }
     else
     {
@@ -317,7 +328,7 @@ int main(int argc, char *argv[])
 #endif
 
 /// [loop start]
-  while(!protonect_shutdown)
+  while(!protonect_shutdown && (framemax == (size_t)-1 || framecount < framemax))
   {
     listener.waitForNewFrame(frames);
     libfreenect2::Frame *rgb = frames[libfreenect2::Frame::Color];
