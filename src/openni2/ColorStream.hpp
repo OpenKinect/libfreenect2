@@ -54,7 +54,7 @@ namespace Freenect2Driver
     bool auto_exposure;
 
   public:
-    ColorStream(libfreenect2::Freenect2Device* pDevice, Freenect2Driver::Registration *reg);
+    ColorStream(Device* driver_dev, libfreenect2::Freenect2Device* pDevice, Freenect2Driver::Registration *reg);
     //~ColorStream() { }
 
     OniStatus setImageRegistrationMode(OniImageRegistrationMode mode);

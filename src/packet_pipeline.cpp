@@ -40,6 +40,20 @@ static RgbPacketProcessor *getDefaultRgbPacketProcessor()
 {
 #if defined(LIBFREENECT2_WITH_VT_SUPPORT)
   return new VTRgbPacketProcessor();
+#elif defined(LIBFREENECT2_WITH_VAAPI_SUPPORT)
+  RgbPacketProcessor *vaapi = new VaapiRgbPacketProcessor();
+  if (vaapi->good())
+    return vaapi;
+  else
+    delete vaapi;
+  return new TurboJpegRgbPacketProcessor();
+#elif defined(LIBFREENECT2_WITH_TEGRAJPEG_SUPPORT)
+  RgbPacketProcessor *tegra = new TegraJpegRgbPacketProcessor();
+  if (tegra->good())
+    return tegra;
+  else
+    delete tegra;
+  return new TurboJpegRgbPacketProcessor();
 #elif defined(LIBFREENECT2_WITH_TURBOJPEG_SUPPORT)
   return new TurboJpegRgbPacketProcessor();
 #else
@@ -132,7 +146,6 @@ OpenGLPacketPipeline::~OpenGLPacketPipeline() { }
 
 
 #ifdef LIBFREENECT2_WITH_OPENCL_SUPPORT
-
 OpenCLPacketPipeline::OpenCLPacketPipeline(const int deviceId) : deviceId(deviceId)
 {
   comp_->initialize(getDefaultRgbPacketProcessor(), new OpenCLDepthPacketProcessor(deviceId));
@@ -140,6 +153,15 @@ OpenCLPacketPipeline::OpenCLPacketPipeline(const int deviceId) : deviceId(device
 
 OpenCLPacketPipeline::~OpenCLPacketPipeline() { }
 #endif // LIBFREENECT2_WITH_OPENCL_SUPPORT
+
+#ifdef LIBFREENECT2_WITH_CUDA_SUPPORT
+CudaPacketPipeline::CudaPacketPipeline(const int deviceId) : deviceId(deviceId)
+{
+  comp_->initialize(getDefaultRgbPacketProcessor(), new CudaDepthPacketProcessor(deviceId));
+}
+
+CudaPacketPipeline::~CudaPacketPipeline() { }
+#endif // LIBFREENECT2_WITH_CUDA_SUPPORT
 
 DumpPacketPipeline::DumpPacketPipeline()
 {

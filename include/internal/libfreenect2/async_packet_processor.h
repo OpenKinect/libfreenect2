@@ -78,6 +78,11 @@ public:
     return locked;
   }
 
+  virtual bool good()
+  {
+    return processor_->good();
+  }
+
   virtual void process(const PacketT &packet)
   {
     {
@@ -87,6 +92,17 @@ public:
     }
     packet_condition_.notify_one();
   }
+
+  virtual void allocateBuffer(PacketT &p, size_t size)
+  {
+    processor_->allocateBuffer(p, size);
+  }
+
+  virtual void releaseBuffer(PacketT &p)
+  {
+    processor_->releaseBuffer(p);
+  }
+
 private:
   PacketProcessorPtr processor_;  ///< The processing routine, executed in the asynchronous thread.
   bool current_packet_available_; ///< Whether #current_packet_ still needs processing.
@@ -109,6 +125,7 @@ private:
   /** Asynchronously process a provided packet. */
   void execute()
   {
+    this_thread::set_name(processor_->name());
     libfreenect2::unique_lock l(packet_mutex_);
 
     while(!shutdown_)
@@ -119,6 +136,15 @@ private:
       {
         // invoke process impl
         processor_->process(current_packet_);
+        /*
+         * The stream parser passes the buffer asynchronously to processors so
+         * it can not wait after process() finishes and free the buffer.  In
+         * theory releaseBuffer() should be called as soon as the access to it
+         * is finished, but right now no new allocateBuffer() will be called
+         * before ready() becomes true, so releaseBuffer() in the main loop of
+         * the async processor is OK.
+         */
+        releaseBuffer(current_packet_);
 
         current_packet_available_ = false;
       }

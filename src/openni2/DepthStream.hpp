@@ -58,7 +58,7 @@ namespace Freenect2Driver
     void populateFrame(libfreenect2::Frame* srcFrame, int srcX, int srcY, OniFrame* dstFrame, int dstX, int dstY, int width, int height) const;
 
   public:
-    DepthStream(libfreenect2::Freenect2Device* pDevice, Freenect2Driver::Registration *reg);
+    DepthStream(Device* driver_dev, libfreenect2::Freenect2Device* pDevice, Freenect2Driver::Registration *reg);
     //~DepthStream() { }
 
     OniImageRegistrationMode getImageRegistrationMode() const;

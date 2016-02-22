@@ -6,9 +6,9 @@ rmdir /s /q libusb_src libusb
 git clone https://github.com/libusb/libusb.git libusb_src || exit /b
 cd libusb_src
 
-git remote add joshblake https://github.com/JoshBlake/libusbx.git
-git fetch joshblake || exit /b
-git merge joshblake/winiso
+git remote add xlz https://github.com/xlz/libusb.git
+git fetch xlz || exit /b
+git merge xlz/winiso
 
 set CONFIG=Release
 msbuild msvc\libusb_dll_2013.vcxproj /p:Platform=x64 /p:Configuration=%CONFIG% /target:Rebuild

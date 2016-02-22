@@ -76,9 +76,10 @@ void VideoStream::raisePropertyChanged(int propertyId, const void* data, int dat
     StreamBase::raisePropertyChanged(propertyId, data, dataSize);
 }
 
-VideoStream::VideoStream(libfreenect2::Freenect2Device* device, Freenect2Driver::Registration *reg) :
+VideoStream::VideoStream(Device* drvdev, libfreenect2::Freenect2Device* device, Freenect2Driver::Registration *reg) :
   frame_id(1),
   device(device),
+  driver_dev(drvdev),
   running(false),
   mirroring(false),
   reg(reg),
@@ -147,10 +148,15 @@ bool VideoStream::buildFrame(libfreenect2::Frame* lf2Frame)
 
 OniStatus VideoStream::start()
 {
+  driver_dev->start();
   running = true;
   return ONI_STATUS_OK;
 }
-void VideoStream::stop() { running = false; }
+void VideoStream::stop()
+{
+  driver_dev->stop();
+  running = false;
+}
 
 // only add to property handlers if the property is generic to all children
 // otherwise, implement in child and call these in default case

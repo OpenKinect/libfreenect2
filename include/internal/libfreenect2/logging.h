@@ -57,24 +57,23 @@ private:
   std::ostringstream stream_;
 public:
   LogMessage(Logger *logger, Logger::Level level);
+  LogMessage(Logger *logger, Logger::Level level, const char *source);
   ~LogMessage();
 
   std::ostream &stream();
 };
 
-std::string getShortName(const char *func);
-
 } /* namespace libfreenect2 */
 
 #if defined(__GNUC__) || defined(__clang__)
-#define LOG_SOURCE ::libfreenect2::getShortName(__PRETTY_FUNCTION__)
+#define LOG_SOURCE __PRETTY_FUNCTION__
 #elif defined(_MSC_VER)
-#define LOG_SOURCE ::libfreenect2::getShortName(__FUNCSIG__)
+#define LOG_SOURCE __FUNCSIG__
 #else
 #define LOG_SOURCE ""
 #endif
 
-#define LOG(LEVEL) (::libfreenect2::LogMessage(::libfreenect2::getGlobalLogger(), ::libfreenect2::Logger::LEVEL).stream() << "[" << LOG_SOURCE << "] ")
+#define LOG(LEVEL) (::libfreenect2::LogMessage(::libfreenect2::getGlobalLogger(), ::libfreenect2::Logger::LEVEL, LOG_SOURCE).stream())
 #define LOG_DEBUG LOG(Debug)
 #define LOG_INFO LOG(Info)
 #define LOG_WARNING LOG(Warning)

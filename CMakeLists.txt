@@ -32,7 +32,15 @@ OPTION(BUILD_EXAMPLES "Build examples" ON)
 OPTION(BUILD_OPENNI2_DRIVER "Build OpenNI2 driver" ON)
 OPTION(ENABLE_CXX11 "Enable C++11 support" OFF)
 OPTION(ENABLE_OPENCL "Enable OpenCL support" ON)
+OPTION(ENABLE_CUDA "Enable CUDA support" ON)
 OPTION(ENABLE_OPENGL "Enable OpenGL support" ON)
+OPTION(ENABLE_VAAPI "Enable VA-API support" ON)
+OPTION(ENABLE_TEGRAJPEG "Enable Tegra HW JPEG support" ON)
+OPTION(ENABLE_PROFILING "Collect profiling stats (memory consuming)" OFF)
+
+IF(ENABLE_PROFILING)
+  SET(LIBFREENECT2_WITH_PROFILING 1)
+ENDIF()
 
 IF(MSVC)
   # suppress several "possible loss of data" warnings, and
@@ -44,6 +52,7 @@ ELSE()
   SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
 ENDIF()
 
+SET(HAVE_CXX11 disabled)
 IF(ENABLE_CXX11)
   INCLUDE(CheckCXXCompilerFlag)
   CHECK_CXX_COMPILER_FLAG("-std=c++11" COMPILER_SUPPORTS_CXX11)
@@ -51,9 +60,12 @@ IF(ENABLE_CXX11)
   IF(COMPILER_SUPPORTS_CXX11)
     SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
     SET(LIBFREENECT2_WITH_CXX11_SUPPORT 1)
+    SET(HAVE_CXX11 yes)
   ELSEIF(COMPILER_SUPPORTS_CXX0X)
     SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
+    SET(HAVE_CXX11 c++0x)
   ELSE()
+    SET(HAVE_CXX11 no)
     MESSAGE(STATUS "The compiler ${CMAKE_CXX_COMPILER} has no C++11 support. Please use a different C++ compiler.")
   ENDIF()
 ENDIF(ENABLE_CXX11)
@@ -103,7 +115,7 @@ SET(SOURCES
   include/internal/libfreenect2/async_packet_processor.h
   include/internal/libfreenect2/depth_packet_processor.h
   include/internal/libfreenect2/depth_packet_stream_parser.h
-  include/internal/libfreenect2/double_buffer.h
+  include/internal/libfreenect2/allocator.h
   include/libfreenect2/frame_listener.hpp
   include/libfreenect2/frame_listener_impl.h
   include/libfreenect2/libfreenect2.hpp
@@ -118,7 +130,7 @@ SET(SOURCES
   src/transfer_pool.cpp
   src/event_loop.cpp
   src/usb_control.cpp
-  src/double_buffer.cpp
+  src/allocator.cpp
   src/frame_listener_impl.cpp
   src/packet_pipeline.cpp
   src/rgb_packet_stream_parser.cpp
@@ -147,11 +159,14 @@ SET(LIBFREENECT2_DLLS
   ${LibUSB_DLL}
 )
 
+SET(HAVE_VideoToolbox "no (Apple only)")
 IF(APPLE)
   FIND_LIBRARY(VIDEOTOOLBOX_LIBRARY VideoToolbox)
 
+  SET(HAVE_VideoToolbox no)
   IF(VIDEOTOOLBOX_LIBRARY)
     SET(LIBFREENECT2_WITH_VT_SUPPORT 1)
+    SET(HAVE_VideoToolbox yes)
 
     FIND_LIBRARY(COREFOUNDATION_LIBRARY CoreFoundation REQUIRED)
     FIND_LIBRARY(COREMEDIA_LIBRARY CoreMedia REQUIRED)
@@ -170,14 +185,62 @@ IF(APPLE)
   ENDIF(VIDEOTOOLBOX_LIBRARY)
 ENDIF(APPLE)
 
+SET(HAVE_VAAPI disabled)
+IF(ENABLE_VAAPI)
+  IF(PKG_CONFIG_FOUND)
+    PKG_CHECK_MODULES(VAAPI libva libva-drm)
+  ENDIF()
+  FIND_PACKAGE(JPEG)
+
+  SET(HAVE_VAAPI no)
+  IF(VAAPI_FOUND AND JPEG_FOUND)
+    SET(LIBFREENECT2_WITH_VAAPI_SUPPORT 1)
+    SET(HAVE_VAAPI yes)
+
+    INCLUDE_DIRECTORIES(${VAAPI_INCLUDE_DIRS})
+
+    LIST(APPEND SOURCES
+      src/vaapi_rgb_packet_processor.cpp
+    )
+    LIST(APPEND LIBRARIES
+      ${VAAPI_LIBRARIES}
+      ${JPEG_LIBRARY}
+    )
+  ENDIF()
+ENDIF(ENABLE_VAAPI)
+
+SET(HAVE_TegraJPEG disabled)
+IF(ENABLE_TEGRAJPEG)
+  FIND_PACKAGE(TegraJPEG)
+
+  SET(HAVE_TegraJPEG no)
+  IF(TegraJPEG_FOUND)
+    SET(LIBFREENECT2_WITH_TEGRAJPEG_SUPPORT 1)
+    SET(HAVE_TegraJPEG yes)
+
+    INCLUDE_DIRECTORIES(${TegraJPEG_INCLUDE_DIRS})
+
+    LIST(APPEND SOURCES
+      src/tegra_jpeg_rgb_packet_processor.cpp
+    )
+
+    LIST(APPEND LIBRARIES
+      ${CMAKE_DL_LIBS}
+    )
+  ENDIF()
+ENDIF()
+
 IF(LIBFREENECT2_WITH_VT_SUPPORT)
   FIND_PACKAGE(TurboJPEG)
 ELSE()
+  # VAAPI can fail to start at runtime. It must have a fallback.
   FIND_PACKAGE(TurboJPEG REQUIRED)
 ENDIF()
 
+SET(HAVE_TurboJPEG no)
 IF(TurboJPEG_FOUND)
   SET(LIBFREENECT2_WITH_TURBOJPEG_SUPPORT 1)
+  SET(HAVE_TurboJPEG yes)
 
   INCLUDE_DIRECTORIES(${TurboJPEG_INCLUDE_DIRS})
 
@@ -192,13 +255,17 @@ IF(TurboJPEG_FOUND)
   LIST(APPEND LIBFREENECT2_DLLS
    ${TurboJPEG_DLL}
   )
-
 ENDIF()
 
+SET(HAVE_OpenGL disablsed)
 IF(ENABLE_OPENGL)
   FIND_PACKAGE(GLFW3)
   FIND_PACKAGE(OpenGL)
-  IF(GLFW3_FOUND)
+  SET(HAVE_OpenGL no)
+  IF(GLFW3_FOUND AND OPENGL_FOUND)
+    SET(LIBFREENECT2_WITH_OPENGL_SUPPORT 1)
+    SET(HAVE_OpenGL yes)
+
     INCLUDE_DIRECTORIES(${GLFW3_INCLUDE_DIRS})
 
     LIST(APPEND LIBFREENECT2_DLLS ${GLFW3_DLL})
@@ -206,35 +273,39 @@ IF(ENABLE_OPENGL)
       ${GLFW3_LIBRARIES}
       ${OPENGL_gl_LIBRARY}
     )
-  SET(LIBFREENECT2_WITH_OPENGL_SUPPORT 1)
-  LIST(APPEND SOURCES
-    src/flextGL.cpp
-    src/opengl_depth_packet_processor.cpp
-  )
+    LIST(APPEND SOURCES
+      src/flextGL.cpp
+      src/opengl_depth_packet_processor.cpp
+    )
 
-  LIST(APPEND RESOURCES
-    src/shader/debug.fs
-    src/shader/default.vs
-    src/shader/filter1.fs
-    src/shader/filter2.fs
-    src/shader/stage1.fs
-    src/shader/stage2.fs
-  )
+    LIST(APPEND RESOURCES
+      src/shader/debug.fs
+      src/shader/default.vs
+      src/shader/filter1.fs
+      src/shader/filter2.fs
+      src/shader/stage1.fs
+      src/shader/stage2.fs
+    )
   ENDIF()
 ENDIF(ENABLE_OPENGL)
 
+SET(HAVE_OpenCL disablsed)
 IF(ENABLE_OPENCL)
   FIND_PACKAGE(OpenCL)
 
+  SET(HAVE_OpenCL no)
   IF(OpenCL_FOUND)
+    SET(LIBFREENECT2_WITH_OPENCL_SUPPORT 1)
+    SET(HAVE_OpenCL yes)
+
     IF(UNIX AND NOT APPLE)
       INCLUDE(CheckOpenCLICDLoader)
       IF(OpenCL_C_WORKS AND NOT OpenCL_CXX_WORKS)
         SET(LIBFREENECT2_OPENCL_ICD_LOADER_IS_OLD 1)
+        SET(HAVE_OpenCL "yes but buggy")
         MESSAGE(WARNING "Your libOpenCL.so is incompatible with CL/cl.h. Install ocl-icd-opencl-dev to update libOpenCL.so?")
       ENDIF()
     ENDIF()
-    SET(LIBFREENECT2_WITH_OPENCL_SUPPORT 1)
     INCLUDE_DIRECTORIES(${OpenCL_INCLUDE_DIRS})
 
     LIST(APPEND SOURCES
@@ -257,6 +328,47 @@ IF(ENABLE_OPENCL)
     ENDIF()
   ENDIF(OpenCL_FOUND)
 ENDIF(ENABLE_OPENCL)
+
+SET(HAVE_CUDA disablsed)
+IF(ENABLE_CUDA)
+  FIND_PACKAGE(CUDA)
+  SET(HAVE_CUDA no)
+  IF(CUDA_FOUND)
+    SET(LIBFREENECT2_WITH_CUDA_SUPPORT 1)
+    SET(HAVE_CUDA yes)
+
+    STRING(REPLACE "\\" "/" NVCUDASAMPLES_ROOT "$ENV{NVCUDASAMPLES_ROOT}")
+    CUDA_INCLUDE_DIRECTORIES(
+      "${MY_DIR}/include/"
+      "${CUDA_TOOLKIT_ROOT_DIR}/samples/common/inc"
+      "${NVCUDASAMPLES_ROOT}/common/inc"
+    )
+    SET(CUDA_FLAGS -use_fast_math)
+    IF(NOT MSVC)
+      SET(CUDA_FLAGS "${CUDA_FLAGS} -Xcompiler -fPIC")
+    ENDIF()
+
+    SET(OLD_CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+    IF(CUDA_VERION VERSION_LESS 7.0)
+      STRING(REGEX REPLACE "-std=c\\+\\+.." "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+    ENDIF()
+    CUDA_COMPILE(CUDA_OBJECTS
+      src/cuda_depth_packet_processor.cu
+      OPTIONS ${CUDA_FLAGS}
+    )
+    SET(CMAKE_CXX_FLAGS "${OLD_CMAKE_CXX_FLAGS}")
+
+    INCLUDE_DIRECTORIES(${CUDA_INCLUDE_DIRS})
+
+    LIST(APPEND SOURCES
+      ${CUDA_OBJECTS}
+    )
+
+    LIST(APPEND LIBRARIES
+      ${CUDA_LIBRARIES}
+    )
+  ENDIF(CUDA_FOUND)
+ENDIF(ENABLE_CUDA)
 
 # RPATH handling for private libusb copies
 # Users have two options:
@@ -312,14 +424,19 @@ INSTALL(FILES "${PROJECT_BINARY_DIR}/freenect2.pc" DESTINATION lib/pkgconfig/)
 
 ADD_SUBDIRECTORY(${MY_DIR}/doc)
 
+SET(HAVE_Examples disablsed)
 IF(BUILD_EXAMPLES)
+  SET(HAVE_Examples yes)
   MESSAGE(STATUS "Configurating examples")
   ADD_SUBDIRECTORY(${MY_DIR}/examples)
 ENDIF()
 
+SET(HAVE_OpenNI2 disablsed)
 IF(BUILD_OPENNI2_DRIVER)
   FIND_PACKAGE(OpenNI2)
+  SET(HAVE_OpenNI2 no)
   IF(OpenNI2_FOUND)
+    SET(HAVE_OpenNI2 yes)
     FILE(GLOB OPENNI2_DRIVER_SOURCES src/openni2/*.cpp)
     ADD_LIBRARY(freenect2-openni2 ${OPENNI2_DRIVER_SOURCES} ${LIBFREENECT2_THREADING_SOURCE})
     TARGET_INCLUDE_DIRECTORIES(freenect2-openni2 PRIVATE ${OpenNI2_INCLUDE_DIRS})
@@ -336,3 +453,12 @@ IF(BUILD_OPENNI2_DRIVER)
     )
   ENDIF()
 ENDIF()
+
+GET_CMAKE_PROPERTY(vars VARIABLES)
+MESSAGE(STATUS "Feature list:")
+FOREACH(var ${vars})
+  IF(var MATCHES ^HAVE_)
+    STRING(REPLACE HAVE_ "" feature ${var})
+    MESSAGE(STATUS "  ${feature}    ${${var}}")
+  ENDIF()
+ENDFOREACH()

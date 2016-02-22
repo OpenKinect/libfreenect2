@@ -115,6 +115,17 @@ public:
 };
 #endif // LIBFREENECT2_WITH_OPENCL_SUPPORT
 
+#ifdef LIBFREENECT2_WITH_CUDA_SUPPORT
+class LIBFREENECT2_API CudaPacketPipeline : public PacketPipeline
+{
+protected:
+  const int deviceId;
+public:
+  CudaPacketPipeline(const int deviceId = -1);
+  virtual ~CudaPacketPipeline();
+};
+#endif // LIBFREENECT2_WITH_CUDA_SUPPORT
+
 ///@}
 } /* namespace libfreenect2 */
 #endif /* PACKET_PIPELINE_H_ */

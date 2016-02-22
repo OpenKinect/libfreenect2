@@ -45,7 +45,7 @@ const unsigned long long DepthStream::ZERO_PLANE_DISTANCE_VAL;
 const double DepthStream::ZERO_PLANE_PIXEL_SIZE_VAL = 0.10520000010728836;
 const double DepthStream::EMITTER_DCMOS_DISTANCE_VAL = 7.5;
 
-DepthStream::DepthStream(libfreenect2::Freenect2Device* pDevice, Freenect2Driver::Registration *reg) : VideoStream(pDevice, reg)
+DepthStream::DepthStream(Device* driver_dev, libfreenect2::Freenect2Device* pDevice, Freenect2Driver::Registration *reg) : VideoStream(driver_dev, pDevice, reg)
 {
   //video_mode = makeOniVideoMode(ONI_PIXEL_FORMAT_DEPTH_1_MM, 512, 424, 30);
   video_mode = makeOniVideoMode(ONI_PIXEL_FORMAT_DEPTH_1_MM, 640, 480, 30);

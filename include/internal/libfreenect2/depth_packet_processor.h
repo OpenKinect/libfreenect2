@@ -47,6 +47,8 @@ struct DepthPacket
   uint32_t timestamp;
   unsigned char *buffer; ///< Depth data.
   size_t buffer_length;  ///< Size of depth data.
+
+  Buffer *memory;
 };
 
 /** Class for processing depth information. */
@@ -128,6 +130,7 @@ public:
   virtual void loadXZTables(const float *xtable, const float *ztable);
   virtual void loadLookupTable(const short *lut);
 
+  virtual const char *name() { return "OpenGL"; }
   virtual void process(const DepthPacket &packet);
 private:
   OpenGLDepthPacketProcessorImpl *impl_;
@@ -150,6 +153,7 @@ public:
   virtual void loadXZTables(const float *xtable, const float *ztable);
   virtual void loadLookupTable(const short *lut);
 
+  virtual const char *name() { return "CPU"; }
   virtual void process(const DepthPacket &packet);
 private:
   CpuDepthPacketProcessorImpl *impl_;
@@ -171,12 +175,42 @@ public:
   virtual void loadXZTables(const float *xtable, const float *ztable);
   virtual void loadLookupTable(const short *lut);
 
+  virtual bool good();
+  virtual const char *name() { return "OpenCL"; }
+
   virtual void process(const DepthPacket &packet);
+protected:
+  virtual Allocator *getAllocator();
 private:
   OpenCLDepthPacketProcessorImpl *impl_;
 };
-
 #endif // LIBFREENECT2_WITH_OPENCL_SUPPORT
+
+#ifdef LIBFREENECT2_WITH_CUDA_SUPPORT
+class CudaDepthPacketProcessorImpl;
+
+class CudaDepthPacketProcessor : public DepthPacketProcessor
+{
+public:
+  CudaDepthPacketProcessor(const int deviceId = -1);
+  virtual ~CudaDepthPacketProcessor();
+  virtual void setConfiguration(const libfreenect2::DepthPacketProcessor::Config &config);
+
+  virtual void loadP0TablesFromCommandResponse(unsigned char* buffer, size_t buffer_length);
+
+  virtual void loadXZTables(const float *xtable, const float *ztable);
+  virtual void loadLookupTable(const short *lut);
+
+  virtual bool good();
+  virtual const char *name() { return "CUDA"; }
+
+  virtual void process(const DepthPacket &packet);
+protected:
+  virtual Allocator *getAllocator();
+private:
+  CudaDepthPacketProcessorImpl *impl_;
+};
+#endif // LIBFREENECT2_WITH_CUDA_SUPPORT
 
 class DumpDepthPacketProcessor : public DepthPacketProcessor
 {

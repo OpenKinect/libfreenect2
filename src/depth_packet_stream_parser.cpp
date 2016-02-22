@@ -40,10 +40,9 @@ DepthPacketStreamParser::DepthPacketStreamParser() :
     current_subsequence_(0)
 {
   size_t single_image = 512*424*11/8;
+  buffer_size_ = 10 * single_image;
 
-  buffer_.allocate((single_image) * 10);
-  buffer_.front().length = buffer_.front().capacity;
-  buffer_.back().length = buffer_.back().capacity;
+  processor_->allocateBuffer(packet_, buffer_size_);
 
   work_buffer_.data = new unsigned char[single_image];
   work_buffer_.capacity = single_image;
@@ -57,11 +56,18 @@ DepthPacketStreamParser::~DepthPacketStreamParser()
 
 void DepthPacketStreamParser::setPacketProcessor(libfreenect2::BaseDepthPacketProcessor *processor)
 {
+  processor_->releaseBuffer(packet_);
   processor_ = (processor != 0) ? processor : noopProcessor<DepthPacket>();
+  processor_->allocateBuffer(packet_, buffer_size_);
 }
 
 void DepthPacketStreamParser::onDataReceived(unsigned char* buffer, size_t in_length)
 {
+  if (packet_.memory == NULL || packet_.memory->data == NULL)
+  {
+    LOG_ERROR << "Packet buffer is NULL";
+    return;
+  }
   Buffer &wb = work_buffer_;
 
   if(in_length == 0)
@@ -105,15 +111,14 @@ void DepthPacketStreamParser::onDataReceived(unsigned char* buffer, size_t in_le
           {
             if(processor_->ready())
             {
-              buffer_.swap();
-
-              DepthPacket packet;
+              DepthPacket &packet = packet_;
               packet.sequence = current_sequence_;
               packet.timestamp = footer->timestamp;
-              packet.buffer = buffer_.back().data;
-              packet.buffer_length = buffer_.back().length;
+              packet.buffer = packet_.memory->data;
+              packet.buffer_length = packet_.memory->capacity;
 
               processor_->process(packet);
+              processor_->allocateBuffer(packet_, buffer_size_);
 
               processed_packets_++;
               if (processed_packets_ == 0)
@@ -140,12 +145,12 @@ void DepthPacketStreamParser::onDataReceived(unsigned char* buffer, size_t in_le
           current_subsequence_ = 0;
         }
 
-        Buffer &fb = buffer_.front();
+        Buffer &fb = *packet_.memory;
 
         // set the bit corresponding to the subsequence number to 1
         current_subsequence_ |= 1 << footer->subsequence;
 
-        if(footer->subsequence * footer->length > fb.length)
+        if(footer->subsequence * footer->length > fb.capacity)
         {
           LOG_DEBUG << "front buffer too short! subsequence number is " << footer->subsequence;
         }

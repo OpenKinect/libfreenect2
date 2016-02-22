@@ -91,6 +91,7 @@ void EventLoop::stop()
 /** Execute the job, until shut down. */
 void EventLoop::execute()
 {
+  this_thread::set_name("USB");
   timeval t;
   t.tv_sec = 0;
   t.tv_usec = 100000;

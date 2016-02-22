@@ -45,7 +45,7 @@ namespace Freenect2Driver
     void populateFrame(libfreenect2::Frame* srcFrame, int srcX, int srcY, OniFrame* dstFrame, int dstX, int dstY, int width, int height) const;
 
   public:
-    IrStream(libfreenect2::Freenect2Device* pDevice, Freenect2Driver::Registration *reg);
+    IrStream(Device* driver_dev, libfreenect2::Freenect2Device* pDevice, Freenect2Driver::Registration *reg);
     //~IrStream() { }
 
     // from StreamBase

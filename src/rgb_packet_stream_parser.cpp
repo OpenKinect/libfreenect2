@@ -62,9 +62,10 @@ LIBFREENECT2_PACK(struct RgbPacketFooter {
 });
 
 RgbPacketStreamParser::RgbPacketStreamParser() :
+    buffer_size_(2*1024*1024),
     processor_(noopProcessor<RgbPacket>())
 {
-  buffer_.allocate(1920*1080*3+sizeof(RgbPacket));
+  processor_->allocateBuffer(packet_, buffer_size_);
 }
 
 RgbPacketStreamParser::~RgbPacketStreamParser()
@@ -73,12 +74,19 @@ RgbPacketStreamParser::~RgbPacketStreamParser()
 
 void RgbPacketStreamParser::setPacketProcessor(BaseRgbPacketProcessor *processor)
 {
+  processor_->releaseBuffer(packet_);
   processor_ = (processor != 0) ? processor : noopProcessor<RgbPacket>();
+  processor_->allocateBuffer(packet_, buffer_size_);
 }
 
 void RgbPacketStreamParser::onDataReceived(unsigned char* buffer, size_t length)
 {
-  Buffer &fb = buffer_.front();
+  if (packet_.memory == NULL || packet_.memory->data == NULL)
+  {
+    LOG_ERROR << "Packet buffer is NULL";
+    return;
+  }
+  Buffer &fb = *packet_.memory;
 
   // package containing data
   if(length > 0)
@@ -142,11 +150,7 @@ void RgbPacketStreamParser::onDataReceived(unsigned char* buffer, size_t length)
       // can the processor handle the next image?
       if(processor_->ready())
       {
-        buffer_.swap();
-        Buffer &bb = buffer_.back();
-
-        RawRgbPacket *raw_packet = reinterpret_cast<RawRgbPacket *>(bb.data);
-        RgbPacket rgb_packet;
+        RgbPacket &rgb_packet = packet_;
         rgb_packet.sequence = raw_packet->sequence;
         rgb_packet.timestamp = footer->timestamp;
         rgb_packet.exposure = footer->exposure;
@@ -157,6 +161,8 @@ void RgbPacketStreamParser::onDataReceived(unsigned char* buffer, size_t length)
 
         // call the processor
         processor_->process(rgb_packet);
+        //allocatePacket() should never return NULL when processor is ready()
+        processor_->allocateBuffer(packet_, buffer_size_);
       }
       else
       {
@@ -164,7 +170,7 @@ void RgbPacketStreamParser::onDataReceived(unsigned char* buffer, size_t length)
       }
 
       // reset front buffer
-      buffer_.front().length = 0;
+      packet_.memory->length = 0;
     }
   }
 }

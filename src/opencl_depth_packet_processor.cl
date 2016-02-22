@@ -24,13 +24,16 @@
  * either License.
  */
 
+#define PHASE (float3)(PHASE_IN_RAD0, PHASE_IN_RAD1, PHASE_IN_RAD2)
+#define AB_MULTIPLIER_PER_FRQ (float3)(AB_MULTIPLIER_PER_FRQ0, AB_MULTIPLIER_PER_FRQ1, AB_MULTIPLIER_PER_FRQ2)
+
 /*******************************************************************************
  * Process pixel stage 1
  ******************************************************************************/
 
 float decodePixelMeasurement(global const ushort *data, global const short *lut11to16, const uint sub, const uint x, const uint y)
 {
-  uint row_idx = (424 * sub + (y < 212 ? y + 212 : 423 - y)) * 352;
+  uint row_idx = (424 * sub + y) * 352;
   uint idx = (((x >> 2) + ((x << 7) & BFI_BITMASK)) * 11) & (uint)0xffffffff;
 
   uint col_idx = idx >> 4;
@@ -43,17 +46,6 @@ float decodePixelMeasurement(global const ushort *data, global const short *lut1
   return (float)lut11to16[(x < 1 || 510 < x || col_idx > 352) ? 0 : ((data[data_idx0] >> upper_bytes) | (data[data_idx1] << lower_bytes)) & 2047];
 }
 
-float2 processMeasurementTriple(const float ab_multiplier_per_frq, const float p0, const float3 v, int *invalid)
-{
-  float3 p0vec = (float3)(p0 + PHASE_IN_RAD0, p0 + PHASE_IN_RAD1, p0 + PHASE_IN_RAD2);
-  float3 p0cos = cos(p0vec);
-  float3 p0sin = sin(-p0vec);
-
-  *invalid = *invalid && any(isequal(v, (float3)(32767.0f)));
-
-  return (float2)(dot(v, p0cos), dot(v, p0sin)) * ab_multiplier_per_frq;
-}
-
 void kernel processPixelStage1(global const short *lut11to16, global const float *z_table, global const float3 *p0_table, global const ushort *data,
                                global float3 *a_out, global float3 *b_out, global float3 *n_out, global float *ir_out)
 {
@@ -62,41 +54,47 @@ void kernel processPixelStage1(global const short *lut11to16, global const float
   const uint x = i % 512;
   const uint y = i / 512;
 
-  const uint y_in = (423 - y);
+  const uint y_tmp = (423 - y);
+  const uint y_in = (y_tmp < 212 ? y_tmp + 212 : 423 - y_tmp);
 
-  const float zmultiplier = z_table[i];
-  int valid = (int)(0.0f < zmultiplier);
-  int saturatedX = valid;
-  int saturatedY = valid;
-  int saturatedZ = valid;
-  int3 invalid_pixel = (int3)((int)(!valid));
+  const int3 invalid = (int)(0.0f >= z_table[i]);
   const float3 p0 = p0_table[i];
+  float3 p0x_sin, p0y_sin, p0z_sin;
+  float3 p0x_cos, p0y_cos, p0z_cos;
+
+  p0x_sin = -sincos(PHASE + p0.x, &p0x_cos);
+  p0y_sin = -sincos(PHASE + p0.y, &p0y_cos);
+  p0z_sin = -sincos(PHASE + p0.z, &p0z_cos);
+
+  int3 invalid_pixel = (int3)(invalid);
 
   const float3 v0 = (float3)(decodePixelMeasurement(data, lut11to16, 0, x, y_in),
                              decodePixelMeasurement(data, lut11to16, 1, x, y_in),
                              decodePixelMeasurement(data, lut11to16, 2, x, y_in));
-  const float2 ab0 = processMeasurementTriple(AB_MULTIPLIER_PER_FRQ0, p0.x, v0, &saturatedX);
-
   const float3 v1 = (float3)(decodePixelMeasurement(data, lut11to16, 3, x, y_in),
                              decodePixelMeasurement(data, lut11to16, 4, x, y_in),
                              decodePixelMeasurement(data, lut11to16, 5, x, y_in));
-  const float2 ab1 = processMeasurementTriple(AB_MULTIPLIER_PER_FRQ1, p0.y, v1, &saturatedY);
-
   const float3 v2 = (float3)(decodePixelMeasurement(data, lut11to16, 6, x, y_in),
                              decodePixelMeasurement(data, lut11to16, 7, x, y_in),
                              decodePixelMeasurement(data, lut11to16, 8, x, y_in));
-  const float2 ab2 = processMeasurementTriple(AB_MULTIPLIER_PER_FRQ2, p0.z, v2, &saturatedZ);
 
-  float3 a = select((float3)(ab0.x, ab1.x, ab2.x), (float3)(0.0f), invalid_pixel);
-  float3 b = select((float3)(ab0.y, ab1.y, ab2.y), (float3)(0.0f), invalid_pixel);
+  float3 a = (float3)(dot(v0, p0x_cos),
+                      dot(v1, p0y_cos),
+                      dot(v2, p0z_cos)) * AB_MULTIPLIER_PER_FRQ;
+  float3 b = (float3)(dot(v0, p0x_sin),
+                      dot(v1, p0y_sin),
+                      dot(v2, p0z_sin)) * AB_MULTIPLIER_PER_FRQ;
+
+  a = select(a, (float3)(0.0f), invalid_pixel);
+  b = select(b, (float3)(0.0f), invalid_pixel);
   float3 n = sqrt(a * a + b * b);
 
-  int3 saturated = (int3)(saturatedX, saturatedY, saturatedZ);
-  a = select(a, (float3)(0.0f), saturated);
-  b = select(b, (float3)(0.0f), saturated);
+  int3 saturated = (int3)(any(isequal(v0, (float3)(32767.0f))),
+                          any(isequal(v1, (float3)(32767.0f))),
+                          any(isequal(v2, (float3)(32767.0f))));
 
-  a_out[i] = a;
-  b_out[i] = b;
+  a_out[i] = select(a, (float3)(0.0f), saturated);
+  b_out[i] = select(b, (float3)(0.0f), saturated);
   n_out[i] = n;
   ir_out[i] = min(dot(select(n, (float3)(65535.0f), saturated), (float3)(0.333333333f  * AB_MULTIPLIER * AB_OUTPUT_MULTIPLIER)), 65535.0f);
 }

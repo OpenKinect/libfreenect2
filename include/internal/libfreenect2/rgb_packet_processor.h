@@ -51,6 +51,7 @@ struct RgbPacket
   float gain;
   float gamma;
 
+  Buffer *memory;
 };
 
 typedef PacketProcessor<RgbPacket> BaseRgbPacketProcessor;
@@ -73,7 +74,6 @@ class DumpRgbPacketProcessor : public RgbPacketProcessor
 public:
   DumpRgbPacketProcessor();
   virtual ~DumpRgbPacketProcessor();
-protected:
   virtual void process(const libfreenect2::RgbPacket &packet);
 };
 
@@ -86,8 +86,8 @@ class TurboJpegRgbPacketProcessor : public RgbPacketProcessor
 public:
   TurboJpegRgbPacketProcessor();
   virtual ~TurboJpegRgbPacketProcessor();
-protected:
   virtual void process(const libfreenect2::RgbPacket &packet);
+  virtual const char *name() { return "TurboJPEG"; }
 private:
   TurboJpegRgbPacketProcessorImpl *impl_; ///< Decoder implementation.
 };
@@ -101,12 +101,46 @@ class VTRgbPacketProcessor : public RgbPacketProcessor
 public:
   VTRgbPacketProcessor();
   virtual ~VTRgbPacketProcessor();
-protected:
   virtual void process(const libfreenect2::RgbPacket &packet);
+  virtual const char *name() { return "VideoToolbox"; }
 private:
   VTRgbPacketProcessorImpl *impl_;
 };
 #endif
+
+#ifdef LIBFREENECT2_WITH_VAAPI_SUPPORT
+class VaapiRgbPacketProcessorImpl;
+
+class VaapiRgbPacketProcessor : public RgbPacketProcessor
+{
+public:
+  VaapiRgbPacketProcessor();
+  virtual ~VaapiRgbPacketProcessor();
+  virtual bool good();
+  virtual const char *name() { return "VAAPI"; }
+  virtual void process(const libfreenect2::RgbPacket &packet);
+protected:
+  virtual Allocator *getAllocator();
+private:
+  VaapiRgbPacketProcessorImpl *impl_;
+};
+#endif //LIBFREENECT2_WITH_VAAPI_SUPPORT
+
+#ifdef LIBFREENECT2_WITH_TEGRAJPEG_SUPPORT
+class TegraJpegRgbPacketProcessorImpl;
+
+class TegraJpegRgbPacketProcessor : public RgbPacketProcessor
+{
+public:
+  TegraJpegRgbPacketProcessor();
+  virtual ~TegraJpegRgbPacketProcessor();
+  virtual bool good();
+  virtual const char *name() { return "TegraJPEG"; }
+  virtual void process(const libfreenect2::RgbPacket &packet);
+private:
+  TegraJpegRgbPacketProcessorImpl *impl_;
+};
+#endif //LIBFREENECT2_WITH_TEGRAJPEG_SUPPORT
 
 } /* namespace libfreenect2 */
 #endif /* RGB_PACKET_PROCESSOR_H_ */
