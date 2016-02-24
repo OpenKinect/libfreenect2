@@ -41,8 +41,13 @@ FIND_PATH(LibUSB_INCLUDE_DIRS
     include/libusb-1.0
 )
 
+SET(LIBUSB_NAME libusb)
+IF(LIBUSB_USE_USBDK)
+  SET(LIBUSB_NAME libusb-usbdk)
+ENDIF()
+
 FIND_LIBRARY(LibUSB_LIBRARIES
-  NAMES libusb-1.0
+  NAMES ${LIBUSB_NAME}-1.0
   PATHS
     "${DEPENDS_DIR}/libusb"
     "${DEPENDS_DIR}/libusbx"
@@ -58,7 +63,7 @@ FIND_LIBRARY(LibUSB_LIBRARIES
 
 IF(WIN32)
 FIND_FILE(LibUSB_DLL
-  libusb-1.0.dll
+  ${LIBUSB_NAME}-1.0.dll
   PATHS
     "${DEPENDS_DIR}/libusb"
     "${DEPENDS_DIR}/libusbx"
@@ -71,6 +76,11 @@ FIND_FILE(LibUSB_DLL
     MS64
     MS64/dll
 )
+IF(LibUSB_DLL AND LIBUSB_USE_USBDK)
+  FILE(COPY ${LibUSB_DLL} DESTINATION ${CMAKE_BINARY_DIR})
+  SET(LibUSB_DLL ${CMAKE_BINARY_DIR}/libusb-1.0.dll)
+  FILE(RENAME ${CMAKE_BINARY_DIR}/${LIBUSB_NAME}-1.0.dll ${LibUSB_DLL})
+ENDIF()
 ENDIF()
 
 INCLUDE(FindPackageHandleStandardArgs)
