@@ -242,6 +242,7 @@ cmake .. -DCMAKE_INSTALL_PREFIX=$HOME/freenect2
 make
 make install
 ```
+    You need to specify `cmake -Dfreenect2_DIR=$HOME/freenect2/lib/cmake/freenect2` for CMake based third-party application to find libfreenect2.
 * Set up udev rules for device access: `sudo cp ../platform/linux/udev/90-kinect2.rules /etc/udev/rules.d/`, then replug the Kinect.
 * Run the test program: `./bin/Protonect`
 * Run OpenNI2 test (optional): `sudo apt-get install openni2-utils && sudo make install-openni2 && NiViewer2`.
