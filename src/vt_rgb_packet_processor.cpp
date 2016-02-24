@@ -69,15 +69,6 @@ class VTRgbPacketProcessorImpl: public WithPerfLogging
 
     CMVideoFormatDescriptionCreate(NULL, kCMVideoCodecType_JPEG, width, height, NULL, &format);
 
-    const void *decoderSpecificationKeys[] = {kVTVideoDecoderSpecification_EnableHardwareAcceleratedVideoDecoder};
-    const void *decoderSpecificationValues[] = {kCFBooleanTrue};
-    CFDictionaryRef decoderSpecification = CFDictionaryCreate(NULL,
-                                                              decoderSpecificationKeys,
-                                                              decoderSpecificationValues,
-                                                              1,
-                                                              &kCFTypeDictionaryKeyCallBacks,
-                                                              &kCFTypeDictionaryValueCallBacks);
-
     int32_t pixelFormat = kCVPixelFormatType_32BGRA;
     const void *outputKeys[] = {kCVPixelBufferPixelFormatTypeKey, kCVPixelBufferWidthKey, kCVPixelBufferHeightKey};
     const void *outputValues[] =
@@ -93,9 +84,8 @@ class VTRgbPacketProcessorImpl: public WithPerfLogging
 
     VTDecompressionOutputCallbackRecord callback = {&VTRgbPacketProcessorImpl::decodeFrame, NULL};
 
-    VTDecompressionSessionCreate(NULL, format, decoderSpecification, outputConfiguration, &callback, &decoder);
+    VTDecompressionSessionCreate(NULL, format, NULL, outputConfiguration, &callback, &decoder);
 
-    CFRelease(decoderSpecification);
     CFRelease(outputConfiguration);
   }
 
