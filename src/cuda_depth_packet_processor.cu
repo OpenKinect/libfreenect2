@@ -535,7 +535,7 @@ private:
   bool allocate_cuda(Buffer *b, size_t size)
   {
     unsigned int flags = cudaHostAllocPortable;
-    if (!input)
+    if (input)
       flags |= cudaHostAllocWriteCombined;
     CHECK_CUDA(cudaHostAlloc(&b->data, size, flags));
     b->length = 0;
