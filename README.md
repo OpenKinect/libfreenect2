@@ -79,7 +79,10 @@ When you report USB issues, please attach relevant debug log from running the pr
 
 ### Windows / Visual Studio
 
-* Install libusbK driver
+* Install UsbDk driver
+
+    Download the latest x64 installer from https://github.com/daynix/UsbDk/releases, install it. This doesn't interfere with the Microsoft SDK. Do not install the libusbK driver if you install the UsbDK driver.
+* (Alternatively) Install libusbK driver
 
     You don't need the Kinect for Windows v2 SDK to build and install libfreenect2, though it doesn't hurt to have it too. You don't need to uninstall the SDK or the driver before doing this procedure.
 
@@ -104,6 +107,7 @@ When you report USB issues, please attach relevant debug log from running the pr
     This will enumerate the Kinect sensor again and it will pick up the K4W2 SDK driver, and you should be ready to run KinectService.exe again immediately.
 
     You can go back and forth between the SDK driver and the libusbK driver very quickly and easily with these steps.
+
 * Build libusb
 
     Open a Git shell (GitHub for Windows), or any shell that has access to git.exe and msbuild.exe
