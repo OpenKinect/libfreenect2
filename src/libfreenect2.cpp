@@ -861,7 +861,16 @@ bool Freenect2DeviceImpl::close()
   /* This command actually reboots the device and makes it disappear for 3 seconds.
    * Protonect can restart instantly without it.
    */
-  //command_tx_.execute(ShutdownCommand(nextCommandSeq()), result);
+#ifdef __APPLE__
+  /* Kinect will disappear on Mac OS X regardless during close().
+   * Painstaking effort could not determine the root cause.
+   * See https://github.com/OpenKinect/libfreenect2/issues/539
+   *
+   * Shut down Kinect explicitly on Mac and wait a fixed time.
+   */
+  command_tx_.execute(ShutdownCommand(nextCommandSeq()), result);
+  libfreenect2::this_thread::sleep_for(libfreenect2::chrono::milliseconds(4*1000));
+#endif
 
   if(pipeline_->getRgbPacketProcessor() != 0)
     pipeline_->getRgbPacketProcessor()->setFrameListener(0);
