@@ -45,6 +45,7 @@
 #include <libfreenect2/protocol/response.h>
 #include <libfreenect2/protocol/command_transaction.h>
 #include <libfreenect2/logging.h>
+#include <libfreenect2/time.h>
 
 #ifdef __APPLE__
   #define PKTS_PER_XFER 128
@@ -239,7 +240,7 @@ private:
   Freenect2Device::IrCameraParams ir_camera_params_;
   Freenect2Device::ColorCameraParams rgb_camera_params_;
 public:
-  Freenect2DeviceImpl(Freenect2Impl *context, const PacketPipeline *pipeline, libusb_device *usb_device, libusb_device_handle *usb_device_handle, const std::string &serial);
+  Freenect2DeviceImpl(Freenect2Impl *context, const PacketPipeline *pipeline, const std::string &serial);
   virtual ~Freenect2DeviceImpl();
 
   bool isSameUsbDevice(libusb_device* other);
@@ -255,7 +256,7 @@ public:
 
   int nextCommandSeq();
 
-  bool open();
+  bool open(libusb_device *usb_device, libusb_device_handle *usb_device_handle);
 
   virtual void setColorFrameListener(libfreenect2::FrameListener* rgb_frame_listener);
   virtual void setIrAndDepthFrameListener(libfreenect2::FrameListener* ir_frame_listener);
@@ -520,16 +521,16 @@ Freenect2Device::~Freenect2Device()
 {
 }
 
-Freenect2DeviceImpl::Freenect2DeviceImpl(Freenect2Impl *context, const PacketPipeline *pipeline, libusb_device *usb_device, libusb_device_handle *usb_device_handle, const std::string &serial) :
+Freenect2DeviceImpl::Freenect2DeviceImpl(Freenect2Impl *context, const PacketPipeline *pipeline, const std::string &serial) :
   state_(Created),
   has_usb_interfaces_(false),
   context_(context),
-  usb_device_(usb_device),
-  usb_device_handle_(usb_device_handle),
-  rgb_transfer_pool_(usb_device_handle, 0x83),
-  ir_transfer_pool_(usb_device_handle, 0x84),
-  usb_control_(usb_device_handle_),
-  command_tx_(usb_device_handle_, 0x81, 0x02),
+  usb_device_(0),
+  usb_device_handle_(0),
+  rgb_transfer_pool_(0, 0x83),
+  ir_transfer_pool_(0, 0x84),
+  usb_control_(0),
+  command_tx_(0, 0x81, 0x02),
   command_seq_(0),
   pipeline_(pipeline),
   serial_(serial),
@@ -635,11 +636,18 @@ void Freenect2DeviceImpl::setIrAndDepthFrameListener(libfreenect2::FrameListener
     pipeline_->getDepthPacketProcessor()->setFrameListener(ir_frame_listener);
 }
 
-bool Freenect2DeviceImpl::open()
+bool Freenect2DeviceImpl::open(libusb_device *usb_device, libusb_device_handle *usb_device_handle)
 {
   LOG_INFO << "opening...";
 
   if(state_ != Created) return false;
+  usb_device_ = usb_device;
+  usb_device_handle_ = usb_device_handle;
+  usb_control_.setHandle(usb_device_handle_);
+  command_tx_.setHandle(usb_device_handle_);
+  command_seq_ = 0;
+  rgb_transfer_pool_.setHandle(usb_device_handle_);
+  ir_transfer_pool_.setHandle(usb_device_handle_);
 
   if(usb_control_.setConfiguration() != UsbControl::Success) return false;
   if(!has_usb_interfaces_ && usb_control_.claimInterfaces() != UsbControl::Success) return false;
@@ -1001,10 +1009,10 @@ Freenect2Device *Freenect2Impl::openDevice(int idx, const PacketPipeline *pipeli
     }
   }
 
-  device = new Freenect2DeviceImpl(this, pipeline, dev.dev, dev_handle, dev.serial);
+  device = new Freenect2DeviceImpl(this, pipeline, dev.serial);
   addDevice(device);
 
-  if(!device->open())
+  if(!device->open(dev.dev, dev_handle))
   {
     delete device;
     device = 0;

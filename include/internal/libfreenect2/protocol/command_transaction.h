@@ -47,6 +47,7 @@ public:
   CommandTransaction(libusb_device_handle *handle, int inbound_endpoint, int outbound_endpoint);
   ~CommandTransaction();
 
+  void setHandle(libusb_device_handle *handle);
   bool execute(const CommandBase& command, Result& result);
 private:
   libusb_device_handle *handle_;

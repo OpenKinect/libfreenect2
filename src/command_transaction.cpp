@@ -47,6 +47,11 @@ CommandTransaction::CommandTransaction(libusb_device_handle *handle, int inbound
 
 CommandTransaction::~CommandTransaction() {}
 
+void CommandTransaction::setHandle(libusb_device_handle *handle)
+{
+  handle_ = handle;
+}
+
 bool CommandTransaction::execute(const CommandBase& command, Result& result)
 {
   result.resize(command.maxResponseLength());

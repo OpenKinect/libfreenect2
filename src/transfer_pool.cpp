@@ -51,6 +51,11 @@ TransferPool::~TransferPool()
   deallocate();
 }
 
+void TransferPool::setHandle(libusb_device_handle* device_handle)
+{
+  device_handle_ = device_handle;
+}
+
 void TransferPool::enableSubmission()
 {
   enable_submit_ = true;
