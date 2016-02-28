@@ -57,7 +57,7 @@ It has been reported to work for up to 5 devices on a high-end PC using multiple
 * OpenGL depth processing: OpenGL 3.1 (Windows, Linux, Mac OS X). OpenGL ES is not supported at the moment.
 * OpenCL depth processing: OpenCL 1.1
 * CUDA depth processing: CUDA (6.5 and 7.5 are tested; The minimum version is not clear.)
-* VAAPI JPEG decoding: Intel and Linux only
+* VAAPI JPEG decoding: Intel (minimum Ivy Bridge or newer) and Linux only
 * VideoToolbox JPEG decoding: Mac OS X only
 * OpenNI2 integration: OpenNI2 2.2.0.33
 * Jetson TK1: Linux4Tegra 21.3 or later. Check [Jetson TK1 issues](https://github.com/OpenKinect/libfreenect2/wiki/Troubleshooting#jetson-tk1-issues) before installation. Jetson TX1 is not yet supported as the developers don't have one, but it may be easy to add the support.
