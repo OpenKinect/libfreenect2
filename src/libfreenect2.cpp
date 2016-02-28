@@ -32,6 +32,7 @@
 #include <libusb.h>
 #include <limits>
 #include <cmath>
+#include <cstdlib>
 #define WRITE_LIBUSB_ERROR(__RESULT) libusb_error_name(__RESULT) << " " << libusb_strerror((libusb_error)__RESULT)
 
 #include <libfreenect2/libfreenect2.hpp>
@@ -45,14 +46,6 @@
 #include <libfreenect2/protocol/response.h>
 #include <libfreenect2/protocol/command_transaction.h>
 #include <libfreenect2/logging.h>
-
-#ifdef __APPLE__
-  #define PKTS_PER_XFER 128
-  #define NUM_XFERS 4
-#else
-  #define PKTS_PER_XFER 8
-  #define NUM_XFERS 60
-#endif
 
 namespace libfreenect2
 {
@@ -661,8 +654,31 @@ bool Freenect2DeviceImpl::open()
     return false;
   }
 
-  rgb_transfer_pool_.allocate(20, 0x4000);
-  ir_transfer_pool_.allocate(NUM_XFERS, PKTS_PER_XFER, max_iso_packet_size);
+  unsigned rgb_xfer_size = 0x4000;
+  unsigned rgb_num_xfers = 20;
+  unsigned ir_pkts_per_xfer = 8;
+  unsigned ir_num_xfers = 60;
+
+#ifdef __APPLE__
+  ir_pkts_per_xfer = 128;
+  ir_num_xfers = 4;
+#endif
+
+  const char *xfer_str;
+  xfer_str = std::getenv("LIBFREENECT2_RGB_TRANSFER_SIZE");
+  if(xfer_str) rgb_xfer_size = std::atoi(xfer_str);
+  xfer_str = std::getenv("LIBFREENECT2_RGB_TRANSFERS");
+  if(xfer_str) rgb_num_xfers = std::atoi(xfer_str);
+  xfer_str = std::getenv("LIBFREENECT2_IR_PACKETS");
+  if(xfer_str) ir_pkts_per_xfer = std::atoi(xfer_str);
+  xfer_str = std::getenv("LIBFREENECT2_IR_TRANSFERS");
+  if(xfer_str) ir_num_xfers = std::atoi(xfer_str);
+
+  LOG_INFO << "transfer pool sizes"
+           << " rgb: " << rgb_num_xfers << "*" << rgb_xfer_size
+           << " ir: " << ir_num_xfers << "*" << ir_pkts_per_xfer << "*" << max_iso_packet_size;
+  rgb_transfer_pool_.allocate(rgb_num_xfers, rgb_xfer_size);
+  ir_transfer_pool_.allocate(ir_num_xfers, ir_pkts_per_xfer, max_iso_packet_size);
 
   state_ = Open;
 
@@ -753,14 +769,14 @@ bool Freenect2DeviceImpl::startStreams(bool enable_rgb, bool enable_depth)
   {
     LOG_INFO << "submitting rgb transfers...";
     rgb_transfer_pool_.enableSubmission();
-    if (!rgb_transfer_pool_.submit(20)) return false;
+    if (!rgb_transfer_pool_.submit()) return false;
   }
 
   if (enable_depth)
   {
     LOG_INFO << "submitting depth transfers...";
     ir_transfer_pool_.enableSubmission();
-    if (!ir_transfer_pool_.submit(NUM_XFERS)) return false;
+    if (!ir_transfer_pool_.submit()) return false;
   }
 
   state_ = Streaming;

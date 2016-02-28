@@ -53,7 +53,7 @@ public:
 
   bool enabled();
 
-  bool submit(size_t num_parallel_transfers);
+  bool submit();
 
   void cancel();
 
