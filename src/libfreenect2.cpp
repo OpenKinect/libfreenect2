@@ -257,6 +257,7 @@ public:
   int nextCommandSeq();
 
   bool open(libusb_device *usb_device, libusb_device_handle *usb_device_handle);
+  bool reboot();
 
   virtual void setColorFrameListener(libfreenect2::FrameListener* rgb_frame_listener);
   virtual void setIrAndDepthFrameListener(libfreenect2::FrameListener* ir_frame_listener);
@@ -638,9 +639,24 @@ void Freenect2DeviceImpl::setIrAndDepthFrameListener(libfreenect2::FrameListener
 
 bool Freenect2DeviceImpl::open(libusb_device *usb_device, libusb_device_handle *usb_device_handle)
 {
-  LOG_INFO << "opening...";
+  if(state_ == Open)
+  {
+    LOG_INFO << "re-opening...";
+    usb_control_.releaseInterfaces();
+    has_usb_interfaces_ = false;
+    rgb_transfer_pool_.deallocate();
+    ir_transfer_pool_.deallocate();
+    libusb_close(usb_device_handle_);
+    usb_device_ = 0;
+    usb_device_handle_ = 0;
+  } else
+  if(state_ == Created)
+  {
+    LOG_INFO << "opening...";
+  } else {
+    return false;
+  }
 
-  if(state_ != Created) return false;
   usb_device_ = usb_device;
   usb_device_handle_ = usb_device_handle;
   usb_control_.setHandle(usb_device_handle_);
@@ -679,6 +695,54 @@ bool Freenect2DeviceImpl::open(libusb_device *usb_device, libusb_device_handle *
   return true;
 }
 
+bool Freenect2DeviceImpl::reboot()
+{
+  LOG_INFO << "reboot...";
+  if(state_ != Open) return false;
+
+  CommandTransaction::Result result;
+  command_tx_.execute(ShutdownCommand(nextCommandSeq()), result);
+  libfreenect2::this_thread::sleep_for(libfreenect2::chrono::seconds(5));
+
+  // find and open USB device
+  context_->clearDeviceEnumeration();
+  int num_devices = context_->getNumDevices();
+
+  for(int idx = 0; idx < num_devices; ++idx)
+  {
+    libusb_device* usb_device = context_->enumerated_devices_[idx].dev;
+    // can't match USB device address because it would be changed after device shutdown
+    if (context_->enumerated_devices_[idx].serial == serial_)
+    {
+      libusb_device_handle *usb_device_handle;
+      int r = libusb_open(usb_device, &usb_device_handle);
+      if(r != LIBUSB_SUCCESS)
+      {
+        LOG_ERROR << "failed to open Kinect v2: " << PrintBusAndDevice(usb_device, r);
+        break;
+      }
+      r = libusb_reset_device(usb_device_handle);
+      if(r != LIBUSB_SUCCESS)
+      {
+        LOG_ERROR << "failed to reset Kinect v2: " << PrintBusAndDevice(usb_device, r);
+        break;
+      }
+
+      if(!open(usb_device, usb_device_handle))
+      {
+        break;
+      }
+
+      LOG_INFO << "rebooted";
+      return true;
+    }
+  }
+
+  LOG_ERROR << "failed to reboot";
+
+  return false;
+}
+
 bool Freenect2DeviceImpl::start()
 {
   return startStreams(true, true);
@@ -686,6 +750,8 @@ bool Freenect2DeviceImpl::start()
 
 bool Freenect2DeviceImpl::startStreams(bool enable_rgb, bool enable_depth)
 {
+  int try_count = 0;
+ RETRY:
   LOG_INFO << "starting...";
   if(state_ != Open) return false;
 
@@ -721,6 +787,8 @@ bool Freenect2DeviceImpl::startStreams(bool enable_rgb, bool enable_depth)
   if (!command_tx_.execute(SetModeEnabledWith0x00640064Command(nextCommandSeq()), result)) return false;
   if (!command_tx_.execute(SetModeDisabledCommand(nextCommandSeq()), result)) return false;
 
+  libfreenect2::Timer timer;
+  timer.start();
   for (uint32_t status = 0, last = 0; (status & 1) == 0; last = status)
   {
     if (!command_tx_.execute(ReadStatus0x090000Command(nextCommandSeq()), result)) return false;
@@ -729,6 +797,18 @@ bool Freenect2DeviceImpl::startStreams(bool enable_rgb, bool enable_depth)
       LOG_DEBUG << "status 0x090000: " << status;
     if ((status & 1) == 0)
       this_thread::sleep_for(chrono::milliseconds(100));
+
+    if (12 < timer.elapsed()) // 12 seconds
+    {
+      LOG_ERROR << "timeout";
+      if (5 <= ++try_count) {
+        LOG_ERROR << "abort";
+        return false;
+      }
+      if (!reboot())
+        return false;
+      goto RETRY;        
+    }
   }
 
   if (!command_tx_.execute(InitStreamsCommand(nextCommandSeq()), result)) return false;
