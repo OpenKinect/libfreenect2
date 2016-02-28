@@ -79,6 +79,7 @@ public:
     Error
   };
 
+  void setHandle(libusb_device_handle *handle);
   ResultCode getIrMaxIsoPacketSize(int &size);
 
   ResultCode setConfiguration();

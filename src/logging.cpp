@@ -27,6 +27,7 @@
 /** @file logging.cpp Logging message handler classes. */
 
 #include <libfreenect2/logging.h>
+#include <libfreenect2/time.h>
 #include <iostream>
 #include <cstdlib>
 #include <string>
@@ -37,14 +38,6 @@
 #include <numeric>
 #include <functional>
 #include <cmath>
-#endif
-
-#ifdef LIBFREENECT2_WITH_CXX11_SUPPORT
-#include <chrono>
-#endif
-
-#ifdef LIBFREENECT2_WITH_OPENGL_SUPPORT
-#include <GLFW/glfw3.h>
 #endif
 
 namespace libfreenect2
@@ -189,70 +182,6 @@ void setGlobalLogger(Logger *logger)
     delete userLogger_;
   userLogger_ = logger;
 }
-
-/** Timer for measuring performance. */
-class Timer
-{
- public:
-  double duration;
-  size_t count;
-
-  Timer()
-  {
-#if defined(LIBFREENECT2_WITH_OPENGL_SUPPORT)
-    glfwInit();
-#endif
-    reset();
-  }
-
-  void reset()
-  {
-    duration = 0;
-    count = 0;
-  }
-
-#ifdef LIBFREENECT2_WITH_CXX11_SUPPORT
-  std::chrono::time_point<std::chrono::high_resolution_clock> time_start;
-
-  void start()
-  {
-    time_start = std::chrono::high_resolution_clock::now();
-  }
-
-  double stop()
-  {
-    auto time_diff = std::chrono::high_resolution_clock::now() - time_start;
-    double this_duration = std::chrono::duration_cast<std::chrono::duration<double>>(time_diff).count();
-    duration += this_duration;
-    count++;
-    return this_duration;
-  }
-#elif defined(LIBFREENECT2_WITH_OPENGL_SUPPORT)
-  double time_start;
-
-  void start()
-  {
-    time_start = glfwGetTime();
-  }
-
-  double stop()
-  {
-    double this_duration = glfwGetTime() - time_start;
-    duration += this_duration;
-    count++;
-    return this_duration;
-  }
-#else
-  void start()
-  {
-  }
-
-  double stop()
-  {
-    return 0;
-  }
-#endif
-};
 
 class WithPerfLoggingImpl: public Timer
 {

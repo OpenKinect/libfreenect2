@@ -45,6 +45,8 @@ public:
   TransferPool(libusb_device_handle *device_handle, unsigned char device_endpoint);
   virtual ~TransferPool();
 
+  void setHandle(libusb_device_handle* device_handle);
+
   void deallocate();
 
   void enableSubmission();
