@@ -47,20 +47,20 @@ class LIBFREENECT2_API Frame
   /** Available types of frames. */
   enum Type
   {
-    Color = 1, ///< 1920x1080 32-bit BGRX.
+    Color = 1, ///< 1920x1080
     Ir = 2,    ///< 512x424 float. Range is [0.0, 65535.0].
     Depth = 4  ///< 512x424 float, unit: millimeter. Non-positive, NaN, and infinity are invalid or missing data.
   };
 
-  /** (Proposed for 0.2) Pixel format. */
+  /** Pixel format. */
   enum Format
   {
-    BGRX,
-    RGBX,
-    Gray,
-    Float,
-    // Note that if format is 'raw' then 'bytes_per_pixel' actually contains the number of bytes
-    Raw
+    Invalid = 0, ///< Invalid format.
+    Raw = 1, ///< Raw bitstream. 'bytes_per_pixel' defines the number of bytes
+    Float = 2, ///< A 4-byte float per pixel
+    BGRX = 4, ///< 4 bytes of B, G, R, and unused per pixel
+    RGBX = 5, ///< 4 bytes of R, G, B, and unused per pixel
+    Gray = 6, ///< 1 byte of gray per pixel
   };
 
   size_t width;           ///< Length of a line (in pixels).
@@ -72,8 +72,8 @@ class LIBFREENECT2_API Frame
   float exposure;         ///< From 0.5 (very bright) to ~60.0 (fully covered)
   float gain;             ///< From 1.0 (bright) to 1.5 (covered)
   float gamma;            ///< From 1.0 (bright) to 6.4 (covered)
-  uint32_t status;        ///< Reserved. To be defined in 0.2.
-  Format format;          ///< Reserved. To be defined in 0.2.
+  uint32_t status;        ///< zero if ok; non-zero for errors.
+  Format format;          ///< Byte format. Informative only, doesn't indicate errors.
 
   /** Construct a new frame.
    * @param width Width in pixel
@@ -81,30 +81,8 @@ class LIBFREENECT2_API Frame
    * @param bytes_per_pixel Bytes per pixel
    * @param data_ Memory to store frame data. If `NULL`, new memory is allocated.
    */
-  Frame(size_t width, size_t height, size_t bytes_per_pixel, unsigned char *data_ = NULL) :
-    width(width),
-    height(height),
-    bytes_per_pixel(bytes_per_pixel),
-    data(data_),
-    exposure(0.f),
-    gain(0.f),
-    gamma(0.f),
-    rawdata(NULL)
-  {
-    if (data_)
-      return;
-    const size_t alignment = 64;
-    size_t space = width * height * bytes_per_pixel + alignment;
-    rawdata = new unsigned char[space];
-    uintptr_t ptr = reinterpret_cast<uintptr_t>(rawdata);
-    uintptr_t aligned = (ptr - 1u + alignment) & -alignment;
-    data = reinterpret_cast<unsigned char *>(aligned);
-  }
-
-  virtual ~Frame()
-  {
-    delete[] rawdata;
-  }
+  Frame(size_t width, size_t height, size_t bytes_per_pixel, unsigned char *data_ = NULL);
+  virtual ~Frame();
 
   protected:
   unsigned char* rawdata; ///< Unaligned start of #data.

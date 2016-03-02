@@ -156,6 +156,7 @@ void VTRgbPacketProcessor::process(const RgbPacket &packet)
     VTDecompressionSessionDecodeFrame(impl_->decoder, sampleBuffer, 0, &pixelBuffer, NULL);
 
     Frame *frame = new VTFrame(1920, 1080, 4, pixelBuffer);
+    frame->format = Frame::BGRX;
 
     frame->timestamp = packet.timestamp;
     frame->sequence = packet.sequence;

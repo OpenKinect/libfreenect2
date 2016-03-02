@@ -69,6 +69,7 @@ public:
   void newFrame()
   {
     frame = new Frame(1920, 1080, tjPixelSize[TJPF_BGRX]);
+    frame->format = Frame::BGRX;
   }
 };
 

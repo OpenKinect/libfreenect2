@@ -385,6 +385,7 @@ public:
   Frame *downloadToNewFrame()
   {
     Frame *f = new Frame(width, height, bytes_per_pixel);
+    f->format = Frame::Float;
     downloadToBuffer(f->data);
     flipYBuffer(f->data);
 

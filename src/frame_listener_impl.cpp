@@ -32,6 +32,33 @@
 namespace libfreenect2
 {
 
+Frame::Frame(size_t width, size_t height, size_t bytes_per_pixel, unsigned char *data_) :
+  width(width),
+  height(height),
+  bytes_per_pixel(bytes_per_pixel),
+  data(data_),
+  exposure(0.f),
+  gain(0.f),
+  gamma(0.f),
+  status(0),
+  format(Frame::Invalid),
+  rawdata(NULL)
+{
+  if (data_)
+    return;
+  const size_t alignment = 64;
+  size_t space = width * height * bytes_per_pixel + alignment;
+  rawdata = new unsigned char[space];
+  uintptr_t ptr = reinterpret_cast<uintptr_t>(rawdata);
+  uintptr_t aligned = (ptr - 1u + alignment) & -alignment;
+  data = reinterpret_cast<unsigned char *>(aligned);
+}
+
+Frame::~Frame()
+{
+  delete[] rawdata;
+}
+
 FrameListener::~FrameListener() {}
 
 /** Implementation class for synchronizing different types of frames. */

@@ -301,6 +301,7 @@ public:
   void newIrFrame()
   {
     ir_frame = new Frame(512, 424, 4);
+    ir_frame->format = Frame::Float;
     //ir_frame = new Frame(512, 424, 12);
   }
 
@@ -314,6 +315,7 @@ public:
   void newDepthFrame()
   {
     depth_frame = new Frame(512, 424, 4);
+    depth_frame->format = Frame::Float;
   }
 
   int32_t decodePixelMeasurement(unsigned char* data, int sub, int x, int y)

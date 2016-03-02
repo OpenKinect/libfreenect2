@@ -247,6 +247,7 @@ public:
   void newFrame()
   {
     frame = new VaapiFrame(static_cast<VaapiImage *>(image_allocator->allocate(0)));
+    frame->format = Frame::BGRX;
   }
 
   bool initializeVaapi()

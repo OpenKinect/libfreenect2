@@ -643,11 +643,13 @@ public:
   void newIrFrame()
   {
     ir_frame = new OpenCLFrame(static_cast<OpenCLBuffer *>(ir_buffer_allocator->allocate(IMAGE_SIZE * sizeof(cl_float))));
+    ir_frame->format = Frame::Float;
   }
 
   void newDepthFrame()
   {
     depth_frame = new OpenCLFrame(static_cast<OpenCLBuffer *>(depth_buffer_allocator->allocate(IMAGE_SIZE * sizeof(cl_float))));
+    depth_frame->format = Frame::Float;
   }
 
   bool fill_trig_table(const libfreenect2::protocol::P0TablesResponse *p0table)

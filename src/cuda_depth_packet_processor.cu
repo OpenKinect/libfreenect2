@@ -867,11 +867,13 @@ public:
   void newIrFrame()
   {
     ir_frame = new CudaFrame(ir_allocator->allocate(IMAGE_SIZE*sizeof(float)));
+    ir_frame->format = Frame::Float;
   }
 
   void newDepthFrame()
   {
     depth_frame = new CudaFrame(depth_allocator->allocate(IMAGE_SIZE*sizeof(float)));
+    depth_frame->format = Frame::Float;
   }
 
   void fill_trig_table(const protocol::P0TablesResponse *p0table)
