@@ -223,6 +223,7 @@ public:
   bool deviceInitialized;
   bool programBuilt;
   bool programInitialized;
+  bool runtimeOk;
   std::string sourceCode;
 
 #ifdef LIBFREENECT2_WITH_PROFILING_CL
@@ -234,6 +235,7 @@ public:
     : deviceInitialized(false)
     , programBuilt(false)
     , programInitialized(false)
+    , runtimeOk(true)
   {
 #if _BSD_SOURCE || _POSIX_C_SOURCE >= 200112L || _XOPEN_SOURCE >= 600
     setenv("OCL_IGNORE_SELF_TEST", "1", 0);
@@ -773,15 +775,17 @@ void OpenCLDepthPacketProcessor::loadLookupTable(const short *lut)
 
 bool OpenCLDepthPacketProcessor::good()
 {
-  return impl_->deviceInitialized;
+  return impl_->deviceInitialized && impl_->runtimeOk;
 }
 
 void OpenCLDepthPacketProcessor::process(const DepthPacket &packet)
 {
-  bool has_listener = this->listener_ != 0;
+  if (!listener_)
+    return;
 
   if(!impl_->programInitialized && !impl_->initProgram())
   {
+    impl_->runtimeOk = false;
     LOG_ERROR << "could not initialize OpenCLDepthPacketProcessor";
     return;
   }
@@ -793,22 +797,20 @@ void OpenCLDepthPacketProcessor::process(const DepthPacket &packet)
   impl_->ir_frame->sequence = packet.sequence;
   impl_->depth_frame->sequence = packet.sequence;
 
-  bool r = impl_->run(packet);
+  impl_->runtimeOk = impl_->run(packet);
 
   impl_->stopTiming(LOG_INFO);
 
-  if(has_listener && r)
+  if (!impl_->runtimeOk)
   {
-    if(this->listener_->onNewFrame(Frame::Ir, impl_->ir_frame))
-    {
-      impl_->newIrFrame();
-    }
-
-    if(this->listener_->onNewFrame(Frame::Depth, impl_->depth_frame))
-    {
-      impl_->newDepthFrame();
-    }
+    impl_->ir_frame->status = 1;
+    impl_->depth_frame->status = 1;
   }
+
+  if(listener_->onNewFrame(Frame::Ir, impl_->ir_frame))
+    impl_->newIrFrame();
+  if(listener_->onNewFrame(Frame::Depth, impl_->depth_frame))
+    impl_->newDepthFrame();
 }
 
 Allocator *OpenCLDepthPacketProcessor::getAllocator()

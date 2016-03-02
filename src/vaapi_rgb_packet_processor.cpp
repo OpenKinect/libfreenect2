@@ -464,11 +464,6 @@ void VaapiRgbPacketProcessor::process(const RgbPacket &packet)
   if (listener_ == 0)
     return;
 
-  if (!impl_->good) {
-    LOG_ERROR << "libva in error state";
-    return;
-  }
-
   impl_->startTiming();
 
   impl_->frame->timestamp = packet.timestamp;
@@ -484,10 +479,11 @@ void VaapiRgbPacketProcessor::process(const RgbPacket &packet)
 
   impl_->stopTiming(LOG_INFO);
 
-  if (impl_->good) {
-    if (listener_->onNewFrame(Frame::Color, impl_->frame))
-      impl_->newFrame();
-  }
+  if (!impl_->good)
+    impl_->frame->status = 1;
+
+  if (listener_->onNewFrame(Frame::Color, impl_->frame))
+    impl_->newFrame();
 }
 
 Allocator *VaapiRgbPacketProcessor::getAllocator()

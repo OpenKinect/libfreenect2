@@ -135,7 +135,8 @@ private:
       if(current_packet_available_)
       {
         // invoke process impl
-        processor_->process(current_packet_);
+        if (processor_->good())
+          processor_->process(current_packet_);
         /*
          * The stream parser passes the buffer asynchronously to processors so
          * it can not wait after process() finishes and free the buffer.  In

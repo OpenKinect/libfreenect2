@@ -955,7 +955,8 @@ void OpenGLDepthPacketProcessor::loadLookupTable(const short *lut)
 
 void OpenGLDepthPacketProcessor::process(const DepthPacket &packet)
 {
-  bool has_listener = this->listener_ != 0;
+  if (!listener_)
+    return;
   Frame *ir = 0, *depth = 0;
 
   impl_->startTiming();
@@ -964,34 +965,22 @@ void OpenGLDepthPacketProcessor::process(const DepthPacket &packet)
 
   std::copy(packet.buffer, packet.buffer + packet.buffer_length/10*9, impl_->input_data.data);
   impl_->input_data.upload();
-  impl_->run(has_listener ? &ir : 0, has_listener ? &depth : 0);
+  impl_->run(&ir, &depth);
 
   if(impl_->do_debug) glfwSwapBuffers(impl_->opengl_context_ptr);
 
   impl_->stopTiming(LOG_INFO);
 
-  if(has_listener)
-  {
-    ir->timestamp = packet.timestamp;
-    depth->timestamp = packet.timestamp;
-    ir->sequence = packet.sequence;
-    depth->sequence = packet.sequence;
+  ir->timestamp = packet.timestamp;
+  depth->timestamp = packet.timestamp;
+  ir->sequence = packet.sequence;
+  depth->sequence = packet.sequence;
 
-    if(!this->listener_->onNewFrame(Frame::Ir, ir))
-    {
-      delete ir;
-    }
-
-    if(!this->listener_->onNewFrame(Frame::Depth, depth))
-    {
-      delete depth;
-    }
-  }
-  else
-  {
+  if(!listener_->onNewFrame(Frame::Ir, ir))
     delete ir;
+
+  if(!listener_->onNewFrame(Frame::Depth, depth))
     delete depth;
-  }
 }
 
 } /* namespace libfreenect2 */

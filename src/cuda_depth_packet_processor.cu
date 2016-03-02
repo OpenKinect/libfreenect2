@@ -937,11 +937,6 @@ void CudaDepthPacketProcessor::process(const DepthPacket &packet)
   if (listener_ == NULL)
     return;
 
-  if (!impl_->good) {
-    LOG_ERROR << "CUDA in error state";
-    return;
-  }
-
   impl_->startTiming();
 
   impl_->ir_frame->timestamp = packet.timestamp;
@@ -953,12 +948,15 @@ void CudaDepthPacketProcessor::process(const DepthPacket &packet)
 
   impl_->stopTiming(LOG_INFO);
 
-  if (impl_->good) {
-    if (listener_->onNewFrame(Frame::Ir, impl_->ir_frame))
-      impl_->newIrFrame();
-    if (listener_->onNewFrame(Frame::Depth, impl_->depth_frame))
-      impl_->newDepthFrame();
+  if (!impl_->good) {
+    impl_->ir_frame->status = 1;
+    impl_->depth_frame->status = 1;
   }
+
+  if (listener_->onNewFrame(Frame::Ir, impl_->ir_frame))
+    impl_->newIrFrame();
+  if (listener_->onNewFrame(Frame::Depth, impl_->depth_frame))
+    impl_->newDepthFrame();
 }
 
 Allocator *CudaDepthPacketProcessor::getAllocator()

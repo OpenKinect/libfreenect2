@@ -283,11 +283,6 @@ void TegraJpegRgbPacketProcessor::process(const RgbPacket &packet)
   if (listener_ == NULL)
     return;
 
-  if (!impl_->good) {
-    LOG_ERROR << "Tegra jpeg is in error state";
-    return;
-  }
-
   impl_->startTiming();
 
   impl_->frame->timestamp = packet.timestamp;
@@ -300,9 +295,10 @@ void TegraJpegRgbPacketProcessor::process(const RgbPacket &packet)
 
   impl_->stopTiming(LOG_INFO);
 
-  if (impl_->good) {
-    if (listener_->onNewFrame(Frame::Color, impl_->frame))
-      impl_->newFrame();
-  }
+  if (!impl_->good)
+    impl_->frame->status = 1;
+
+  if (listener_->onNewFrame(Frame::Color, impl_->frame))
+    impl_->newFrame();
 }
 } /* namespace libfreenect2 */
