@@ -219,7 +219,7 @@ sudo apt-get install build-essential cmake pkg-config
     3. (Other) `sudo apt-get install libglfw3-dev`
 * Install OpenCL (optional)
     - Intel GPU
-        1. (Ubuntu 14.04 only) `sudo apt-add-repository ppa:pmjdebruijn/beignet-testing; sudo apt-get update; sudo apt-get install beignet-dev; sudo dpkg -i debs/ocl-icd*deb`
+        1. (Ubuntu 14.04 only) `sudo apt-add-repository ppa:floe/beignet; sudo apt-get update; sudo apt-get install beignet-dev; sudo dpkg -i debs/ocl-icd*deb`
         2. (Other) `sudo apt-get install beignet-dev`
         3. For older kernels, `# echo 0 >/sys/module/i915/parameters/enable_cmd_parser` is needed. See more known issues at https://www.freedesktop.org/wiki/Software/Beignet/.
     - AMD GPU: Install the latest version of the AMD Catalyst drivers from https://support.amd.com and `apt-get install opencl-headers`.
