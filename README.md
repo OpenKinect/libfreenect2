@@ -81,7 +81,7 @@ When you report USB issues, please attach relevant debug log from running the pr
 
 * Install UsbDk driver
 
-    Download the latest x64 installer from https://github.com/daynix/UsbDk/releases, install it. This doesn't interfere with the Microsoft SDK. Do not install the libusbK driver if you install the UsbDK driver.
+    Download the latest x64 installer from https://github.com/daynix/UsbDk/releases, install it. This doesn't interfere with the Microsoft SDK. Do not install the libusbK driver if you install the UsbDK driver. If UsbDk somehow does not work, use `-DLIBUSB_USE_USBDK=OFF` to switch to the libusbK backend.
 * (Alternatively) Install libusbK driver
 
     You don't need the Kinect for Windows v2 SDK to build and install libfreenect2, though it doesn't hurt to have it too. You don't need to uninstall the SDK or the driver before doing this procedure.
