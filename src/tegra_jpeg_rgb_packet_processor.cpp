@@ -194,7 +194,7 @@ public:
   void newFrame()
   {
     frame = new TegraFrame(WIDTH, HEIGHT, BPP, static_cast<TegraImage *>(image_allocator->allocate(0)));
-    frame->format = Format:RGBX;
+    frame->format = Frame::RGBX;
   }
 
   static inline TegraJpegRgbPacketProcessorImpl *owner(j_decompress_ptr dinfo)
