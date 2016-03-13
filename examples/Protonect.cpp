@@ -330,7 +330,11 @@ int main(int argc, char *argv[])
 /// [loop start]
   while(!protonect_shutdown && (framemax == (size_t)-1 || framecount < framemax))
   {
-    listener.waitForNewFrame(frames);
+    if (!listener.waitForNewFrame(frames, 10*1000)) // 10 sconds
+    {
+      std::cout << "timeout!" << std::endl;
+      return -1;
+    }
     libfreenect2::Frame *rgb = frames[libfreenect2::Frame::Color];
     libfreenect2::Frame *ir = frames[libfreenect2::Frame::Ir];
     libfreenect2::Frame *depth = frames[libfreenect2::Frame::Depth];
