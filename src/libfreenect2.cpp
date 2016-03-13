@@ -751,7 +751,8 @@ bool Freenect2DeviceImpl::start()
   command_tx_.execute(SetModeEnabledWith0x00640064Command(nextCommandSeq()), result);
   command_tx_.execute(SetModeDisabledCommand(nextCommandSeq()), result);
 
-  for (uint32_t status = 0, last = 0; (status & 1) == 0; last = status)
+  int timeout = 50; // about 5 seconds (100ms x 50)
+  for (uint32_t status = 0, last = 0; (status & 1) == 0 && 0 < timeout; last = status, timeout--)
   {
     command_tx_.execute(ReadStatus0x090000Command(nextCommandSeq()), result);
     if ((size_t)result.length < sizeof(uint32_t))
@@ -761,6 +762,9 @@ bool Freenect2DeviceImpl::start()
       LOG_DEBUG << "status 0x090000: " << status;
     if ((status & 1) == 0)
       this_thread::sleep_for(chrono::milliseconds(100));
+  }
+  if (timeout == 0) {
+    LOG_DEBUG << "status 0x090000: timeout";
   }
 
   command_tx_.execute(InitStreamsCommand(nextCommandSeq()), result);
