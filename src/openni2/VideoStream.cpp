@@ -266,7 +266,7 @@ OniStatus VideoStream::setProperty(int propertyId, const void* data, int dataSiz
         LogError("Unexpected size for ONI_STREAM_PROPERTY_MIRRORING");
         return ONI_STATUS_ERROR;
       }
-      mirroring = *(static_cast<const OniBool*>(data));
+      mirroring = !!*(static_cast<const OniBool*>(data));
       raisePropertyChanged(propertyId, data, dataSize);
       return ONI_STATUS_OK;
   }
