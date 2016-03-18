@@ -121,7 +121,7 @@ public:
     bool EnableEdgeAwareFilter; ///< Remove pixels on edges because ToF cameras produce noisy edges.
 
     /** Default is 0.5, 4.5, true, true */
-    Config();
+    LIBFREENECT2_API Config();
   };
 
   virtual ~Freenect2Device();
