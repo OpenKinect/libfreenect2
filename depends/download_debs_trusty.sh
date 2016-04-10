@@ -27,5 +27,5 @@ download universe/g/glfw3 3.1.2-3 libglfw3-dev libglfw3
 download main/o/ocl-icd 2.2.8-1 ocl-icd-libopencl1 ocl-icd-opencl-dev
 if [ "$ARCH" = amd64 -o "$ARCH" = i386 ]; then
   download universe/libv/libva 1.7.0-1 libva-dev libva-drm1 libva-egl1 libva-glx1 libva-tpi1 libva-wayland1 libva-x11-1 libva1 vainfo
-  download universe/i/intel-vaapi-driver 1.7.0-1 i965-va-driver
+  download main/i/intel-vaapi-driver 1.7.0-1 i965-va-driver
 fi
