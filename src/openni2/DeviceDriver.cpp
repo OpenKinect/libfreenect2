@@ -500,7 +500,43 @@ namespace Freenect2Driver
             WriteMessage("Opening device " + std::string(uri));
             int id = uri_to_devid(iter->first.uri);
             DeviceImpl* device = new DeviceImpl(id);
-            device->setFreenect2Device(freenect2.openDevice(id)); // XXX, detault pipeline // const PacketPipeline *factory);
+
+			const char *pipeline_type_env;
+			// GL, CL, CUDA, CPU
+			pipeline_type_env = std::getenv("LIBFREENECT2_NITE_PIPELINE_TYPE");
+			std::string pipeline_type;
+
+			if (pipeline_type_env)
+			{
+				pipeline_type = std::string(pipeline_type_env);
+			}
+
+			libfreenect2::PacketPipeline* pipeline = NULL;
+
+#if defined(LIBFREENECT2_WITH_OPENGL_SUPPORT)
+			if (pipeline_type == "GL")
+				pipeline = new libfreenect2::OpenGLPacketPipeline();
+#elif defined(LIBFREENECT2_WITH_CUDA_SUPPORT)
+			if (pipeline_type == "CUDA")
+				pipeline = new libfreenect2::CudaPacketPipeline();
+#elif defined(LIBFREENECT2_WITH_OPENCL_SUPPORT)
+			if (pipeline_type == "CL")
+				pipeline = new libfreenect2::OpenCLPacketPipeline();
+#else
+			if (pipeline_type == "CPU")
+				pipeline = new libfreenect2::CpuPacketPipeline();
+#endif
+
+			// Fallback on whatever the default pipeline maybe if none were selected above
+			if (!pipeline)
+			{
+				device->setFreenect2Device(freenect2.openDevice(id));
+			}
+			else
+			{
+				device->setFreenect2Device(freenect2.openDevice(id, pipeline));
+			}
+
             device->setConfigStrings(config);
             iter->second = device;
             return device;
