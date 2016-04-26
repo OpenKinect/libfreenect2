@@ -900,15 +900,29 @@ bool Freenect2DeviceImpl::close()
 
 PacketPipeline *createDefaultPacketPipeline()
 {
+  const char *pipeline_type_env;
+  // GL, CL, CUDA, CPU
+  pipeline_type_env = std::getenv("LIBFREENECT2_PIPELINE");
+  std::string pipeline_type;
+
+  if (pipeline_type_env)
+    pipeline_type = std::string(pipeline_type_env);
+
 #if defined(LIBFREENECT2_WITH_OPENGL_SUPPORT)
-  return new OpenGLPacketPipeline();
-#elif defined(LIBFREENECT2_WITH_CUDA_SUPPORT)
-  return new CudaPacketPipeline();
-#elif defined(LIBFREENECT2_WITH_OPENCL_SUPPORT)
-  return new OpenCLPacketPipeline();
-#else
-  return new CpuPacketPipeline();
+  if (pipeline_type == "GL")
+    return new OpenGLPacketPipeline();
 #endif
+#if defined(LIBFREENECT2_WITH_CUDA_SUPPORT)
+  if (pipeline_type == "CUDA")
+    return new CudaPacketPipeline();
+#endif
+#if defined(LIBFREENECT2_WITH_OPENCL_SUPPORT)
+  if (pipeline_type == "CL")
+    return new OpenCLPacketPipeline();
+#endif
+
+  // pipeline_type == "CPU" would be the default
+  return new CpuPacketPipeline();
 }
 
 Freenect2::Freenect2(void *usb_context) :
