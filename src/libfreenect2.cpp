@@ -898,8 +898,37 @@ bool Freenect2DeviceImpl::close()
   return true;
 }
 
+PacketPipeline *createPacketPipelineByName(std::string name)
+{
+#if defined(LIBFREENECT2_WITH_OPENGL_SUPPORT)
+  if (name == "gl")
+    return new OpenGLPacketPipeline();
+#endif
+#if defined(LIBFREENECT2_WITH_CUDA_SUPPORT)
+  if (name == "cuda")
+    return new CudaPacketPipeline();
+#endif
+#if defined(LIBFREENECT2_WITH_OPENCL_SUPPORT)
+  if (name == "cl")
+    return new OpenCLPacketPipeline();
+#endif
+  if (name == "cpu")
+    return new CpuPacketPipeline();
+  return NULL;
+}
+
 PacketPipeline *createDefaultPacketPipeline()
 {
+  const char *pipeline_env = std::getenv("LIBFREENECT2_PIPELINE");
+  if (pipeline_env)
+  {
+    PacketPipeline *pipeline = createPacketPipelineByName(pipeline_env);
+    if (pipeline)
+      return pipeline;
+    else
+      LOG_WARNING << "`" << pipeline_env << "' pipeline is not available.";
+  }
+
 #if defined(LIBFREENECT2_WITH_OPENGL_SUPPORT)
   return new OpenGLPacketPipeline();
 #elif defined(LIBFREENECT2_WITH_CUDA_SUPPORT)

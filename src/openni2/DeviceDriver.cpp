@@ -500,7 +500,9 @@ namespace Freenect2Driver
             WriteMessage("Opening device " + std::string(uri));
             int id = uri_to_devid(iter->first.uri);
             DeviceImpl* device = new DeviceImpl(id);
-            device->setFreenect2Device(freenect2.openDevice(id)); // XXX, detault pipeline // const PacketPipeline *factory);
+            // The LIBFREENECT2_PIPELINE variable allows to select
+            // the non-default pipeline
+            device->setFreenect2Device(freenect2.openDevice(id));
             device->setConfigStrings(config);
             iter->second = device;
             return device;
