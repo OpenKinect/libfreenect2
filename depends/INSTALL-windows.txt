@@ -1,7 +1,7 @@
 Source code: https://github.com/OpenKinect/libfreenect2
 API reference: http://openkinect.github.io/libfreenect2
 
-This release is x64 only and has not enabled OpenCL support. If you need extra configurations and features, you will have to build it from source.
+This release is x64 only with basic features enabled. If you want better performance or extra features, you will have to build it from source.
 
 glfw3.dll, turbojpeg.dll, and libusb-1.0.dll are provided for convenience. You can download and upgrade them yourself.
 
@@ -9,9 +9,19 @@ glfw3.dll, turbojpeg.dll, and libusb-1.0.dll are provided for convenience. You c
 
 You must have or install respective version of VC++ runtime, if you are using a -vs201x release variant.
 
-You must install the libusbK driver:
+To try out the OpenNI2 example, copy bin\*.dll to C:\Program Files\OpenNI2\Tools\OpenNI2\Drivers, then run C:\Program Files\OpenNI\Tools\NiViewer.exe.
 
-libusbK driver
+You must choose one USB driver backend and follow respective instructions:
+
+a. UsbDk backend: 
+
+1. (Windows 7) You must first install Microsoft Security Advisory 3033929 otherwise your USB keyboards and mice will stop working!
+2. Download the latest x64 installer from https://github.com/daynix/UsbDk/releases, install it.
+3. If UsbDk somehow does not work, uninstall UsbDk and follow the libusbK instructions.
+
+UsbDk overrides libusbK and Microsoft SDK. If you want to use the latter two, just uninstall UsbDk.
+
+b. libusbK backend:
 
 You don't need the Kinect for Windows v2 SDK to build and install libfreenect2, though it doesn't hurt to have it too. You don't need to uninstall the SDK or the driver before doing this procedure.
 
