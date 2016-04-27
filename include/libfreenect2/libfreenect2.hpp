@@ -164,7 +164,7 @@ public:
    *
    * FrameListener will receive frames when the device is running.
    *
-   * @return Undefined. To be defined in 0.2.
+   * @return true if ok, false if error.
    */
   virtual bool start() = 0;
 
@@ -173,19 +173,19 @@ public:
    *
    * @param rgb Whether to enable RGB stream.
    * @param depth Whether to enable depth stream.
-   * @return Undefined. To be defined in 0.2.
+   * @return true if ok, false if error.
    */
   virtual bool startStreams(bool rgb, bool depth) = 0;
 
   /** Stop data processing.
    *
-   * @return Undefined. To be defined in 0.2.
+   * @return true if ok, false if error.
    */
   virtual bool stop() = 0;
 
   /** Shut down the device.
    *
-   * @return Undefined. To be defined in 0.2.
+   * @return true if ok, false if error.
    */
   virtual bool close() = 0;
 };

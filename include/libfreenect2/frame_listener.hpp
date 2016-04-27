@@ -47,7 +47,7 @@ class LIBFREENECT2_API Frame
   /** Available types of frames. */
   enum Type
   {
-    Color = 1, ///< 1920x1080
+    Color = 1, ///< 1920x1080. BGRX or RGBX.
     Ir = 2,    ///< 512x424 float. Range is [0.0, 65535.0].
     Depth = 4  ///< 512x424 float, unit: millimeter. Non-positive, NaN, and infinity are invalid or missing data.
   };
