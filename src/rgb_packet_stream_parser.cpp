@@ -98,7 +98,7 @@ void RgbPacketStreamParser::onDataReceived(unsigned char* buffer, size_t length)
     }
     else
     {
-      LOG_ERROR << "buffer overflow!";
+      LOG_INFO << "buffer overflow!";
       fb.length = 0;
       return;
     }
@@ -115,14 +115,14 @@ void RgbPacketStreamParser::onDataReceived(unsigned char* buffer, size_t length)
 
       if (fb.length != footer->packet_size || raw_packet->sequence != footer->sequence)
       {
-        LOG_ERROR << "packetsize or sequence doesn't match!";
+        LOG_INFO << "packetsize or sequence doesn't match!";
         fb.length = 0;
         return;
       }
 
       if (fb.length - sizeof(RawRgbPacket) - sizeof(RgbPacketFooter) < footer->filler_length)
       {
-        LOG_ERROR << "not enough space for packet filler!";
+        LOG_INFO << "not enough space for packet filler!";
         fb.length = 0;
         return;
       }
@@ -142,7 +142,7 @@ void RgbPacketStreamParser::onDataReceived(unsigned char* buffer, size_t length)
 
       if (jpeg_length == 0)
       {
-        LOG_ERROR << "no JPEG detected!";
+        LOG_INFO << "no JPEG detected!";
         fb.length = 0;
         return;
       }
