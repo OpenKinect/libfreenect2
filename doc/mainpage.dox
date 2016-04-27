@@ -25,16 +25,16 @@ Features
 
 ### Issues and Future Work
 
-- Audio. There is basic access to Kinect v2's audio via ALSA (Linux). However,
-  this is directional audio with intricate calibration, which is probably
-  beyond the scope of this image processing library.
-- Unstable USB and crashes. Due to differences in a vast range of hardware, it
-  is very hard to test them all. Also, the libusb usage in %libfreenect2 may
-  miss a lot of error checking and simply crash. This can be improved.
-- Firmware upload. This is being worked on. Use Windows for this right now.
+- Audio. Raw audio is accessible via Linux USB audio. There is no support for
+  the calibrated directional audio.
+- Unstable USB and crashes. Due to differences in driver support, USB problems
+  can happen a lot. Error handling in %libfreenect2 is not fully verified for
+  production use.
+- Firmware upload. The protocol has been reverse engineered, but use Windows
+  for this right now.
 - Example of multiple Kinects.
 - Example utility of dumping image frames.
-- API for pausing, or on-demand processing.
+- API for on-demand processing.
 - Verification of systematic errors through accurate calibration.
 - Bindings for C, Python, Java, etc.
 
@@ -53,6 +53,20 @@ v2's USB protocols, depth decoding algorithms, calibration algorithms, and how
 to implement performance optimizers, you are encouraged to read the source
 code. The source code is the updated and authoritative reference for any
 functionalities.
+
+Environment Variables
+=====================
+
+There are a few environment variables providing controls for both end-users and
+programmers:
+
+* `LIBFREENECT2_LOGGER_LEVEL`: The default logging level if not explicitly set
+  by the code.
+* `LIBFREENECT2_PIPELINE`: The default pipeline if not explicitly set by the
+  code.
+* `LIBFREENECT2_RGB_TRANSFER_SIZE`, `LIBFREENECT2_RGB_TRANSFERS`,
+  `LIBFREENECT2_IR_PACKETS`, `LIBFREENECT2_IR_TRANSFERS`: Tuning the USB buffer
+  sizes. Use only if you know what you are doing.
 
 You can also see the following walkthrough for the most basic usage.
 
