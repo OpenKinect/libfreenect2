@@ -9,7 +9,7 @@
 
 IF(PKG_CONFIG_FOUND)
   IF(DEPENDS_DIR) #Otherwise use System pkg-config path
-    SET(ENV{PKG_CONFIG_PATH} "${DEPENDS_DIR}/libusb/lib/pkgconfig")
+    SET(ENV{PKG_CONFIG_PATH} "$ENV{PKG_CONFIG_PATH}:${DEPENDS_DIR}/libusb/lib/pkgconfig")
   ENDIF()
   SET(MODULE "libusb-1.0")
   IF(CMAKE_SYSTEM_NAME MATCHES "Linux")
