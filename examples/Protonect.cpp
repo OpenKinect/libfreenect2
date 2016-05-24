@@ -145,6 +145,7 @@ int main(int argc, char *argv[])
 
 /// [context]
   libfreenect2::Freenect2 freenect2;
+  libfreenect2::Freenect2 freenect2b;
   libfreenect2::Freenect2Device *dev = 0;
   libfreenect2::PacketPipeline *pipeline = 0;
 /// [context]
