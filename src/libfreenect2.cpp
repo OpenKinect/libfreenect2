@@ -603,7 +603,7 @@ void Freenect2DeviceImpl::setIrCameraParams(const Freenect2Device::IrCameraParam
 
 Freenect2Device::Config::Config() :
   MinDepth(0.5f),
-  MaxDepth(4.5f),
+  MaxDepth(4.5f), //set to > 8000 for best performance when using the kde pipeline
   EnableBilateralFilter(true),
   EnableEdgeAwareFilter(true) {}
 
@@ -1020,7 +1020,7 @@ Freenect2Device *Freenect2Impl::openDevice(int idx, const PacketPipeline *pipeli
   {
     r = libusb_reset_device(dev_handle);
 
-    if(r == LIBUSB_ERROR_NOT_FOUND) 
+    if(r == LIBUSB_ERROR_NOT_FOUND)
     {
       // From libusb documentation:
       // "If the reset fails, the descriptors change, or the previous state

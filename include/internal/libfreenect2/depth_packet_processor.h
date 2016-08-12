@@ -90,6 +90,13 @@ public:
     float edge_avg_delta_threshold;
     float max_edge_count;
 
+    float kde_sigma_sqr;
+    float unwrapping_likelihood_scale;
+    float phase_confidence_scale;
+    float kde_threshold;
+    size_t kde_neigborhood_size;
+    size_t num_hyps;
+
     float min_depth;
     float max_depth;
 
@@ -184,6 +191,37 @@ protected:
 private:
   OpenCLDepthPacketProcessorImpl *impl_;
 };
+
+/*
+ * The class below implement a depth packet processor using the phase unwrapping
+ * algorithm described in the paper "Efficient Phase Unwrapping using Kernel
+ * Density Estimation", ECCV 2016, Felix Järemo Lawin, Per-Erik Forssen and
+ * Hannes Ovren, see http://www.cvl.isy.liu.se/research/datasets/kinect2-dataset/.
+ */
+class OpenCLKdeDepthPacketProcessorImpl;
+
+/** Depth packet processor using OpenCL. */
+class OpenCLKdeDepthPacketProcessor : public DepthPacketProcessor
+{
+public:
+  OpenCLKdeDepthPacketProcessor(const int deviceId = -1);
+  virtual ~OpenCLKdeDepthPacketProcessor();
+  virtual void setConfiguration(const libfreenect2::DepthPacketProcessor::Config &config);
+
+  virtual void loadP0TablesFromCommandResponse(unsigned char* buffer, size_t buffer_length);
+
+  virtual void loadXZTables(const float *xtable, const float *ztable);
+  virtual void loadLookupTable(const short *lut);
+
+  virtual bool good();
+  virtual const char *name() { return "OpenCLKde"; }
+
+  virtual void process(const DepthPacket &packet);
+protected:
+  virtual Allocator *getAllocator();
+private:
+  OpenCLKdeDepthPacketProcessorImpl *impl_;
+};
 #endif // LIBFREENECT2_WITH_OPENCL_SUPPORT
 
 #ifdef LIBFREENECT2_WITH_CUDA_SUPPORT
@@ -209,6 +247,36 @@ protected:
   virtual Allocator *getAllocator();
 private:
   CudaDepthPacketProcessorImpl *impl_;
+};
+
+/*
+ * The class below implement a depth packet processor using the phase unwrapping
+ * algorithm described in the paper "Efficient Phase Unwrapping using Kernel
+ * Density Estimation", ECCV 2016, Felix Järemo Lawin, Per-Erik Forssen and
+ * Hannes Ovren, see http://www.cvl.isy.liu.se/research/datasets/kinect2-dataset/.
+ */
+class CudaKdeDepthPacketProcessorImpl;
+
+class CudaKdeDepthPacketProcessor : public DepthPacketProcessor
+{
+public:
+  CudaKdeDepthPacketProcessor(const int deviceId = -1);
+  virtual ~CudaKdeDepthPacketProcessor();
+  virtual void setConfiguration(const libfreenect2::DepthPacketProcessor::Config &config);
+
+  virtual void loadP0TablesFromCommandResponse(unsigned char* buffer, size_t buffer_length);
+
+  virtual void loadXZTables(const float *xtable, const float *ztable);
+  virtual void loadLookupTable(const short *lut);
+
+  virtual bool good();
+  virtual const char *name() { return "CUDAKde"; }
+
+  virtual void process(const DepthPacket &packet);
+protected:
+  virtual Allocator *getAllocator();
+private:
+  CudaKdeDepthPacketProcessorImpl *impl_;
 };
 #endif // LIBFREENECT2_WITH_CUDA_SUPPORT
 

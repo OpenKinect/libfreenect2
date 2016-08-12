@@ -77,8 +77,24 @@ DepthPacketProcessor::Parameters::Parameters()
   edge_avg_delta_threshold = 0.0f;
   max_edge_count  = 5.0f;
 
+/*
+ * These are parameters for the method described in "Efficient Phase Unwrapping
+ * using Kernel Density Estimation", ECCV 2016, Felix Järemo Lawin, Per-Erik Forssen and
+ * Hannes Ovren, see http://www.cvl.isy.liu.se/research/datasets/kinect2-dataset/.
+ */
+
+  kde_sigma_sqr = 0.0239282226563f; //the scale of the kernel in the KDE, h in eq (13).
+  unwrapping_likelihood_scale = 2.0f; //scale parameter for the unwrapping likelihood, s_1^2 in eq (15).
+  phase_confidence_scale = 3.0f; //scale parameter for the phase likelihood, s_2^2 in eq (23)
+  kde_threshold = 0.5f; //threshold on the KDE output in eq (25), defines the inlier/outlier rate trade-off
+
+  kde_neigborhood_size = 5; //spatial support of the KDE, defines a filter size of (2*kde_neigborhood_size+1 x 2*kde_neigborhood_size+1)
+  num_hyps = 2; //number of phase unwrapping hypothesis considered by the KDE in each pixel. Implemented values are 2 and 3.
+  //a large kde_neigborhood_size improves performance but may remove fine structures and makes the processing slower.
+  //setting num_hyp to 3 improves the performance slightly but makes processing slower
+
   min_depth = 500.0f;
-  max_depth = 4500.0f;
+  max_depth = 4500.0f; //set to > 8000 for best performance when using the kde pipeline
 }
 
 DepthPacketProcessor::DepthPacketProcessor() :
@@ -113,7 +129,7 @@ DumpDepthPacketProcessor::~DumpDepthPacketProcessor(){
 
 void DumpDepthPacketProcessor::process(const DepthPacket &packet) {
   Frame* depth_frame = new Frame(1, 1, packet.buffer_length);
-  
+
   depth_frame->timestamp = packet.timestamp;
   depth_frame->sequence = packet.sequence;
   depth_frame->format = Frame::Raw;
@@ -134,9 +150,9 @@ void DumpDepthPacketProcessor::process(const DepthPacket &packet) {
   }
   depth_frame = NULL;
 }
-  
+
 const unsigned char* DumpDepthPacketProcessor::getP0Tables() { return p0table_; }
-  
+
 const float* DumpDepthPacketProcessor::getXTable() { return xtable_; }
 const float* DumpDepthPacketProcessor::getZTable() { return ztable_; }
 
@@ -146,7 +162,7 @@ void DumpDepthPacketProcessor::loadP0TablesFromCommandResponse(unsigned char* bu
   p0table_ = new unsigned char[buffer_length];
   std::memcpy(p0table_, buffer, buffer_length);
 }
-  
+
 void DumpDepthPacketProcessor::loadXZTables(const float *xtable, const float *ztable) {
   xtable_ = new float[TABLE_SIZE];
   std::memcpy(xtable_, xtable, TABLE_SIZE * sizeof(float));
@@ -154,7 +170,7 @@ void DumpDepthPacketProcessor::loadXZTables(const float *xtable, const float *zt
   ztable_ = new float[TABLE_SIZE];
   std::memcpy(ztable_, ztable, TABLE_SIZE * sizeof(float));
 }
-  
+
 void DumpDepthPacketProcessor::loadLookupTable(const short *lut) {
   lut_ = new short[LUT_SIZE];
   std::memcpy(lut_, lut, LUT_SIZE * sizeof(short));
