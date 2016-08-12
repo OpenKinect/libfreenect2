@@ -200,11 +200,29 @@ int main(int argc, char *argv[])
       std::cout << "OpenCL pipeline is not supported!" << std::endl;
 #endif
     }
+		else if(arg == "clkde")
+    {
+#ifdef LIBFREENECT2_WITH_OPENCL_SUPPORT
+      if(!pipeline)
+        pipeline = new libfreenect2::OpenCLKdePacketPipeline(deviceId);
+#else
+      std::cout << "OpenCL pipeline is not supported!" << std::endl;
+#endif
+    }
     else if(arg == "cuda")
     {
 #ifdef LIBFREENECT2_WITH_CUDA_SUPPORT
       if(!pipeline)
         pipeline = new libfreenect2::CudaPacketPipeline(deviceId);
+#else
+      std::cout << "CUDA pipeline is not supported!" << std::endl;
+#endif
+    }
+ 		else if(arg == "cudakde")
+    {
+#ifdef LIBFREENECT2_WITH_CUDA_SUPPORT
+      if(!pipeline)
+        pipeline = new libfreenect2::CudaKdePacketPipeline(deviceId);
 #else
       std::cout << "CUDA pipeline is not supported!" << std::endl;
 #endif

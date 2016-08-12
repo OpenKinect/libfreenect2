@@ -603,7 +603,7 @@ void Freenect2DeviceImpl::setIrCameraParams(const Freenect2Device::IrCameraParam
 
 Freenect2Device::Config::Config() :
   MinDepth(0.5f),
-  MaxDepth(4.5f),
+  MaxDepth(18.75f),
   EnableBilateralFilter(true),
   EnableEdgeAwareFilter(true) {}
 
