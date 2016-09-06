@@ -331,7 +331,7 @@ void calculatePhaseUnwrappingVar(float3 ir, float* var0, float* var1, float* var
 
 }
 
-void kernel processPixelStage2_phase(global const float3 *a_in, global const float3 *b_in, global float *phase_1, global float *phase_2, global float* conf1, global float* conf2, global float *ir_sums)
+void kernel processPixelStage2_phase(global const float3 *a_in, global const float3 *b_in, global float4 *phase_conf_vec, global float *ir_sums)
 {
   const uint i = get_global_id(0);
 
@@ -349,8 +349,8 @@ void kernel processPixelStage2_phase(global const float3 *a_in, global const flo
 	ir = select(ir, (float3)(0.0f), isnan(ir));
 	
   float ir_sum = ir.x + ir.y + ir.z;
-  float ir_min = min(ir.x, min(ir.y, ir.z));
-  float ir_max = max(ir.x, max(ir.y, ir.z));
+  //float ir_min = min(ir.x, min(ir.y, ir.z));
+  //float ir_max = max(ir.x, max(ir.y, ir.z));
 
 	float phase_first = 0.0;
 	float phase_second = 0.0;
@@ -366,9 +366,6 @@ void kernel processPixelStage2_phase(global const float3 *a_in, global const flo
 
 	//rank and extract two most likely phase hypothises
 	phaseUnWrapper(t0, t1, t2, &phase_first, &phase_second, &w_err1, &w_err2);
-
-	phase_1[i] = phase_first;
-	phase_2[i] = phase_second;
 		
 	float phase_conf;
 
@@ -394,13 +391,12 @@ void kernel processPixelStage2_phase(global const float3 *a_in, global const flo
 	w_err1 = phase_first > MAX_DEPTH*9.0f/18750.0f ? 0.0f: w_err1;
 	w_err2 = phase_second > MAX_DEPTH*9.0f/18750.0f ? 0.0f: w_err2;
 
-	conf1[i] = w_err1;
-	conf2[i] = w_err2;
+	phase_conf_vec[i] = (float4)(phase_first,phase_second, w_err1, w_err2);
 
-	ir_sums[i] = ir_sum;
+	//ir_sums[i] = ir_sum;
 }
 
-void kernel filter_kde(global const float *phase_1, global const float *phase_2, global const float* conf1, global const float* conf2, global const float* gauss_filt_array, global const float* z_table, global const float* x_table, global float* depth, global float* ir_sums)
+void kernel filter_kde(global const float4* phase_conf_vec, constant float* gauss_filt_array, constant float* z_table, constant float* x_table, global float* depth, global float* ir_sums)
 {
 	const uint i = get_global_id(0);
 	float kde_val_1, kde_val_2;
@@ -419,8 +415,8 @@ void kernel filter_kde(global const float *phase_1, global const float *phase_2,
 
   kde_val_1 = 0.0f;
 	kde_val_2 = 0.0f;
-	float phase_first = phase_1[i];
-	float phase_second = phase_2[i];
+	float2 phase_local = phase_conf_vec[i].xy;
+	//float phase_second = phase_conf_vec[i].y;
 	if(loadX >= 1 && loadX < 511 && loadY >= 0 && loadY<424)
   {
     sum_1=0.0f;
@@ -432,22 +428,24 @@ void kernel filter_kde(global const float *phase_1, global const float *phase_2,
 		float phase_2_local;
 		float conf1_local;
 		float conf2_local;
+    float4 phase_conf_local;
 		uint ind;
 		//float ir_val = ir_sums[i];
-		float phase_first_val = phase_first;
-		float phase_second_val = phase_second;
-		float ir_local;
+		float phase_first_val = phase_local.x;
+		float phase_second_val = phase_local.y;
+		//float ir_local;
 		//calculate KDE for all hypothesis within the neigborhood
 		for(k=from_y; k<=to_y; k++)
 		  for(l=from_x; l<=to_x; l++)
 	    {
 				ind = (loadY+k)*512+(loadX+l);
-				conf1_local = conf1[ind];
-				conf2_local = conf2[ind];
+				phase_conf_local = phase_conf_vec[ind];
+				conf1_local = phase_conf_local.z;
+				conf2_local = phase_conf_local.w;
 
 				//ir_local = ir_sums[ind];
-				phase_1_local = phase_1[ind];
-				phase_2_local = phase_2[ind];
+				phase_1_local = phase_conf_local.x;
+				phase_2_local = phase_conf_local.y;
 				
 				gauss = gauss_filt_array[k+KDE_NEIGBORHOOD_SIZE]*gauss_filt_array[l+KDE_NEIGBORHOOD_SIZE];
 				sum_gauss += gauss*(conf1_local+conf2_local);
@@ -461,7 +459,7 @@ void kernel filter_kde(global const float *phase_1, global const float *phase_2,
 	//select hypothesis
 	int val_ind = kde_val_2 <= kde_val_1 ? 1: 0;
 
-	float phase_final = val_ind ? phase_first: phase_second;
+	float phase_final = val_ind ? phase_local.x: phase_local.y;
 	float max_val = val_ind ? kde_val_1: kde_val_2;
 
 	float zmultiplier = z_table[i];
