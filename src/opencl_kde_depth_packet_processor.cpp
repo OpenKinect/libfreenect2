@@ -567,7 +567,6 @@ public:
 		  CHECK_CL_RETURN(kernel_processPixelStage2_phase.setArg(5, buf_conf_1));
 			CHECK_CL_RETURN(kernel_processPixelStage2_phase.setArg(6, buf_conf_2));
 			CHECK_CL_RETURN(kernel_processPixelStage2_phase.setArg(7, buf_conf_3));
-			CHECK_CL_RETURN(kernel_processPixelStage2_phase.setArg(8, buf_ir_sum));
 
 	    CHECK_CL_PARAM(kernel_filter_kde = cl::Kernel(program, "filter_kde3", &err));
 		  CHECK_CL_RETURN(kernel_filter_kde.setArg(0, buf_phase_1));
@@ -580,7 +579,6 @@ public:
 			CHECK_CL_RETURN(kernel_filter_kde.setArg(7, buf_z_table));
 			CHECK_CL_RETURN(kernel_filter_kde.setArg(8, buf_x_table));
 			CHECK_CL_RETURN(kernel_filter_kde.setArg(9, buf_depth));
-			CHECK_CL_RETURN(kernel_filter_kde.setArg(10, buf_ir_sum));
 		}
 		else
 		{
@@ -588,21 +586,13 @@ public:
 		  CHECK_CL_RETURN(kernel_processPixelStage2_phase.setArg(0, config.EnableBilateralFilter ? buf_a_filtered : buf_a));
 		  CHECK_CL_RETURN(kernel_processPixelStage2_phase.setArg(1, config.EnableBilateralFilter ? buf_b_filtered : buf_b));
 		  CHECK_CL_RETURN(kernel_processPixelStage2_phase.setArg(2, buf_phase_conf));
-		  /*CHECK_CL_RETURN(kernel_processPixelStage2_phase.setArg(3, buf_phase_2));
-		  CHECK_CL_RETURN(kernel_processPixelStage2_phase.setArg(4, buf_conf_1));
-			CHECK_CL_RETURN(kernel_processPixelStage2_phase.setArg(5, buf_conf_2));*/
-			CHECK_CL_RETURN(kernel_processPixelStage2_phase.setArg(3, buf_ir_sum));
 
 	    CHECK_CL_PARAM(kernel_filter_kde = cl::Kernel(program, "filter_kde", &err));
 		  CHECK_CL_RETURN(kernel_filter_kde.setArg(0, buf_phase_conf));
-		 /*CHECK_CL_RETURN(kernel_filter_kde.setArg(1, buf_phase_2));
-		  CHECK_CL_RETURN(kernel_filter_kde.setArg(2, buf_conf_1));
-			CHECK_CL_RETURN(kernel_filter_kde.setArg(3, buf_conf_2));*/
 			CHECK_CL_RETURN(kernel_filter_kde.setArg(1, buf_gaussian_kernel));
 			CHECK_CL_RETURN(kernel_filter_kde.setArg(2, buf_z_table));
 			CHECK_CL_RETURN(kernel_filter_kde.setArg(3, buf_x_table));
 			CHECK_CL_RETURN(kernel_filter_kde.setArg(4, buf_depth));
-			CHECK_CL_RETURN(kernel_filter_kde.setArg(5, buf_ir_sum));
 		}
 
     programInitialized = true;
