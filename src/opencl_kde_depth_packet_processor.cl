@@ -278,16 +278,22 @@ void phaseUnWrapper(float t0, float t1,float t2, float* phase_first, float* phas
 void calculatePhaseUnwrappingVarDirect(float3 ir, float* var0, float* var1, float* var2)
 {
 	//Learning on amplitude gamma0*a+gamma1*a^2+gamma2
-	// s0_est = [0.826849742438142 -0.003233242852675 -3.302669070396207]; 
-	// s1_est = [1.214266793857512 -0.005810826339530 -3.863119924097905]; 
-	// s2_est = [0.610145746418116 -0.001136792329934 -2.846144420368535]; 
-	float q0 = 0.82684974*ir.x-0.00323324f*ir.x*ir.x-3.86311992f;
-	float q1 = 1.2142668f*ir.y-0.005810826f*ir.y*ir.y-2.94287151f;
-	float q2 = 0.610145746f*ir.z-0.0011367923f*ir.z*ir.z-2.8461444204f;
+	//gamma_0 = [0.7919451669,-0.002363097609,-3.088285897]; root = 5.244403474
+	//gamma_1 = [1.214266794,-0.00581082634,-3.863119924];   root = 4.084834279
+	//gamma_2 = [0.6101457464,-0.00113679233,-2.84614442];   root = 6.379474529
+
+	float alpha_max = 0.5f*M_PI_F;
+
+	float q0 = ir.x > 5.244404f ? 0.7919451669f*ir.x-0.002363097609f*ir.x*ir.x-3.088285897f : 1.0f/alpha_max;
+	float q1 = ir.y > 4.084835 ? 1.214266794f*ir.y-0.00581082634f*ir.y*ir.y-3.863119924f : 1.0f/alpha_max;
+	float q2 = ir.z > 6.379475 ? 0.6101457464f*ir.z-0.00113679233f*ir.z*ir.z-2.84614442f : 1.0f/alpha_max;
 
   float alpha0 = 1.0f/q0;
+	alpha0 = alpha0 > alpha_max? alpha_max : alpha0;
 	float alpha1 = 1.0f/q1;
+	alpha1 = alpha1 > alpha_max ? alpha_max : alpha1;
 	float alpha2 = 1.0f/q2;
+	alpha2 = alpha2 > alpha_max ? alpha_max : alpha2;
 
 	alpha0 = alpha0 < 0.001f ? 0.001f: alpha0;
 	alpha1 = alpha1 < 0.001f ? 0.001f: alpha1;
@@ -296,6 +302,7 @@ void calculatePhaseUnwrappingVarDirect(float3 ir, float* var0, float* var1, floa
 	*var0 = alpha0*alpha0;
 	*var1 = alpha1*alpha1;
 	*var2 = alpha2*alpha2;
+
 
 }
 
@@ -306,20 +313,20 @@ void calculatePhaseUnwrappingVarDirect(float3 ir, float* var0, float* var1, floa
 void calculatePhaseUnwrappingVar(float3 ir, float* var0, float* var1, float* var2)
 {
 	//Learning on amplitude gamma0*a+gamma1*a^2+gamma2
-	// s0_est = [0.752836906983593 -0.001906531018764 -2.644774735852631]; root = 4.902247094595301
-	// s1_est = [1.084642404842933 -0.002607599266011 -2.942871512263318]; root = 3.6214441719887
-	// s2_est = [0.615468609808938 -0.001252148462401 -2.764589412408904]; root = 6.194693909705903
+	// gamma_0 = [0.8211288451,-0.002601348899,-3.549793908]; root = 5.641736705
+	// gamma_1 = [1.259642407,-0.005478390508,-4.335841127];  root = 4.317051817
+	// gamma_2 = [0.6447928035,-0.0009627273649,-3.368205575];root = 6.844535295
 
-	float q0 = 0.7528369f*ir.x-0.001906531f*ir.x*ir.x-2.64477474f;
-	float q1 = 1.0846424f*ir.y-0.002607599f*ir.y*ir.y-2.94287151f;
-	float q2 = 0.61546861f*ir.z-0.00125214846f*ir.z*ir.z-2.7645894124f;
+	float q0 = 0.8211288451f*ir.x-0.002601348899f*ir.x*ir.x-3.549793908f;
+	float q1 = 1.259642407f*ir.y-0.005478390508f*ir.y*ir.y-4.335841127f;
+	float q2 = 0.6447928035f*ir.z-0.0009627273649f*ir.z*ir.z-3.368205575f;
 	q0*=q0;
 	q1*=q1;
 	q2*=q2;
 
-	float alpha0 = q0>1.0f ? atan(sqrt(1.0f/(q0-1.0f))) : ir.x > 4.88786f/4.0f ? 4.88786f*0.5f*M_PI_F/ir.x : 2.0f*M_PI_F;
-	float alpha1 = q1>1.0f ? atan(sqrt(1.0f/(q1-1.0f))) : ir.y > 3.621444f/4.0f ?  3.621444f*0.5f*M_PI_F/ir.y : 2.0f*M_PI_F;
-	float alpha2 = q2>1.0f ? atan(sqrt(1.0f/(q2-1.0f))) : ir.z > 6.19469391f/4.0f ? 6.19469391f*0.5f*M_PI_F/ir.z : 2.0f*M_PI_F;
+	float alpha0 = q0>1.0f ? atan(sqrt(1.0f/(q0-1.0f))) : ir.x > 5.64173671f/4.0f ? 5.64173671f*0.5f*M_PI_F/ir.x : 2.0f*M_PI_F;
+	float alpha1 = q1>1.0f ? atan(sqrt(1.0f/(q1-1.0f))) : ir.y > 4.31705182f/4.0f ?  4.31705182f*0.5f*M_PI_F/ir.y : 2.0f*M_PI_F;
+	float alpha2 = q2>1.0f ? atan(sqrt(1.0f/(q2-1.0f))) : ir.z > 6.84453530f/4.0f ? 6.84453530f*0.5f*M_PI_F/ir.z : 2.0f*M_PI_F;
 
 	alpha0 = alpha0 < 0.001f ? 0.001f: alpha0;
 	alpha1 = alpha1 < 0.001f ? 0.001f: alpha1;
