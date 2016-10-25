@@ -429,7 +429,8 @@ namespace Freenect2Driver
     OniStatus initialize(oni::driver::DeviceConnectedCallback connectedCallback, oni::driver::DeviceDisconnectedCallback disconnectedCallback, oni::driver::DeviceStateChangedCallback deviceStateChangedCallback, void* pCookie)
     {
       DriverBase::initialize(connectedCallback, disconnectedCallback, deviceStateChangedCallback, pCookie);
-      for (int i = 0; i < freenect2.enumerateDevices(); i++)
+      int devices_found = freenect2.enumerateDevices();
+      for (int i = 0; i < devices_found; i++)
       {
         std::string uri = devid_to_uri(i);
         const char* modes_c[] = {
