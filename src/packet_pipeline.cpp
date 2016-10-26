@@ -153,12 +153,6 @@ OpenCLPacketPipeline::OpenCLPacketPipeline(const int deviceId) : deviceId(device
 
 OpenCLPacketPipeline::~OpenCLPacketPipeline() { }
 
-/* 
- * The functions below implement a depth packet processor using the phase unwrapping 
- * algorithm described in the paper "Efficient Phase Unwrapping using Kernel
- * Density Estimation", ECCV 2016, Felix Järemo Lawin, Per-Erik Forssen and 
- * Hannes Ovren, see http://www.cvl.isy.liu.se/research/datasets/kinect2-dataset/. 
- */
 
 OpenCLKdePacketPipeline::OpenCLKdePacketPipeline(const int deviceId) : deviceId(deviceId)
 {
@@ -174,13 +168,6 @@ CudaPacketPipeline::CudaPacketPipeline(const int deviceId) : deviceId(deviceId)
   comp_->initialize(getDefaultRgbPacketProcessor(), new CudaDepthPacketProcessor(deviceId));
 }
 
-
-/* 
- * The functions below implement a depth packet processor using the phase unwrapping 
- * algorithm described in the paper "Efficient Phase Unwrapping using Kernel
- * Density Estimation", ECCV 2016, Felix Järemo Lawin, Per-Erik Forssen and 
- * Hannes Ovren, see http://www.cvl.isy.liu.se/research/datasets/kinect2-dataset/. 
- */
 CudaKdePacketPipeline::~CudaKdePacketPipeline() { }
 
 CudaKdePacketPipeline::CudaKdePacketPipeline(const int deviceId) : deviceId(deviceId)

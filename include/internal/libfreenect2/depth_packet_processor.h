@@ -90,12 +90,12 @@ public:
     float edge_avg_delta_threshold;
     float max_edge_count;
 
-		float kde_sigma_sqr;
-		float unwrapping_likelihood_scale;
-		float phase_confidence_scale;
-		float kde_threshold; 
-		size_t kde_neigborhood_size;
-		size_t num_hyps;
+    float kde_sigma_sqr;
+    float unwrapping_likelihood_scale;
+    float phase_confidence_scale;
+    float kde_threshold; 
+    size_t kde_neigborhood_size;
+    size_t num_hyps;
 
     float min_depth;
     float max_depth;
@@ -270,7 +270,7 @@ public:
   virtual void loadLookupTable(const short *lut);
 
   virtual bool good();
-  virtual const char *name() { return "CUDAKDE"; }
+  virtual const char *name() { return "CUDAKde"; }
 
   virtual void process(const DepthPacket &packet);
 protected:

@@ -190,7 +190,7 @@ public:
   size_t buf_x_table_size;
   size_t buf_z_table_size;
   size_t buf_packet_size;
-	size_t buf_gauss_kernel_size;
+  size_t buf_gauss_kernel_size;
 
   cl::Buffer buf_lut11to16;
   cl::Buffer buf_p0_table;
@@ -220,12 +220,12 @@ public:
   cl::Buffer buf_depth;
   cl::Buffer buf_ir_sum;
   cl::Buffer buf_conf_1;
-	cl::Buffer buf_conf_2;
-	cl::Buffer buf_conf_3;
-	cl::Buffer buf_phase_1;
-	cl::Buffer buf_phase_2;
-	cl::Buffer buf_phase_3;
-	cl::Buffer buf_gaussian_kernel;
+  cl::Buffer buf_conf_2;
+  cl::Buffer buf_conf_3;
+  cl::Buffer buf_phase_1;
+  cl::Buffer buf_phase_2;
+  cl::Buffer buf_phase_3;
+  cl::Buffer buf_gaussian_kernel;
   cl::Buffer buf_phase_conf;
 
   bool deviceInitialized;
@@ -345,11 +345,11 @@ public:
     oss << " -D MIN_DEPTH=" << config.MinDepth * 1000.0f << "f";
     oss << " -D MAX_DEPTH=" << config.MaxDepth * 1000.0f << "f";
 
-		oss << " -D KDE_SIGMA_SQR="<<params.kde_sigma_sqr<<"f";
-		oss << " -D KDE_NEIGBORHOOD_SIZE="<<params.kde_neigborhood_size;
-		oss << " -D UNWRAPPING_LIKELIHOOD_SCALE="<<params.unwrapping_likelihood_scale<<"f";
-		oss << " -D PHASE_CONFIDENCE_SCALE="<<params.phase_confidence_scale<<"f";
-		oss << " -D KDE_THRESHOLD="<<params.kde_threshold<<"f";
+    oss << " -D KDE_SIGMA_SQR="<<params.kde_sigma_sqr<<"f";
+    oss << " -D KDE_NEIGBORHOOD_SIZE="<<params.kde_neigborhood_size;
+    oss << " -D UNWRAPPING_LIKELIHOOD_SCALE="<<params.unwrapping_likelihood_scale<<"f";
+    oss << " -D PHASE_CONFIDENCE_SCALE="<<params.phase_confidence_scale<<"f";
+    oss << " -D KDE_THRESHOLD="<<params.kde_threshold<<"f";
 
     oss << " -cl-mad-enable -cl-no-signed-zeros -cl-fast-relaxed-math";
     options = oss.str();
@@ -483,14 +483,14 @@ public:
     buf_x_table_size = IMAGE_SIZE * sizeof(cl_float);
     buf_z_table_size = IMAGE_SIZE * sizeof(cl_float);
     buf_packet_size = ((IMAGE_SIZE * 11) / 16) * 10 * sizeof(cl_ushort);
-		buf_gauss_kernel_size = (2*params.kde_neigborhood_size+1)*sizeof(cl_float);
+    buf_gauss_kernel_size = (2*params.kde_neigborhood_size+1)*sizeof(cl_float);
 
     CHECK_CL_PARAM(buf_lut11to16 = cl::Buffer(context, CL_MEM_READ_ONLY, buf_lut11to16_size, NULL, &err));
     CHECK_CL_PARAM(buf_p0_table = cl::Buffer(context, CL_MEM_READ_ONLY, buf_p0_table_size, NULL, &err));
     CHECK_CL_PARAM(buf_x_table = cl::Buffer(context, CL_MEM_READ_ONLY, buf_x_table_size, NULL, &err));
     CHECK_CL_PARAM(buf_z_table = cl::Buffer(context, CL_MEM_READ_ONLY, buf_z_table_size, NULL, &err));
     CHECK_CL_PARAM(buf_packet = cl::Buffer(context, CL_MEM_READ_ONLY, buf_packet_size, NULL, &err));
-		CHECK_CL_PARAM(buf_gaussian_kernel = cl::Buffer(context, CL_MEM_READ_ONLY, buf_gauss_kernel_size, NULL, &err));
+    CHECK_CL_PARAM(buf_gaussian_kernel = cl::Buffer(context, CL_MEM_READ_ONLY, buf_gauss_kernel_size, NULL, &err));
 
     //Read-Write
     buf_a_size = IMAGE_SIZE * sizeof(cl_float3);
@@ -513,16 +513,16 @@ public:
     CHECK_CL_PARAM(buf_edge_test = cl::Buffer(context, CL_MEM_READ_WRITE, buf_edge_test_size, NULL, &err));
     CHECK_CL_PARAM(buf_depth = cl::Buffer(context, CL_MEM_READ_WRITE, buf_depth_size, NULL, &err));
     CHECK_CL_PARAM(buf_ir_sum = cl::Buffer(context, CL_MEM_READ_WRITE, buf_ir_sum_size, NULL, &err));
-		CHECK_CL_PARAM(buf_phase_1 = cl::Buffer(context, CL_MEM_READ_WRITE, buf_depth_size, NULL, &err));
-		CHECK_CL_PARAM(buf_phase_2 = cl::Buffer(context, CL_MEM_READ_WRITE, buf_depth_size, NULL, &err));
-		CHECK_CL_PARAM(buf_conf_1 = cl::Buffer(context, CL_MEM_READ_WRITE, buf_depth_size, NULL, &err));
-		CHECK_CL_PARAM(buf_conf_2 = cl::Buffer(context, CL_MEM_READ_WRITE, buf_depth_size, NULL, &err));
+    CHECK_CL_PARAM(buf_phase_1 = cl::Buffer(context, CL_MEM_READ_WRITE, buf_depth_size, NULL, &err));
+    CHECK_CL_PARAM(buf_phase_2 = cl::Buffer(context, CL_MEM_READ_WRITE, buf_depth_size, NULL, &err));
+    CHECK_CL_PARAM(buf_conf_1 = cl::Buffer(context, CL_MEM_READ_WRITE, buf_depth_size, NULL, &err));
+    CHECK_CL_PARAM(buf_conf_2 = cl::Buffer(context, CL_MEM_READ_WRITE, buf_depth_size, NULL, &err));
     CHECK_CL_PARAM(buf_phase_conf = cl::Buffer(context, CL_MEM_READ_WRITE, buf_phase_conf_size, NULL, &err));
-		if(params.num_hyps == 3)
-		{
-			CHECK_CL_PARAM(buf_phase_3 = cl::Buffer(context, CL_MEM_READ_WRITE, buf_depth_size, NULL, &err));
-			CHECK_CL_PARAM(buf_conf_3 = cl::Buffer(context, CL_MEM_READ_WRITE, buf_depth_size, NULL, &err));
-		}
+    if(params.num_hyps == 3)
+    {
+      CHECK_CL_PARAM(buf_phase_3 = cl::Buffer(context, CL_MEM_READ_WRITE, buf_depth_size, NULL, &err));
+      CHECK_CL_PARAM(buf_conf_3 = cl::Buffer(context, CL_MEM_READ_WRITE, buf_depth_size, NULL, &err));
+    }
 
     return true;
   }
@@ -556,44 +556,44 @@ public:
     CHECK_CL_RETURN(kernel_filterPixelStage1.setArg(4, buf_b_filtered));
     CHECK_CL_RETURN(kernel_filterPixelStage1.setArg(5, buf_edge_test));
 
-		if(params.num_hyps == 3)
-		{
-		  CHECK_CL_PARAM(kernel_processPixelStage2_phase = cl::Kernel(program, "processPixelStage2_phase3", &err));
-		  CHECK_CL_RETURN(kernel_processPixelStage2_phase.setArg(0, config.EnableBilateralFilter ? buf_a_filtered : buf_a));
-		  CHECK_CL_RETURN(kernel_processPixelStage2_phase.setArg(1, config.EnableBilateralFilter ? buf_b_filtered : buf_b));
-		  CHECK_CL_RETURN(kernel_processPixelStage2_phase.setArg(2, buf_phase_1));
-		  CHECK_CL_RETURN(kernel_processPixelStage2_phase.setArg(3, buf_phase_2));
-		  CHECK_CL_RETURN(kernel_processPixelStage2_phase.setArg(4, buf_phase_3));
-		  CHECK_CL_RETURN(kernel_processPixelStage2_phase.setArg(5, buf_conf_1));
-			CHECK_CL_RETURN(kernel_processPixelStage2_phase.setArg(6, buf_conf_2));
-			CHECK_CL_RETURN(kernel_processPixelStage2_phase.setArg(7, buf_conf_3));
+    if(params.num_hyps == 3)
+    {
+      CHECK_CL_PARAM(kernel_processPixelStage2_phase = cl::Kernel(program, "processPixelStage2_phase3", &err));
+      CHECK_CL_RETURN(kernel_processPixelStage2_phase.setArg(0, config.EnableBilateralFilter ? buf_a_filtered : buf_a));
+      CHECK_CL_RETURN(kernel_processPixelStage2_phase.setArg(1, config.EnableBilateralFilter ? buf_b_filtered : buf_b));
+      CHECK_CL_RETURN(kernel_processPixelStage2_phase.setArg(2, buf_phase_1));
+      CHECK_CL_RETURN(kernel_processPixelStage2_phase.setArg(3, buf_phase_2));
+      CHECK_CL_RETURN(kernel_processPixelStage2_phase.setArg(4, buf_phase_3));
+      CHECK_CL_RETURN(kernel_processPixelStage2_phase.setArg(5, buf_conf_1));
+      CHECK_CL_RETURN(kernel_processPixelStage2_phase.setArg(6, buf_conf_2));
+      CHECK_CL_RETURN(kernel_processPixelStage2_phase.setArg(7, buf_conf_3));
 
-	    CHECK_CL_PARAM(kernel_filter_kde = cl::Kernel(program, "filter_kde3", &err));
-		  CHECK_CL_RETURN(kernel_filter_kde.setArg(0, buf_phase_1));
-		  CHECK_CL_RETURN(kernel_filter_kde.setArg(1, buf_phase_2));
-		  CHECK_CL_RETURN(kernel_filter_kde.setArg(2, buf_phase_3));
-		  CHECK_CL_RETURN(kernel_filter_kde.setArg(3, buf_conf_1));
-			CHECK_CL_RETURN(kernel_filter_kde.setArg(4, buf_conf_2));
-			CHECK_CL_RETURN(kernel_filter_kde.setArg(5, buf_conf_3));
-			CHECK_CL_RETURN(kernel_filter_kde.setArg(6, buf_gaussian_kernel));
-			CHECK_CL_RETURN(kernel_filter_kde.setArg(7, buf_z_table));
-			CHECK_CL_RETURN(kernel_filter_kde.setArg(8, buf_x_table));
-			CHECK_CL_RETURN(kernel_filter_kde.setArg(9, buf_depth));
-		}
-		else
-		{
-		  CHECK_CL_PARAM(kernel_processPixelStage2_phase = cl::Kernel(program, "processPixelStage2_phase", &err));
-		  CHECK_CL_RETURN(kernel_processPixelStage2_phase.setArg(0, config.EnableBilateralFilter ? buf_a_filtered : buf_a));
-		  CHECK_CL_RETURN(kernel_processPixelStage2_phase.setArg(1, config.EnableBilateralFilter ? buf_b_filtered : buf_b));
-		  CHECK_CL_RETURN(kernel_processPixelStage2_phase.setArg(2, buf_phase_conf));
+      CHECK_CL_PARAM(kernel_filter_kde = cl::Kernel(program, "filter_kde3", &err));
+      CHECK_CL_RETURN(kernel_filter_kde.setArg(0, buf_phase_1));
+      CHECK_CL_RETURN(kernel_filter_kde.setArg(1, buf_phase_2));
+      CHECK_CL_RETURN(kernel_filter_kde.setArg(2, buf_phase_3));
+      CHECK_CL_RETURN(kernel_filter_kde.setArg(3, buf_conf_1));
+      CHECK_CL_RETURN(kernel_filter_kde.setArg(4, buf_conf_2));
+      CHECK_CL_RETURN(kernel_filter_kde.setArg(5, buf_conf_3));
+      CHECK_CL_RETURN(kernel_filter_kde.setArg(6, buf_gaussian_kernel));
+      CHECK_CL_RETURN(kernel_filter_kde.setArg(7, buf_z_table));
+      CHECK_CL_RETURN(kernel_filter_kde.setArg(8, buf_x_table));
+      CHECK_CL_RETURN(kernel_filter_kde.setArg(9, buf_depth));
+    }
+    else
+    {
+      CHECK_CL_PARAM(kernel_processPixelStage2_phase = cl::Kernel(program, "processPixelStage2_phase", &err));
+      CHECK_CL_RETURN(kernel_processPixelStage2_phase.setArg(0, config.EnableBilateralFilter ? buf_a_filtered : buf_a));
+      CHECK_CL_RETURN(kernel_processPixelStage2_phase.setArg(1, config.EnableBilateralFilter ? buf_b_filtered : buf_b));
+      CHECK_CL_RETURN(kernel_processPixelStage2_phase.setArg(2, buf_phase_conf));
 
-	    CHECK_CL_PARAM(kernel_filter_kde = cl::Kernel(program, "filter_kde", &err));
-		  CHECK_CL_RETURN(kernel_filter_kde.setArg(0, buf_phase_conf));
-			CHECK_CL_RETURN(kernel_filter_kde.setArg(1, buf_gaussian_kernel));
-			CHECK_CL_RETURN(kernel_filter_kde.setArg(2, buf_z_table));
-			CHECK_CL_RETURN(kernel_filter_kde.setArg(3, buf_x_table));
-			CHECK_CL_RETURN(kernel_filter_kde.setArg(4, buf_depth));
-		}
+      CHECK_CL_PARAM(kernel_filter_kde = cl::Kernel(program, "filter_kde", &err));
+      CHECK_CL_RETURN(kernel_filter_kde.setArg(0, buf_phase_conf));
+      CHECK_CL_RETURN(kernel_filter_kde.setArg(1, buf_gaussian_kernel));
+      CHECK_CL_RETURN(kernel_filter_kde.setArg(2, buf_z_table));
+      CHECK_CL_RETURN(kernel_filter_kde.setArg(3, buf_x_table));
+      CHECK_CL_RETURN(kernel_filter_kde.setArg(4, buf_depth));
+    }
 
     programInitialized = true;
     return true;
@@ -619,7 +619,7 @@ public:
 
     CHECK_CL_RETURN(queue.enqueueNDRangeKernel(kernel_processPixelStage2_phase, cl::NullRange, cl::NDRange(IMAGE_SIZE), cl::NullRange, &eventFPS1, &eventPPS2[0]));
 
-		CHECK_CL_RETURN(queue.enqueueNDRangeKernel(kernel_filter_kde, cl::NullRange, cl::NDRange(IMAGE_SIZE), cl::NullRange, &eventPPS2, &eventFPS2[0]));
+    CHECK_CL_RETURN(queue.enqueueNDRangeKernel(kernel_filter_kde, cl::NullRange, cl::NDRange(IMAGE_SIZE), cl::NullRange, &eventPPS2, &eventFPS2[0]));
 
     CHECK_CL_RETURN(queue.enqueueReadBuffer(buf_depth, CL_FALSE, 0, buf_depth_size, depth_frame->data, &eventFPS2, &eventReadDepth));
     CHECK_CL_RETURN(eventReadIr.wait());
@@ -741,16 +741,16 @@ public:
     CHECK_CL_RETURN(queue.enqueueWriteBuffer(buf_x_table, CL_FALSE, 0, buf_x_table_size, xtable, NULL, &event0));
     CHECK_CL_RETURN(queue.enqueueWriteBuffer(buf_z_table, CL_FALSE, 0, buf_z_table_size, ztable, NULL, &event1));
 
-		float* gauss_kernel;
-		createGaussianKernel(&gauss_kernel, params.kde_neigborhood_size);
+    float* gauss_kernel;
+    createGaussianKernel(&gauss_kernel, params.kde_neigborhood_size);
 
-		cl::Event event2;
+    cl::Event event2;
     CHECK_CL_RETURN(queue.enqueueWriteBuffer(buf_gaussian_kernel, CL_FALSE, 0, buf_gauss_kernel_size, gauss_kernel, NULL, &event2));
 
 
     CHECK_CL_RETURN(event0.wait());
     CHECK_CL_RETURN(event1.wait());
-		CHECK_CL_RETURN(event2.wait());
+    CHECK_CL_RETURN(event2.wait());
     return true;
   }
 
@@ -768,17 +768,17 @@ public:
     return true;
   }
 
-	//initialize spatial weights
-	void createGaussianKernel(float** kernel, int size)
-	{
-		*kernel = new float[2*size+1];
-		float sigma = 0.5f*(float)size;
+  //initialize spatial weights
+  void createGaussianKernel(float** kernel, int size)
+  {
+    *kernel = new float[2*size+1];
+    float sigma = 0.5f*(float)size;
 
-		for(int i = -size; i <= size; i++)	
-		{
-			(*kernel)[i+size] = exp(-0.5f*i*i/(sigma*sigma)); 	
-		}
-	}
+    for(int i = -size; i <= size; i++)  
+    {
+      (*kernel)[i+size] = exp(-0.5f*i*i/(sigma*sigma));   
+    }
+  }
 };
 
 OpenCLKdeDepthPacketProcessor::OpenCLKdeDepthPacketProcessor(const int deviceId) :

@@ -200,7 +200,7 @@ int main(int argc, char *argv[])
       std::cout << "OpenCL pipeline is not supported!" << std::endl;
 #endif
     }
-		else if(arg == "clkde")
+    else if(arg == "clkde")
     {
 #ifdef LIBFREENECT2_WITH_OPENCL_SUPPORT
       if(!pipeline)
@@ -218,7 +218,7 @@ int main(int argc, char *argv[])
       std::cout << "CUDA pipeline is not supported!" << std::endl;
 #endif
     }
- 		else if(arg == "cudakde")
+    else if(arg == "cudakde")
     {
 #ifdef LIBFREENECT2_WITH_CUDA_SUPPORT
       if(!pipeline)
