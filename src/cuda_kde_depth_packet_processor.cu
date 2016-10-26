@@ -103,6 +103,7 @@ __constant__ static float MAX_DEPTH;
 #ifndef M_PI
 #define M_PI CUDART_PI
 #endif
+#define NUM_HYPOTHESES 30
 
 typedef unsigned char uchar;
 
@@ -316,9 +317,9 @@ void filterPixelStage1(const float4* __restrict__ a, const float4* __restrict__ 
  ******************************************************************************/
 
 //arrays for hypotheses
-__device__ float k_list[30] = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f};
-__device__ float n_list[30] = {0.0f, 0.0f, 1.0f, 1.0f, 2.0f, 1.0f, 2.0f, 2.0f, 3.0f, 3.0f, 4.0f, 4.0f, 3.0f, 4.0f, 4.0f, 5.0f, 5.0f, 5.0f, 6.0f, 5.0f, 6.0f, 6.0f, 7.0f, 7.0f, 8.0f, 8.0f, 7.0f, 8.0f, 9.0f, 9.0f};
-__device__ float m_list[30] = {0.0f, 1.0f, 1.0f, 2.0f, 2.0f, 3.0f, 3.0f, 4.0f, 4.0f, 5.0f, 5.0f, 6.0f, 6.0f, 7.0f, 7.0f, 7.0f, 7.0f, 8.0f, 8.0f, 9.0f, 9.0f, 10.0f, 10.0f, 11.0f, 11.0f, 12.0f, 12.0f, 13.0f, 13.0f, 14.0f};
+__device__ float k_list[NUM_HYPOTHESES] = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f};
+__device__ float n_list[NUM_HYPOTHESES] = {0.0f, 0.0f, 1.0f, 1.0f, 2.0f, 1.0f, 2.0f, 2.0f, 3.0f, 3.0f, 4.0f, 4.0f, 3.0f, 4.0f, 4.0f, 5.0f, 5.0f, 5.0f, 6.0f, 5.0f, 6.0f, 6.0f, 7.0f, 7.0f, 8.0f, 8.0f, 7.0f, 8.0f, 9.0f, 9.0f};
+__device__ float m_list[NUM_HYPOTHESES] = {0.0f, 1.0f, 1.0f, 2.0f, 2.0f, 3.0f, 3.0f, 4.0f, 4.0f, 5.0f, 5.0f, 6.0f, 6.0f, 7.0f, 7.0f, 7.0f, 7.0f, 8.0f, 8.0f, 9.0f, 9.0f, 10.0f, 10.0f, 11.0f, 11.0f, 12.0f, 12.0f, 13.0f, 13.0f, 14.0f};
 
 static __device__ 
 void calcErr(const float k, const float n, const float m, const float t0, const float t1, const float t2, float* err1, float* err2, float* err3)
@@ -348,16 +349,16 @@ void phaseUnWrapper(float t0, float t1,float t2, float* phase_first, float* phas
   float err_min_second = 200000.0f;
   unsigned int ind_min, ind_second;
 
-  float k,n,m;
+  float k, n, m;
   
-  for(int i=0; i<30; i++)
+  for(int i = 0; i < NUM_HYPOTHESES; i++)
   {
     m = m_list[i];
     n = n_list[i];
     k = k_list[i];
-    calcErr(k,n,m,t0,t1,t2,&err1,&err2,&err3);
+    calcErr(k, n, m, t0, t1, t2, &err1, &err2, &err3);
     err = w1*err1*err1+w2*err2*err2+w3*err3*err3;
-    if(err<err_min)
+    if(err < err_min)
     {
       err_min_second = err_min;
       ind_second = ind_min;
@@ -365,7 +366,7 @@ void phaseUnWrapper(float t0, float t1,float t2, float* phase_first, float* phas
       ind_min = i;
 
     }
-    else if(err<err_min_second)
+    else if(err < err_min_second)
     {
       err_min_second = err;
       ind_second = i;
@@ -450,9 +451,9 @@ void calculatePhaseUnwrappingVar(float3 ir, float* var0, float* var1, float* var
   float q0 = 0.8211288451f*ir.x-0.002601348899f*ir.x*ir.x-3.549793908f;
   float q1 = 1.259642407f*ir.y-0.005478390508f*ir.y*ir.y-4.335841127f;
   float q2 = 0.6447928035f*ir.z-0.0009627273649f*ir.z*ir.z-3.368205575f;
-  q0*=q0;
-  q1*=q1;
-  q2*=q2;
+  q0 *= q0;
+  q1 *= q1;
+  q2 *= q2;
 
   //Set sigma = pi/2 as a maximum standard deviation of the phase. Cut off function after root of q and make sure continuity
   float sigma0 = q0>1.0f ? atan(sqrt(1.0f/(q0-1.0f))) : ir.x > 5.64173671f ? 5.64173671f*0.5f*M_PI_F/ir.x : 0.5f*M_PI_F;
@@ -558,8 +559,8 @@ void filter_kde(const float4 *phase_conf_vec, const float* gauss_filt_array, con
   float4 phase_local = phase_conf_vec[i];
   if(loadX >= 1 && loadX < 511 && loadY >= 0 && loadY<424)
   {
-    sum_1=0.0f;
-    sum_2=0.0f;
+    sum_1 = 0.0f;
+    sum_2 = 0.0f;
     float gauss;
     float sum_gauss = 0.0f;
     
@@ -642,12 +643,12 @@ void phaseUnWrapper3(float t0, float t1,float t2, float* phase_first, float* pha
 
   float k,n,m;
   
-  for(int i = 0; i < 30; i++)
+  for(int i = 0; i < NUM_HYPOTHESES; i++)
   {
     m = m_list[i];
     n = n_list[i];
     k = k_list[i];
-    calcErr(k,n,m,t0,t1,t2,&err1,&err2,&err3);
+    calcErr(k, n, m, t0, t1, t2, &err1, &err2, &err3);
     err = w1*err1*err1+w2*err2*err2+w3*err3*err3;
     if(err < err_min)
     {
@@ -659,14 +660,14 @@ void phaseUnWrapper3(float t0, float t1,float t2, float* phase_first, float* pha
       ind_min = i;
 
     }
-    else if(err < err_min_second)
+    else if(err<err_min_second)
     {
       err_min_third = err_min_second;
       ind_third = ind_second;
       err_min_second = err;
       ind_second = i;
     }
-    else if(err < err_min_third)
+    else if(err<err_min_third)
     {
       err_min_third = err;
       ind_third = i;
@@ -806,10 +807,10 @@ void filter_kde3(const float *phase_1, const float *phase_2, const float *phase_
   float phase_third = phase_3[i];
   if(loadX >= 1 && loadX < 511 && loadY >= 0 && loadY<424)
   {
-  // Filter kernel
-    sum_1=0.0f;
-    sum_2=0.0f;
-    sum_3=0.0f;
+    //Filter kernel
+    sum_1 = 0.0f;
+    sum_2 = 0.0f;
+    sum_3 = 0.0f;
     float gauss;
     float sum_gauss = 0.0f;
     
@@ -823,8 +824,8 @@ void filter_kde3(const float *phase_1, const float *phase_2, const float *phase_
     uint ind;
 
     //calculate KDE for all hypothesis within the neigborhood
-    for(k=from_y; k<=to_y; k++)
-      for(l=from_x; l<=to_x; l++)
+    for(k = from_y; k <= to_y; k++)
+      for(l = from_x; l <= to_x; l++)
       {
         ind = (loadY+k)*512+(loadX+l);
         conf1_local = conf1[ind];
