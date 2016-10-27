@@ -499,6 +499,7 @@ void phaseUnWrapper3(float t0, float t1,float t2, float* phase_first, float* pha
   float err;
   float err1, err2, err3;
 
+  //unwrapping weight for cost function
   float w1 = 1.0f;
   float w2 = 10.0f;
   float w3 = 1.0218f;
