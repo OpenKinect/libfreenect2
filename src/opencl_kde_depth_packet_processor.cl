@@ -353,7 +353,6 @@ void kernel processPixelStage2_phase(global const float3 *a_in, global const flo
 
   //calculate amplitude or the absolute value
   float3 ir = sqrt(a * a + b * b) * AB_MULTIPLIER;
-  ir = select(ir, (float3)(0.0f), isnan(ir));
   
   float ir_sum = ir.x + ir.y + ir.z;
 
@@ -597,7 +596,6 @@ void kernel processPixelStage2_phase3(global const float3 *a_in, global const fl
 
   //calculate amplitude or the absolute value
   float3 ir = sqrt(a * a + b * b) * AB_MULTIPLIER;
-  ir = select(ir, (float3)(0.0f), isnan(ir));
   
   float ir_sum = ir.x + ir.y + ir.z;
 
