@@ -196,9 +196,9 @@ float constant m_list[NUM_HYPOTHESES] = {0.0f, 1.0f, 1.0f, 2.0f, 2.0f, 3.0f, 3.0
 void calcErr(const float k, const float n, const float m, const float t0, const float t1, const float t2, float* err1, float* err2, float* err3)
 {
     //phase unwrapping equation residuals
-    *err1 = 3.0f*n-15.0f*k-(t1-t0);
-    *err2 = 3.0f*n-2.0f*m-(t2-t0);
-    *err3 = 15.0f*k-2.0f*m-(t2-t1);
+    *err1 = 3.0f * n - 15.0f * k - (t1 - t0);
+    *err2 = 3.0f * n - 2.0f * m - (t2 - t0);
+    *err3 = 15.0f * k - 2.0f * m - (t2 - t1);
 }
 
 /********************************************************************************
@@ -226,7 +226,7 @@ void phaseUnWrapper(float t0, float t1,float t2, float* phase_first, float* phas
     n = n_list[i];
     k = k_list[i];
     calcErr(k, n, m, t0, t1, t2, &err1, &err2, &err3);
-    err = w1*err1*err1+w2*err2*err2+w3*err3*err3;
+    err = w1 * err1 * err1 + w2 * err2 * err2 + w3 * err3 * err3;
     if(err < err_min)
     {
       err_min_second = err_min;
@@ -240,7 +240,6 @@ void phaseUnWrapper(float t0, float t1,float t2, float* phase_first, float* phas
       err_min_second = err;
       ind_second = i;
     }
-    
   }
 
   //decode ind_min
@@ -248,27 +247,29 @@ void phaseUnWrapper(float t0, float t1,float t2, float* phase_first, float* phas
   float nvals = n_list[ind_min];
   float kvals = k_list[ind_min];
 
-  float phi2_out = (t2/2.0f+mvals);
-  float phi1_out = (t1/15.0f+kvals);
-  float phi0_out = (t0/3.0f+nvals);
+  //Weighted phases for phase fusion weighted average
+  float phi2_out = (t2 / 2.0f + mvals);
+  float phi1_out = (t1 / 15.0f + kvals);
+  float phi0_out = (t0 / 3.0f + nvals);
 
   *err_w1 = err_min;
 
   //phase fusion
-  *phase_first = (phi2_out+phi1_out+phi0_out)/3.0f;
+  *phase_first = (phi2_out + phi1_out + phi0_out) / 3.0f;
 
   mvals = m_list[ind_second];
   nvals = n_list[ind_second];
   kvals = k_list[ind_second];
 
-  phi2_out = (t2/2.0f+mvals);
-  phi1_out = (t1/15.0f+kvals);
-  phi0_out = (t0/3.0f+nvals);
+  //Weighted phases for phase fusion weighted average
+  phi2_out = (t2 / 2.0f + mvals);
+  phi1_out = (t1 / 15.0f + kvals);
+  phi0_out = (t0 / 3.0f + nvals);
 
   *err_w2 = err_min_second;
   
   //phase fusion
-  *phase_second = (phi2_out+phi1_out+phi0_out)/3.0f;  
+  *phase_second = (phi2_out + phi1_out + phi0_out) / 3.0f;  
 
 }
 
@@ -280,30 +281,29 @@ void calculatePhaseUnwrappingVarDirect(float3 ir, float* var0, float* var1, floa
   //Model: sigma = 1/(gamma0*a+gamma1*a^2+gamma2). The gammas are optimized using lsqnonlin in matlab.
   //For more details see the paper "Efficient Phase Unwrapping using Kernel Density Estimation"
   //section 3.3 and 4.4.
-  float sigma_max = 0.5f*M_PI_F;
+  float sigma_max = 0.5f * M_PI_F;
 
   //Set sigma = pi/2 as a maximum standard deviation of the phase. Cut off function after root
-  float q0 = ir.x > 5.244404f ? 0.7919451669f*ir.x-0.002363097609f*ir.x*ir.x-3.088285897f : 1.0f/sigma_max;
-  float q1 = ir.y > 4.084835 ? 1.214266794f*ir.y-0.00581082634f*ir.y*ir.y-3.863119924f : 1.0f/sigma_max;
-  float q2 = ir.z > 6.379475 ? 0.6101457464f*ir.z-0.00113679233f*ir.z*ir.z-2.84614442f : 1.0f/sigma_max;
+  float q0 = ir.x > 5.244404f ? 0.7919451669f * ir.x - 0.002363097609f * ir.x * ir.x - 3.088285897f : 1.0f / sigma_max;
+  float q1 = ir.y > 4.084835 ? 1.214266794f * ir.y - 0.00581082634f * ir.y * ir.y - 3.863119924f : 1.0f / sigma_max;
+  float q2 = ir.z > 6.379475 ? 0.6101457464f * ir.z - 0.00113679233f * ir.z * ir.z - 2.84614442f : 1.0f / sigma_max;
 
   //make sure continuity
-  float sigma0 = 1.0f/q0;
+  float sigma0 = 1.0f / q0;
   sigma0 = sigma0 > sigma_max? sigma_max : sigma0;
-  float sigma1 = 1.0f/q1;
+  float sigma1 = 1.0f / q1;
   sigma1 = sigma1 > sigma_max ? sigma_max : sigma1;
-  float sigma2 = 1.0f/q2;
+  float sigma2 = 1.0f / q2;
   sigma2 = sigma2 > sigma_max ? sigma_max : sigma2;
 
+  //Set sigma = 0.001 to the minimum standard deviation of the phase
   sigma0 = sigma0 < 0.001f ? 0.001f: sigma0;
   sigma1 = sigma1 < 0.001f ? 0.001f: sigma1;
   sigma2 = sigma2 < 0.001f ? 0.001f: sigma2;
   
-  *var0 = sigma0*sigma0;
-  *var1 = sigma1*sigma1;
-  *var2 = sigma2*sigma2;
-
-
+  *var0 = sigma0 * sigma0;
+  *var1 = sigma1 * sigma1;
+  *var2 = sigma2 * sigma2;
 }
 
 
@@ -315,26 +315,26 @@ void calculatePhaseUnwrappingVar(float3 ir, float* var0, float* var1, float* var
   //Model: sigma = atan(sqrt(1/(gamma0*a+gamma1*a^2+gamma2)-1)). The gammas are optimized using lsqnonlin in matlab. 
   //For more details see the paper "Efficient Phase Unwrapping using Kernel Density Estimation",
   //section 3.3 and 4.4.
-  float q0 = 0.8211288451f*ir.x-0.002601348899f*ir.x*ir.x-3.549793908f;
-  float q1 = 1.259642407f*ir.y-0.005478390508f*ir.y*ir.y-4.335841127f;
-  float q2 = 0.6447928035f*ir.z-0.0009627273649f*ir.z*ir.z-3.368205575f;
+  float q0 = 0.8211288451f * ir.x - 0.002601348899f * ir.x * ir.x - 3.549793908f;
+  float q1 = 1.259642407f * ir.y - 0.005478390508f * ir.y * ir.y - 4.335841127f;
+  float q2 = 0.6447928035f * ir.z - 0.0009627273649f * ir.z * ir.z - 3.368205575f;
   q0 *= q0;
   q1 *= q1;
   q2 *= q2;
 
   //Set sigma = pi/2 as a maximum standard deviation of the phase. Cut off function after root of q and make sure continuity
-  float sigma0 = q0>1.0f ? atan(sqrt(1.0f/(q0-1.0f))) : ir.x > 5.64173671f ? 5.64173671f*0.5f*M_PI_F/ir.x : 0.5f*M_PI_F;
-  float sigma1 = q1>1.0f ? atan(sqrt(1.0f/(q1-1.0f))) : ir.y > 4.31705182f ? 4.31705182f*0.5f*M_PI_F/ir.y : 0.5f*M_PI_F;
-  float sigma2 = q2>1.0f ? atan(sqrt(1.0f/(q2-1.0f))) : ir.z > 6.84453530f ? 6.84453530f*0.5f*M_PI_F/ir.z : 0.5f*M_PI_F;
+  float sigma0 = q0 > 1.0f ? atan(sqrt(1.0f / (q0 - 1.0f))) : ir.x > 5.64173671f ? 5.64173671f* 0.5f * M_PI_F/ir.x : 0.5f * M_PI_F;
+  float sigma1 = q1 > 1.0f ? atan(sqrt(1.0f / (q1 - 1.0f))) : ir.y > 4.31705182f ? 4.31705182f * 0.5f * M_PI_F/ir.y : 0.5f * M_PI_F;
+  float sigma2 = q2 > 1.0f ? atan(sqrt(1.0f / (q2 - 1.0f))) : ir.z > 6.84453530f ? 6.84453530f * 0.5f * M_PI_F/ir.z : 0.5f * M_PI_F;
 
   //Set sigma = 0.001 to the minimum standard deviation of the phase
   sigma0 = sigma0 < 0.001f ? 0.001f: sigma0;
   sigma1 = sigma1 < 0.001f ? 0.001f: sigma1;
   sigma2 = sigma2 < 0.001f ? 0.001f: sigma2;
   
-  *var0 = sigma0*sigma0;
-  *var1 = sigma1*sigma1;
-  *var2 = sigma2*sigma2;
+  *var0 = sigma0 * sigma0;
+  *var1 = sigma1 * sigma1;
+  *var2 = sigma2 * sigma2;
 
 }
 
@@ -375,12 +375,12 @@ void kernel processPixelStage2_phase(global const float3 *a_in, global const flo
   float phase_likelihood;
 
   //check if near saturation
-  if(ir_sum < 0.4f*65535.0f)
+  if(ir_sum < 0.4f * 65535.0f)
   {
     //calculate phase likelihood from amplitude
-    float var0,var1,var2;
+    float var0, var1, var2;
     calculatePhaseUnwrappingVar(ir, &var0, &var1, &var2);
-    phase_likelihood = exp(-(var0+var1+var2)/(2.0f*PHASE_CONFIDENCE_SCALE));
+    phase_likelihood = exp(-(var0 + var1 + var2) / (2.0f * PHASE_CONFIDENCE_SCALE));
     phase_likelihood = select(phase_likelihood, 0.0f, isnan(phase_likelihood));
   }
   else
@@ -389,12 +389,12 @@ void kernel processPixelStage2_phase(global const float3 *a_in, global const flo
   }
 
   //merge phase likelihood with phase likelihood
-  unwrapping_likelihood1 = phase_likelihood*exp(-J_1/(2*UNWRAPPING_LIKELIHOOD_SCALE));
-  unwrapping_likelihood2 = phase_likelihood*exp(-J_2/(2*UNWRAPPING_LIKELIHOOD_SCALE));
+  unwrapping_likelihood1 = phase_likelihood*exp(-J_1 / (2 * UNWRAPPING_LIKELIHOOD_SCALE));
+  unwrapping_likelihood2 = phase_likelihood*exp(-J_2 / (2 * UNWRAPPING_LIKELIHOOD_SCALE));
 
   //suppress confidence if phase is beyond allowed range
-  unwrapping_likelihood1 = phase_first > MAX_DEPTH*9.0f/18750.0f ? 0.0f: unwrapping_likelihood1;
-  unwrapping_likelihood2 = phase_second > MAX_DEPTH*9.0f/18750.0f ? 0.0f: unwrapping_likelihood2;
+  unwrapping_likelihood1 = phase_first > MAX_DEPTH * 9.0f / 18750.0f ? 0.0f: unwrapping_likelihood1;
+  unwrapping_likelihood2 = phase_second > MAX_DEPTH * 9.0f / 18750.0f ? 0.0f: unwrapping_likelihood2;
 
   phase_conf_vec[i] = (float4)(phase_first,phase_second, unwrapping_likelihood1, unwrapping_likelihood2);
 
@@ -412,10 +412,10 @@ void kernel filter_kde(global const float4* phase_conf_vec, global const float* 
   float sum_1, sum_2;
   
   //initialize neighborhood boundaries
-  int from_x = (loadX > KDE_NEIGBORHOOD_SIZE ? -KDE_NEIGBORHOOD_SIZE : -loadX+1);
-  int from_y = (loadY > KDE_NEIGBORHOOD_SIZE ? -KDE_NEIGBORHOOD_SIZE : -loadY+1);
-  int to_x = (loadX < 511-KDE_NEIGBORHOOD_SIZE-1 ? KDE_NEIGBORHOOD_SIZE: 511-loadX-1);
-  int to_y = (loadY < 423-KDE_NEIGBORHOOD_SIZE ? KDE_NEIGBORHOOD_SIZE: 423-loadY);
+  int from_x = (loadX > KDE_NEIGBORHOOD_SIZE ? -KDE_NEIGBORHOOD_SIZE : -loadX + 1);
+  int from_y = (loadY > KDE_NEIGBORHOOD_SIZE ? -KDE_NEIGBORHOOD_SIZE : -loadY + 1);
+  int to_x = (loadX < 511-KDE_NEIGBORHOOD_SIZE-1 ? KDE_NEIGBORHOOD_SIZE: 511 - loadX - 1);
+  int to_y = (loadY < 423-KDE_NEIGBORHOOD_SIZE ? KDE_NEIGBORHOOD_SIZE: 423 - loadY);
 
   kde_val_1 = 0.0f;
   kde_val_2 = 0.0f;
@@ -438,10 +438,10 @@ void kernel filter_kde(global const float4* phase_conf_vec, global const float* 
     float diff11, diff21, diff12, diff22;
 
     //calculate KDE for all hypothesis within the neigborhood
-    for(k=from_y; k<=to_y; k++)
-      for(l=from_x; l<=to_x; l++)
+    for(k = from_y; k <= to_y; k++)
+      for(l = from_x; l <= to_x; l++)
       {
-        ind = (loadY+k)*512+(loadX+l);
+        ind = (loadY + k) * 512 + (loadX + l);
         phase_conf_local = phase_conf_vec[ind];
         conf1_local = phase_conf_local.z;
         conf2_local = phase_conf_local.w;
@@ -449,17 +449,17 @@ void kernel filter_kde(global const float4* phase_conf_vec, global const float* 
         phase_1_local = phase_conf_local.x;
         phase_2_local = phase_conf_local.y;
         
-        gauss = gauss_filt_array[k+KDE_NEIGBORHOOD_SIZE]*gauss_filt_array[l+KDE_NEIGBORHOOD_SIZE];
-        sum_gauss += gauss*(conf1_local+conf2_local);
-        diff11 = phase_1_local-phase_local.x;
-        diff21 = phase_2_local-phase_local.x;
-        diff12 = phase_1_local-phase_local.y;
-        diff22 = phase_2_local-phase_local.y;
-        sum_1 += gauss*(conf1_local*exp(-diff11*diff11/(2*KDE_SIGMA_SQR))+conf2_local*exp(-diff21*diff21/(2*KDE_SIGMA_SQR)));
-        sum_2 += gauss*(conf1_local*exp(-diff12*diff12/(2*KDE_SIGMA_SQR))+conf2_local*exp(-diff22*diff22/(2*KDE_SIGMA_SQR)));
+        gauss = gauss_filt_array[k + KDE_NEIGBORHOOD_SIZE] * gauss_filt_array[l + KDE_NEIGBORHOOD_SIZE];
+        sum_gauss += gauss * (conf1_local + conf2_local);
+        diff11 = phase_1_local - phase_local.x;
+        diff21 = phase_2_local - phase_local.x;
+        diff12 = phase_1_local - phase_local.y;
+        diff22 = phase_2_local - phase_local.y;
+        sum_1 += gauss * (conf1_local * exp(-diff11 * diff11 / (2 * KDE_SIGMA_SQR)) + conf2_local * exp(-diff21 * diff21 / (2 * KDE_SIGMA_SQR)));
+        sum_2 += gauss * (conf1_local * exp(-diff12 * diff12 / (2 * KDE_SIGMA_SQR)) + conf2_local * exp(-diff22 * diff22 / (2 * KDE_SIGMA_SQR)));
       }
-    kde_val_1 = sum_gauss > 0.5f ? sum_1/sum_gauss : sum_1*2.0f;
-    kde_val_2 = sum_gauss > 0.5f ? sum_2/sum_gauss : sum_2*2.0f;
+    kde_val_1 = sum_gauss > 0.5f ? sum_1 / sum_gauss : sum_1 * 2.0f;
+    kde_val_2 = sum_gauss > 0.5f ? sum_2 / sum_gauss : sum_2 * 2.0f;
   }
 
   //select hypothesis
@@ -497,7 +497,7 @@ void kernel filter_kde(global const float4* phase_conf_vec, global const float* 
 void phaseUnWrapper3(float t0, float t1,float t2, float* phase_first, float* phase_second, float* phase_third, float* err_w1, float* err_w2, float* err_w3)
 {
   float err;
-  float err1,err2,err3;
+  float err1, err2, err3;
 
   float w1 = 1.0f;
   float w2 = 10.0f;
@@ -516,7 +516,7 @@ void phaseUnWrapper3(float t0, float t1,float t2, float* phase_first, float* pha
     n = n_list[i];
     k = k_list[i];
     calcErr(k, n, m, t0, t1, t2, &err1, &err2, &err3);
-    err = w1*err1*err1+w2*err2*err2+w3*err3*err3;
+    err = w1 * err1 * err1 + w2 * err2 * err2 + w3 * err3 * err3;
     if(err < err_min)
     {
       err_min_third = err_min_second;
@@ -546,35 +546,38 @@ void phaseUnWrapper3(float t0, float t1,float t2, float* phase_first, float* pha
   float nvals = n_list[ind_min];
   float kvals = k_list[ind_min];
 
-  float phi2_out = (t2/2.0f+mvals);
-  float phi1_out = (t1/15.0f+kvals);
-  float phi0_out = (t0/3.0f+nvals);
+  //Weighted phases for phase fusion weighted average
+  float phi2_out = (t2 / 2.0f + mvals);
+  float phi1_out = (t1 / 15.0f + kvals);
+  float phi0_out = (t0 / 3.0f + nvals);
 
   *err_w1 = err_min;
 
-  *phase_first = (phi2_out+phi1_out+phi0_out)/3.0f;
+  *phase_first = (phi2_out + phi1_out + phi0_out) / 3.0f;
 
   mvals = m_list[ind_second];
   nvals = n_list[ind_second];
   kvals = k_list[ind_second];
 
-  phi2_out = (t2/2.0f+mvals);
-  phi1_out = (t1/15.0f+kvals);
-  phi0_out = (t0/3.0f+nvals);  
+  //Weighted phases for phase fusion weighted average
+  phi2_out = (t2 / 2.0f + mvals);
+  phi1_out = (t1 / 15.0f + kvals);
+  phi0_out = (t0 / 3.0f + nvals);  
 
   *err_w2 = err_min_second;
-  *phase_second = (phi2_out+phi1_out+phi0_out)/3.0f;
+  *phase_second = (phi2_out + phi1_out + phi0_out) / 3.0f;
 
   mvals = m_list[ind_third];
   nvals = n_list[ind_third];
   kvals = k_list[ind_third];
 
-  phi2_out = (t2/2.0f+mvals);
-  phi1_out = (t1/15.0f+kvals);
-  phi0_out = (t0/3.0f+nvals);
+  //Weighted phases for phase fusion weighted average
+  phi2_out = (t2 / 2.0f + mvals);
+  phi1_out = (t1 / 15.0f + kvals);
+  phi0_out = (t0 / 3.0f + nvals);
 
   *err_w3 = err_min_third;
-  *phase_third = (phi2_out+phi1_out+phi0_out)/3.0f;
+  *phase_third = (phi2_out + phi1_out + phi0_out) / 3.0f;
 }
 
 
@@ -618,12 +621,12 @@ void kernel processPixelStage2_phase3(global const float3 *a_in, global const fl
 
   float phase_likelihood;
   //check if near saturation
-  if(ir_sum < 0.4f*65535.0f)
+  if(ir_sum < 0.4f * 65535.0f)
   {
     //calculate phase likelihood from amplitude
-    float var0,var1,var2;
+    float var0, var1, var2;
     calculatePhaseUnwrappingVar(ir, &var0, &var1, &var2);
-    phase_likelihood = exp(-(var0+var1+var2)/(2.0f*PHASE_CONFIDENCE_SCALE));
+    phase_likelihood = exp(-(var0+var1+var2)/(2.0f * PHASE_CONFIDENCE_SCALE));
     phase_likelihood = select(phase_likelihood, 0.0f, isnan(phase_likelihood));
   }
   else
@@ -632,14 +635,14 @@ void kernel processPixelStage2_phase3(global const float3 *a_in, global const fl
   }
 
   //merge unwrapping likelihood with phase likelihood
-  unwrapping_likelihood1 = phase_likelihood*exp(-J_1/(2*UNWRAPPING_LIKELIHOOD_SCALE));
-  unwrapping_likelihood2 = phase_likelihood*exp(-J_2/(2*UNWRAPPING_LIKELIHOOD_SCALE));
-  unwrapping_likelihood3 = phase_likelihood*exp(-J_3/(2*UNWRAPPING_LIKELIHOOD_SCALE));
+  unwrapping_likelihood1 = phase_likelihood * exp(-J_1 / (2 * UNWRAPPING_LIKELIHOOD_SCALE));
+  unwrapping_likelihood2 = phase_likelihood * exp(-J_2 / (2 * UNWRAPPING_LIKELIHOOD_SCALE));
+  unwrapping_likelihood3 = phase_likelihood * exp(-J_3 / (2 * UNWRAPPING_LIKELIHOOD_SCALE));
 
   //suppress confidence if phase is beyond allowed range
-  unwrapping_likelihood1 = phase_first > MAX_DEPTH*9.0f/18750.0f ? 0.0f: unwrapping_likelihood1;
-  unwrapping_likelihood2 = phase_second > MAX_DEPTH*9.0f/18750.0f ? 0.0f: unwrapping_likelihood2;
-  unwrapping_likelihood3 = phase_third > MAX_DEPTH*9.0f/18750.0f ? 0.0f: unwrapping_likelihood3;
+  unwrapping_likelihood1 = phase_first > MAX_DEPTH * 9.0f / 18750.0f ? 0.0f: unwrapping_likelihood1;
+  unwrapping_likelihood2 = phase_second > MAX_DEPTH * 9.0f / 18750.0f ? 0.0f: unwrapping_likelihood2;
+  unwrapping_likelihood3 = phase_third > MAX_DEPTH * 9.0f / 18750.0f ? 0.0f: unwrapping_likelihood3;
 
   conf1[i] = unwrapping_likelihood1;
   conf2[i] = unwrapping_likelihood2;
@@ -660,10 +663,10 @@ void kernel filter_kde3(global const float *phase_1, global const float *phase_2
   float sum_1, sum_2, sum_3;
   
   //initialize neighborhood boundaries
-  int from_x = (loadX > KDE_NEIGBORHOOD_SIZE ? -KDE_NEIGBORHOOD_SIZE : -loadX+1);
-  int from_y = (loadY > KDE_NEIGBORHOOD_SIZE ? -KDE_NEIGBORHOOD_SIZE : -loadY+1);
-  int to_x = (loadX < 511-KDE_NEIGBORHOOD_SIZE-1 ? KDE_NEIGBORHOOD_SIZE: 511-loadX-1);
-  int to_y = (loadY < 423-KDE_NEIGBORHOOD_SIZE ? KDE_NEIGBORHOOD_SIZE: 423-loadY);
+  int from_x = (loadX > KDE_NEIGBORHOOD_SIZE ? -KDE_NEIGBORHOOD_SIZE : -loadX + 1);
+  int from_y = (loadY > KDE_NEIGBORHOOD_SIZE ? -KDE_NEIGBORHOOD_SIZE : -loadY + 1);
+  int to_x = (loadX < 511 - KDE_NEIGBORHOOD_SIZE - 1 ? KDE_NEIGBORHOOD_SIZE: 511 - loadX - 1);
+  int to_y = (loadY < 423 - KDE_NEIGBORHOOD_SIZE ? KDE_NEIGBORHOOD_SIZE: 423 - loadY);
 
   kde_val_1 = 0.0f;
   kde_val_2 = 0.0f;
@@ -693,31 +696,31 @@ void kernel filter_kde3(global const float *phase_1, global const float *phase_2
     for(k = from_y; k <= to_y; k++)
       for(l = from_x; l <= to_x; l++)
       {
-        ind = (loadY+k)*512+(loadX+l);
+        ind = (loadY + k) * 512 + (loadX + l);
         conf1_local = conf1[ind];
         conf2_local = conf2[ind];
         conf3_local = conf3[ind];
         phase_1_local = phase_1[ind];
         phase_2_local = phase_2[ind];
         phase_3_local = phase_3[ind];
-        diff11 = phase_1_local-phase_first;
-        diff12 = phase_1_local-phase_second;
-        diff13 = phase_1_local-phase_third;
-        diff21 = phase_2_local-phase_first;
-        diff22 = phase_2_local-phase_second;
-        diff23 = phase_2_local-phase_third;
-        diff31 = phase_3_local-phase_first;
-        diff32 = phase_3_local-phase_second;
-        diff33 = phase_3_local-phase_third;
-        gauss = gauss_filt_array[k+KDE_NEIGBORHOOD_SIZE]*gauss_filt_array[l+KDE_NEIGBORHOOD_SIZE];
-        sum_gauss += gauss*(conf1_local+conf2_local+conf3_local);
-        sum_1 += gauss*(conf1_local*exp(-diff11*diff11/(2*KDE_SIGMA_SQR))+conf2_local*exp(-diff21*diff21/(2*KDE_SIGMA_SQR))+conf3_local*exp(-diff31*diff31/(2*KDE_SIGMA_SQR)));
-        sum_2 += gauss*(conf1_local*exp(-diff12*diff12/(2*KDE_SIGMA_SQR))+conf2_local*exp(-diff22*diff22/(2*KDE_SIGMA_SQR))+conf3_local*exp(-diff32*diff32/(2*KDE_SIGMA_SQR)));
-        sum_3 += gauss*(conf1_local*exp(-diff13*diff13/(2*KDE_SIGMA_SQR))+conf2_local*exp(-diff23*diff23/(2*KDE_SIGMA_SQR))+conf3_local*exp(-diff33*diff33/(2*KDE_SIGMA_SQR)));
+        diff11 = phase_1_local - phase_first;
+        diff12 = phase_1_local - phase_second;
+        diff13 = phase_1_local - phase_third;
+        diff21 = phase_2_local - phase_first;
+        diff22 = phase_2_local - phase_second;
+        diff23 = phase_2_local - phase_third;
+        diff31 = phase_3_local - phase_first;
+        diff32 = phase_3_local - phase_second;
+        diff33 = phase_3_local - phase_third;
+        gauss = gauss_filt_array[k + KDE_NEIGBORHOOD_SIZE] * gauss_filt_array[l + KDE_NEIGBORHOOD_SIZE];
+        sum_gauss += gauss * (conf1_local + conf2_local + conf3_local);
+        sum_1 += gauss*(conf1_local * exp(-diff11 * diff11 / (2 * KDE_SIGMA_SQR)) + conf2_local * exp(-diff21 * diff21 / (2 * KDE_SIGMA_SQR)) + conf3_local * exp(-diff31 * diff31 /(2 * KDE_SIGMA_SQR)));
+        sum_2 += gauss * (conf1_local * exp(-diff12 * diff12 / (2 * KDE_SIGMA_SQR)) + conf2_local * exp(-diff22 * diff22/(2 * KDE_SIGMA_SQR))+conf3_local * exp(-diff32 * diff32 / (2 * KDE_SIGMA_SQR)));
+        sum_3 += gauss * (conf1_local * exp(-diff13 * diff13 / (2 * KDE_SIGMA_SQR)) + conf2_local * exp(-diff23 * diff23 / (2 * KDE_SIGMA_SQR)) + conf3_local * exp(-diff33 * diff33 / (2 * KDE_SIGMA_SQR)));
       }
-    kde_val_1 = sum_gauss > 0.5f ? sum_1/sum_gauss : sum_1*2.0f;
-    kde_val_2 = sum_gauss > 0.5f ? sum_2/sum_gauss : sum_2*2.0f;
-    kde_val_3 = sum_gauss > 0.5f ? sum_3/sum_gauss : sum_3*2.0f;
+    kde_val_1 = sum_gauss > 0.5f ? sum_1 / sum_gauss : sum_1 * 2.0f;
+    kde_val_2 = sum_gauss > 0.5f ? sum_2 / sum_gauss : sum_2 * 2.0f;
+    kde_val_3 = sum_gauss > 0.5f ? sum_3 / sum_gauss : sum_3 * 2.0f;
   }
   
   //select hypothesis
