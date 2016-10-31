@@ -191,7 +191,7 @@ void kernel processPixelStage2(global const float3 *a_in, global const float3 *b
   float ir_min = min(ir.x, min(ir.y, ir.z));
   float ir_max = max(ir.x, max(ir.y, ir.z));
 
-  float phase_final = 0;
+  float phase_final = 0.0f;
 
   if(ir_min >= INDIVIDUAL_AB_THRESHOLD && ir_sum >= AB_THRESHOLD)
   {
@@ -267,11 +267,11 @@ void kernel processPixelStage2(global const float3 *a_in, global const float3 *b
   phase_final = 0.0f < phase_final ? phase_final + PHASE_OFFSET : phase_final;
 
   float depth_linear = zmultiplier * phase_final;
-  float max_depth = phase_final * UNAMBIGIOUS_DIST * 2.0;
+  float max_depth = phase_final * UNAMBIGIOUS_DIST * 2.0f;
 
   bool cond1 = /*(modeMask & 32) != 0*/ true && 0.0f < depth_linear && 0.0f < max_depth;
 
-  xmultiplier = (xmultiplier * 90.0) / (max_depth * max_depth * 8192.0);
+  xmultiplier = (xmultiplier * 90.0f) / (max_depth * max_depth * 8192.0f);
 
   float depth_fit = depth_linear / (-depth_linear * xmultiplier + 1);
   depth_fit = depth_fit < 0.0f ? 0.0f : depth_fit;
