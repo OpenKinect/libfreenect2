@@ -345,6 +345,7 @@ void phaseUnWrapper(float t0, float t1,float t2, float* phase_first, float* phas
   float w2 = 10.0f;
   float w3 = 1.0218f;
   
+  //initialize residuals with som large numbers
   float err_min = 100000.0f;
   float err_min_second = 200000.0f;
   unsigned int ind_min, ind_second;
@@ -409,9 +410,10 @@ void phaseUnWrapper(float t0, float t1,float t2, float* phase_first, float* phas
  * Predict phase variance from amplitude direct quadratic model
  ******************************************************************************/
 static __device__ 
-void calculatePhaseUnwrappingVarDirect(float3 ir, float* var0, float* var1, float* var2)
+void calculatePhaseUnwrappingVarDirect(float3 ir, float3* var)
 {
-  //Model: sigma = 1/(gamma0*a+gamma1*a^2+gamma2). The gammas are optimized using lsqnonlin in matlab.
+  //Model: sigma = 1/(gamma0*a+gamma1*a^2+gamma2). Possibly better than calculatePhaseUnwrappingVar
+  //The gammas are optimized using lsqnonlin in matlab.
   //For more details see the paper "Efficient Phase Unwrapping using Kernel Density Estimation"
   //section 3.3 and 4.4.
   float sigma_max = 0.5f * M_PI_F;
@@ -420,23 +422,11 @@ void calculatePhaseUnwrappingVarDirect(float3 ir, float* var0, float* var1, floa
   float q0 = ir.x > 5.244404f ? 0.7919451669f * ir.x - 0.002363097609f * ir.x * ir.x - 3.088285897f : 1.0f / sigma_max;
   float q1 = ir.y > 4.084835 ? 1.214266794f * ir.y - 0.00581082634f * ir.y * ir.y - 3.863119924f : 1.0f / sigma_max;
   float q2 = ir.z > 6.379475 ? 0.6101457464f * ir.z - 0.00113679233f * ir.z * ir.z - 2.84614442f : 1.0f / sigma_max;
-
-  //make sure continuity
-  float sigma0 = 1.0f / q0;
-  sigma0 = sigma0 > sigma_max? sigma_max : sigma0;
-  float sigma1 = 1.0f / q1;
-  sigma1 = sigma1 > sigma_max ? sigma_max : sigma1;
-  float sigma2 = 1.0f / q2;
-  sigma2 = sigma2 > sigma_max ? sigma_max : sigma2;
-
-  //Set sigma = 0.001 to the minimum standard deviation of the phase
-  sigma0 = sigma0 < 0.001f ? 0.001f: sigma0;
-  sigma1 = sigma1 < 0.001f ? 0.001f: sigma1;
-  sigma2 = sigma2 < 0.001f ? 0.001f: sigma2;
-  
-  *var0 = sigma0 * sigma0;
-  *var1 = sigma1 * sigma1;
-  *var2 = sigma2 * sigma2;
+  float3 q = make_float3(q0, q1, q2); 
+  float3 roots = make_float3(5.244404f, 4.084835, 6.379475);
+  float3 sigma = make_float3(1.0f)/q;
+  sigma = select(sigma, make_float3(sigma_max), isless(make_float3(sigma_max), sigma));
+  *var = sigma;
 }
 
 
@@ -444,7 +434,7 @@ void calculatePhaseUnwrappingVarDirect(float3 ir, float* var0, float* var1, floa
  * Predict phase variance from amplitude (quadratic atan model)
  ******************************************************************************/
 static __device__ 
-void calculatePhaseUnwrappingVar(float3 ir, float* var0, float* var1, float* var2)
+void calculatePhaseUnwrappingVar(float3 ir, float3 *var)
 {
   //Model: sigma = atan(sqrt(1/(gamma0*a+gamma1*a^2+gamma2)-1)). The gammas are optimized using lsqnonlin in matlab. 
   //For more details see the paper "Efficient Phase Unwrapping using Kernel Density Estimation",
@@ -452,23 +442,13 @@ void calculatePhaseUnwrappingVar(float3 ir, float* var0, float* var1, float* var
   float q0 = 0.8211288451f * ir.x - 0.002601348899f * ir.x * ir.x - 3.549793908f;
   float q1 = 1.259642407f * ir.y - 0.005478390508f * ir.y * ir.y - 4.335841127f;
   float q2 = 0.6447928035f * ir.z - 0.0009627273649f * ir.z * ir.z - 3.368205575f;
-  q0 *= q0;
-  q1 *= q1;
-  q2 *= q2;
-
-  //Set sigma = pi/2 as a maximum standard deviation of the phase. Cut off function after root of q and make sure continuity
-  float sigma0 = q0 > 1.0f ? atan(sqrt(1.0f / (q0 - 1.0f))) : ir.x > 5.64173671f ? 5.64173671f* 0.5f * M_PI_F/ir.x : 0.5f * M_PI_F;
-  float sigma1 = q1 > 1.0f ? atan(sqrt(1.0f / (q1 - 1.0f))) : ir.y > 4.31705182f ? 4.31705182f * 0.5f * M_PI_F/ir.y : 0.5f * M_PI_F;
-  float sigma2 = q2 > 1.0f ? atan(sqrt(1.0f / (q2 - 1.0f))) : ir.z > 6.84453530f ? 6.84453530f * 0.5f * M_PI_F/ir.z : 0.5f * M_PI_F;
-
-  //Set sigma = 0.001 to the minimum standard deviation of the phase
-  sigma0 = sigma0 < 0.001f ? 0.001f: sigma0;
-  sigma1 = sigma1 < 0.001f ? 0.001f: sigma1;
-  sigma2 = sigma2 < 0.001f ? 0.001f: sigma2;
-  
-  *var0 = sigma0 * sigma0;
-  *var1 = sigma1 * sigma1;
-  *var2 = sigma2 * sigma2;
+  float3 q = make_float3(q0, q1, q2);
+  q *= q;
+  float3 roots = make_float3(5.64173671f, 4.31705182f, 6.84453530f);
+  float3 asdf = atan2(make_float3(0.5), make_float3(1.0f));
+  float3 sigma = select(select(make_float3(0.5f * M_PI_F), roots * 0.5f * M_PI_F / ir, isless(roots,ir)), atan2(sqrt(make_float3(1.0f) / (q - make_float3(1.0f))), make_float3(1.0f)), isless(make_float3(1.0f), q));
+  sigma = select(sigma, make_float3(0.001f), isless(sigma, make_float3(0.001f)));
+  *var = sigma*sigma;
 }
 
 static __global__ 
@@ -513,9 +493,9 @@ void processPixelStage2_phase(const float4* __restrict__ a_in, const float4* __r
   if(ir_sum < 0.4f * 65535.0f)
   {
     //calculate phase likelihood from amplitude
-    float var0, var1, var2;
-    calculatePhaseUnwrappingVar(ir, &var0, &var1, &var2);
-    phase_likelihood = exp(-(var0 + var1 + var2) / (2.0f * PHASE_CONFIDENCE_SCALE));
+    float3 var;
+    calculatePhaseUnwrappingVar(ir, &var);
+    phase_likelihood = exp(-(var.x + var.y + var.z) / (2.0f * PHASE_CONFIDENCE_SCALE));
     phase_likelihood = isnan(phase_likelihood) ? 0.0f : phase_likelihood;
   }
   else
@@ -636,6 +616,7 @@ void phaseUnWrapper3(float t0, float t1,float t2, float* phase_first, float* pha
   float w2 = 10.0f;
   float w3 = 1.0218f;
   
+  //initialize residuals with som large numbers
   float err_min = 100000.0f;
   float err_min_second = 200000.0f;
   float err_min_third = 300000.0f;
@@ -758,9 +739,9 @@ void processPixelStage2_phase3(const float4 __restrict__ *a_in, const float4 __r
   if(ir_sum < 0.4f * 65535.0f)
   {
     //calculate phase likelihood from amplitude
-    float var0, var1, var2;
-    calculatePhaseUnwrappingVar(ir, &var0, &var1, &var2);
-    phase_likelihood = exp(-(var0 + var1 + var2) / (2.0f * PHASE_CONFIDENCE_SCALE));
+    float3 var;
+    calculatePhaseUnwrappingVar(ir, &var);
+    phase_likelihood = exp(-(var.x + var.y + var.z) / (2.0f * PHASE_CONFIDENCE_SCALE));
     phase_likelihood = isnan(phase_likelihood) ? 0.0f : phase_likelihood;
   }
   else
