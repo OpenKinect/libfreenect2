@@ -313,6 +313,7 @@ IF(ENABLE_OPENCL)
 
     LIST(APPEND SOURCES
       src/opencl_depth_packet_processor.cpp
+			src/opencl_kde_depth_packet_processor.cpp
     )
 
     LIST(APPEND LIBRARIES
@@ -321,6 +322,7 @@ IF(ENABLE_OPENCL)
 
     LIST(APPEND RESOURCES
       src/opencl_depth_packet_processor.cl
+			src/opencl_kde_depth_packet_processor.cl
     )
 
     # Major Linux distro stable releases have buggy OpenCL ICD loader.
@@ -359,6 +361,7 @@ IF(ENABLE_CUDA)
     ENDIF()
     CUDA_COMPILE(CUDA_OBJECTS
       src/cuda_depth_packet_processor.cu
+			src/cuda_kde_depth_packet_processor.cu
       OPTIONS ${CUDA_FLAGS}
     )
     SET(CMAKE_CXX_FLAGS "${OLD_CMAKE_CXX_FLAGS}")

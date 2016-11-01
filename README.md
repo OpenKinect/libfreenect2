@@ -20,6 +20,8 @@ Note: libfreenect2 does not do anything for either Kinect for Windows v1 or Kine
 
 If you are using libfreenect2 in an academic context, please cite our work using the following DOI: [![DOI](https://zenodo.org/badge/20096/OpenKinect/libfreenect2.svg)](https://zenodo.org/badge/latestdoi/20096/OpenKinect/libfreenect2)
 
+If you use the KDE depth unwrapping algorithm implemented in the library, please also cite this ECCV 2016 [paper](http://users.isy.liu.se/cvl/perfo/abstracts/jaremo16.html).
+
 This driver supports:
 * RGB image transfer
 * IR and depth image transfer

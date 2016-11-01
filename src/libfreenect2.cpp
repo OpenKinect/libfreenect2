@@ -603,7 +603,7 @@ void Freenect2DeviceImpl::setIrCameraParams(const Freenect2Device::IrCameraParam
 
 Freenect2Device::Config::Config() :
   MinDepth(0.5f),
-  MaxDepth(4.5f),
+  MaxDepth(4.5f), //set to > 8000 for best performance when using the kde pipeline 
   EnableBilateralFilter(true),
   EnableEdgeAwareFilter(true) {}
 
