@@ -420,10 +420,10 @@ void calculatePhaseUnwrappingVarDirect(float3 ir, float3* var)
 
   //Set sigma = pi/2 as a maximum standard deviation of the phase. Cut off function after root
   float q0 = ir.x > 5.244404f ? 0.7919451669f * ir.x - 0.002363097609f * ir.x * ir.x - 3.088285897f : 1.0f / sigma_max;
-  float q1 = ir.y > 4.084835 ? 1.214266794f * ir.y - 0.00581082634f * ir.y * ir.y - 3.863119924f : 1.0f / sigma_max;
-  float q2 = ir.z > 6.379475 ? 0.6101457464f * ir.z - 0.00113679233f * ir.z * ir.z - 2.84614442f : 1.0f / sigma_max;
+  float q1 = ir.y > 4.084835f ? 1.214266794f * ir.y - 0.00581082634f * ir.y * ir.y - 3.863119924f : 1.0f / sigma_max;
+  float q2 = ir.z > 6.379475f ? 0.6101457464f * ir.z - 0.00113679233f * ir.z * ir.z - 2.84614442f : 1.0f / sigma_max;
   float3 q = make_float3(q0, q1, q2); 
-  float3 roots = make_float3(5.244404f, 4.084835, 6.379475);
+  float3 roots = make_float3(5.244404f, 4.084835f, 6.379475f);
   float3 sigma = make_float3(1.0f)/q;
   sigma = select(sigma, make_float3(sigma_max), isless(make_float3(sigma_max), sigma));
   *var = sigma;
@@ -445,7 +445,7 @@ void calculatePhaseUnwrappingVar(float3 ir, float3 *var)
   float3 q = make_float3(q0, q1, q2);
   q *= q;
   float3 roots = make_float3(5.64173671f, 4.31705182f, 6.84453530f);
-  float3 asdf = atan2(make_float3(0.5), make_float3(1.0f));
+  float3 asdf = atan2(make_float3(0.5f), make_float3(1.0f));
   float3 sigma = select(select(make_float3(0.5f * M_PI_F), roots * 0.5f * M_PI_F / ir, isless(roots,ir)), atan2(sqrt(make_float3(1.0f) / (q - make_float3(1.0f))), make_float3(1.0f)), isless(make_float3(1.0f), q));
   sigma = select(sigma, make_float3(0.001f), isless(sigma, make_float3(0.001f)));
   *var = sigma*sigma;
@@ -472,8 +472,8 @@ void processPixelStage2_phase(const float4* __restrict__ a_in, const float4* __r
   float ir_min = min(ir.x, min(ir.y, ir.z));
   float ir_max = max(ir.x, max(ir.y, ir.z));
 
-  float phase_first = 0.0;
-  float phase_second = 0.0;
+  float phase_first = 0.0f;
+  float phase_second = 0.0f;
 
   float J_1, J_2, unwrapping_likelihood1, unwrapping_likelihood2;
 
@@ -585,11 +585,11 @@ void filter_kde(const float4 *phase_conf_vec, const float* gauss_filt_array, con
   float xmultiplier = x_table[i];
 
   float depth_linear = zmultiplier * phase_final;
-  float max_depth = phase_final * UNAMBIGIOUS_DIST * 2.0;
+  float max_depth = phase_final * UNAMBIGIOUS_DIST * 2.0f;
 
   bool cond1 =  true && 0.0f < depth_linear && 0.0f < max_depth;
 
-  xmultiplier = (xmultiplier * 90.0) / (max_depth * max_depth * 8192.0);
+  xmultiplier = (xmultiplier * 90.0f) / (max_depth * max_depth * 8192.0f);
 
   float depth_fit = depth_linear / (-depth_linear * xmultiplier + 1);
   depth_fit = depth_fit < 0.0f ? 0.0f : depth_fit;
@@ -715,9 +715,9 @@ void processPixelStage2_phase3(const float4 __restrict__ *a_in, const float4 __r
   float ir_min = min(ir.x, min(ir.y, ir.z));
   float ir_max = max(ir.x, max(ir.y, ir.z));
 
-  float phase_first = 0.0;
-  float phase_second = 0.0;
-  float phase_third = 0.0;
+  float phase_first = 0.0f;
+  float phase_second = 0.0f;
+  float phase_third = 0.0f;
   float J_1, J_2, J_3, unwrapping_likelihood1, unwrapping_likelihood2, unwrapping_likelihood3;
 
   //scale with least common multiples of modulation frequencies
@@ -862,11 +862,11 @@ void filter_kde3(const float *phase_1, const float *phase_2, const float *phase_
   float xmultiplier = x_table[i];
 
   float depth_linear = zmultiplier * phase_final;
-  float max_depth = phase_final * UNAMBIGIOUS_DIST * 2.0;
+  float max_depth = phase_final * UNAMBIGIOUS_DIST * 2.0f;
 
   bool cond1 =  true && 0.0f < depth_linear && 0.0f < max_depth;
 
-  xmultiplier = (xmultiplier * 90.0) / (max_depth * max_depth * 8192.0);
+  xmultiplier = (xmultiplier * 90.0f) / (max_depth * max_depth * 8192.0f);
 
   float depth_fit = depth_linear / (-depth_linear * xmultiplier + 1);
   depth_fit = depth_fit < 0.0f ? 0.0f : depth_fit;

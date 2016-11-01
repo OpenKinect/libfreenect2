@@ -286,10 +286,10 @@ void calculatePhaseUnwrappingVarDirect(float3 ir, float3* var)
 
   //Set sigma = pi/2 as a maximum standard deviation of the phase. Cut off function after root
   float q0 = ir.x > 5.244404f ? 0.7919451669f * ir.x - 0.002363097609f * ir.x * ir.x - 3.088285897f : 1.0f / sigma_max;
-  float q1 = ir.y > 4.084835 ? 1.214266794f * ir.y - 0.00581082634f * ir.y * ir.y - 3.863119924f : 1.0f / sigma_max;
-  float q2 = ir.z > 6.379475 ? 0.6101457464f * ir.z - 0.00113679233f * ir.z * ir.z - 2.84614442f : 1.0f / sigma_max;
+  float q1 = ir.y > 4.084835f ? 1.214266794f * ir.y - 0.00581082634f * ir.y * ir.y - 3.863119924f : 1.0f / sigma_max;
+  float q2 = ir.z > 6.379475f ? 0.6101457464f * ir.z - 0.00113679233f * ir.z * ir.z - 2.84614442f : 1.0f / sigma_max;
   float3 q = (float3)(q0, q1, q2); 
-  float3 roots = (float3)(5.244404f, 4.084835, 6.379475);
+  float3 roots = (float3)(5.244404f, 4.084835f, 6.379475f);
   float3 sigma = (float3)(1.0f)/q;
   sigma = select(sigma, (float3)(sigma_max), isless((float3)(sigma_max), sigma));
   *var = sigma;
@@ -334,8 +334,8 @@ void kernel processPixelStage2_phase(global const float3 *a_in, global const flo
   
   float ir_sum = ir.x + ir.y + ir.z;
 
-  float phase_first = 0.0;
-  float phase_second = 0.0;
+  float phase_first = 0.0f;
+  float phase_second = 0.0f;
 
   float J_1, J_2, unwrapping_likelihood1, unwrapping_likelihood2;
 
@@ -450,11 +450,11 @@ void kernel filter_kde(global const float4* phase_conf_vec, global const float* 
   float xmultiplier = x_table[i];
 
   float depth_linear = zmultiplier * phase_final;
-  float max_depth = phase_final * UNAMBIGIOUS_DIST * 2.0;
+  float max_depth = phase_final * UNAMBIGIOUS_DIST * 2.0f;
 
   bool cond1 =  true && 0.0f < depth_linear && 0.0f < max_depth;
 
-  xmultiplier = (xmultiplier * 90.0) / (max_depth * max_depth * 8192.0);
+  xmultiplier = (xmultiplier * 90.0f) / (max_depth * max_depth * 8192.0f);
 
   float depth_fit = depth_linear / (-depth_linear * xmultiplier + 1);
   depth_fit = depth_fit < 0.0f ? 0.0f : depth_fit;
@@ -578,9 +578,9 @@ void kernel processPixelStage2_phase3(global const float3 *a_in, global const fl
   
   float ir_sum = ir.x + ir.y + ir.z;
 
-  float phase_first = 0.0;
-  float phase_second = 0.0;
-  float phase_third = 0.0;
+  float phase_first = 0.0f;
+  float phase_second = 0.0f;
+  float phase_third = 0.0f;
   float J_1, J_2, J_3, unwrapping_likelihood1, unwrapping_likelihood2, unwrapping_likelihood3;
 
   //scale with least common multiples of modulation frequencies
@@ -652,7 +652,7 @@ void kernel filter_kde3(global const float *phase_1, global const float *phase_2
   float phase_first = phase_1[i];
   float phase_second = phase_2[i];
   float phase_third = phase_3[i];
-  if(loadX >= 1 && loadX < 511 && loadY >= 0 && loadY<424)
+  if(loadX >= 1 && loadX < 511 && loadY >= 0 && loadY < 424)
   {
     //Filter kernel
     sum_1 = 0.0f;
@@ -730,7 +730,7 @@ void kernel filter_kde3(global const float *phase_1, global const float *phase_2
 
   bool cond1 =  true && 0.0f < depth_linear && 0.0f < max_depth;
 
-  xmultiplier = (xmultiplier * 90.0) / (max_depth * max_depth * 8192.0);
+  xmultiplier = (xmultiplier * 90.0f) / (max_depth * max_depth * 8192.0f);
 
   float depth_fit = depth_linear / (-depth_linear * xmultiplier + 1);
   depth_fit = depth_fit < 0.0f ? 0.0f : depth_fit;
