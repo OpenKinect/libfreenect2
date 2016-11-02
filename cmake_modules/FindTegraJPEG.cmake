@@ -43,8 +43,10 @@ IF(TegraJPEG_IS_L4T)
     SET(L4T_GSTJPEG_URL_PART r23_Release_v1.0/source)
   ELSEIF(L4T_VER MATCHES ^23.2)
     SET(L4T_GSTJPEG_URL_PART r23_Release_v2.0/source)
-  ELSEIF(L4T_VER MATCHES ^24.0)
-    SET(L4T_GSTJPEG_URL_PART r24_Release_v1.0/Vulkan_Beta/source)
+  ELSEIF(L4T_VER MATCHES ^24.1)
+    SET(L4T_GSTJPEG_URL_PART r24_Release_v1.0/24.1_64bit/source)
+  ELSEIF(L4T_VER MATCHES ^24.2)
+    SET(L4T_GSTJPEG_URL_PART r24_Release_v2.0/BSP)
   ELSE()
     MESSAGE(WARNING "Linux4Tegra version (${L4T_VER}) is not recognized.")
     SET(TegraJPEG_L4T_OK FALSE)
@@ -53,21 +55,34 @@ ENDIF()
 
 # Download gstjpeg source
 IF(TegraJPEG_L4T_OK)
-  SET(L4T_GSTJPEG_URL "http://developer.download.nvidia.com/embedded/L4T/${L4T_GSTJPEG_URL_PART}/gstjpeg_src.tbz2")
-  SET(L4T_GSTJPEG_DEST ${DEPENDS_DIR}/gstjpeg/gstjpeg_src.tbz2)
-  IF(NOT EXISTS ${L4T_GSTJPEG_DEST})
-    MESSAGE(STATUS "Downloading gstjpeg_src.tbz2 to ${DEPENDS_DIR}...")
+  IF(L4T_VER VERSION_LESS 24.2.0)
+    SET(L4T_SRC_FILE "gstjpeg_src.tbz2")
+  ELSE()
+    SET(L4T_SRC_FILE "sources.tbz2")
+  ENDIF()
+  SET(L4T_GSTJPEG_URL "http://developer.download.nvidia.com/embedded/L4T/${L4T_GSTJPEG_URL_PART}/${L4T_SRC_FILE}")
+  SET(L4T_GSTJPEG_DEST ${DEPENDS_DIR}/source/gstjpeg_src.tbz2)
+  SET(L4T_SRC_DEST ${DEPENDS_DIR}/source/${L4T_SRC_FILE})
+  IF(NOT EXISTS ${L4T_SRC_DEST})
+    MESSAGE(STATUS "Downloading ${L4T_SRC_FILE}...")
     # Do we want checksum for the download?
-    FILE(DOWNLOAD ${L4T_GSTJPEG_URL} ${L4T_GSTJPEG_DEST} STATUS L4T_GSTJPEG_STATUS)
-    LIST(GET L4T_GSTJPEG_STATUS 0 L4T_GSTJPEG_ERROR)
-    LIST(GET L4T_GSTJPEG_STATUS 1 L4T_GSTJPEG_MSG)
-    IF(L4T_GSTJPEG_ERROR)
-      MESSAGE(WARNING "Failed to download gstjpeg_src.tbz2: ${L4T_GSTJPEG_MSG}")
-      FILE(REMOVE ${L4T_GSTJPEG_DEST})
+    FILE(DOWNLOAD ${L4T_GSTJPEG_URL} ${L4T_SRC_DEST} STATUS L4T_SRC_STATUS)
+    LIST(GET L4T_SRC_STATUS 0 L4T_SRC_ERROR)
+    LIST(GET L4T_SRC_STATUS 1 L4T_SRC_MSG)
+    IF(L4T_SRC_ERROR)
+      MESSAGE(WARNING "Failed to download ${L4T_SRC_FILE}: ${L4T_SRC_MSG}")
+      FILE(REMOVE ${L4T_SRC_FILE})
     ENDIF()
   ENDIF()
+  IF(NOT EXISTS ${L4T_GSTJPEG_DEST} AND EXISTS ${L4T_SRC_DEST})
+    MESSAGE(STATUS "Extracting ${L4T_SRC_FILE}...")
+    EXECUTE_PROCESS(
+      COMMAND ${CMAKE_COMMAND} -E tar xjf ${L4T_SRC_DEST}
+      WORKING_DIRECTORY ${DEPENDS_DIR}
+    )
+  ENDIF()
   EXECUTE_PROCESS(
-    COMMAND ${CMAKE_COMMAND} -E tar xjf ${L4T_GSTJPEG_DEST} gstjpeg_src/nv_headers
+    COMMAND ${CMAKE_COMMAND} -E tar xjf ${L4T_GSTJPEG_DEST}
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     RESULT_VARIABLE L4T_HEADERS_ERROR
     ERROR_VARIABLE L4T_HEADERS_MSG
@@ -85,8 +100,14 @@ FIND_PATH(TegraJPEG_INCLUDE_DIRS
 )
 
 FIND_LIBRARY(TegraJPEG_LIBRARIES
-  NAMES jpeg nvjpeg
-  DOC "Found TegraJPEG library"
+  NAMES nvjpeg
+  DOC "Found TegraJPEG library (libnvjpeg.so)"
+  PATH_SUFFIXES tegra
+)
+
+FIND_LIBRARY(TegraJPEG_LIBRARIES
+  NAMES jpeg
+  DOC "Found TegraJPEG library (libjpeg.so)"
   PATHS /usr/lib/arm-linux-gnueabihf/tegra
   NO_DEFAULT_PATH
 )
