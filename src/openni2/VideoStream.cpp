@@ -276,9 +276,7 @@ OniStatus VideoStream::setProperty(int propertyId, const void* data, int dataSiz
 
 
 
-OniStatus VideoStream::convertDepthToColorCoordinates(StreamBase* colorStream,
-													  int depthX, int depthY, OniDepthPixel depthZ,
-													  int* pColorX, int* pColorY)
+OniStatus VideoStream::convertDepthToColorCoordinates(StreamBase* colorStream, int depthX, int depthY, OniDepthPixel depthZ, int* pColorX, int* pColorY)
 {
   if(!reg) return ONI_STATUS_NOT_SUPPORTED;
   

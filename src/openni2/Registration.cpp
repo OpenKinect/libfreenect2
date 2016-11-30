@@ -46,7 +46,8 @@ void Registration::depthFrame(libfreenect2::Frame* frame) {
 }
 
 
-static libfreenect2::Registration* make_registration(libfreenect2::Freenect2Device* dev) {
+static libfreenect2::Registration* make_registration(libfreenect2::Freenect2Device* dev)
+{
   libfreenect2::Freenect2Device::ColorCameraParams colCamParams = dev->getColorCameraParams();
   libfreenect2::Freenect2Device::IrCameraParams irCamParams = dev->getIrCameraParams();
   {
@@ -78,7 +79,8 @@ void Registration::setEnable(bool enable) { enabled = enable; }
 
 bool Registration::isEnabled() { return enabled; }
 
-void Registration::depthToColor(int dx, int dy, float dz, float& cx, float& cy) {
+void Registration::depthToColor(int dx, int dy, float dz, float& cx, float& cy)
+{
 
   if(!reg) {
 	reg = make_registration(dev);

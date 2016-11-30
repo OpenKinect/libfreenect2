@@ -84,9 +84,7 @@ namespace Freenect2Driver
     virtual OniStatus getProperty(int propertyId, void* data, int* pDataSize);
     virtual OniStatus setProperty(int propertyId, const void* data, int dataSize);
 
-    virtual OniStatus convertDepthToColorCoordinates(StreamBase* colorStream,
-													 int depthX, int depthY, OniDepthPixel depthZ,
-													 int* pColorX, int* pColorY);
+    virtual OniStatus convertDepthToColorCoordinates(StreamBase* colorStream, int depthX, int depthY, OniDepthPixel depthZ, int* pColorX, int* pColorY);
 
   };
 }
