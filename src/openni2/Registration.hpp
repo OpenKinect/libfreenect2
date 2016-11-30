@@ -44,5 +44,6 @@ namespace Freenect2Driver {
     void colorFrameRGB888(libfreenect2::Frame* srcFrame, libfreenect2::Frame* dstFrame);
     void setEnable(bool enable = true);
     bool isEnabled();
+    void depthToColor(int dx, int dy, float dz, float& cx, float& cy);
   };
 }

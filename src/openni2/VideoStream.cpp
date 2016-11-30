@@ -272,8 +272,21 @@ OniStatus VideoStream::setProperty(int propertyId, const void* data, int dataSiz
   }
 }
 
+OniStatus VideoStream::convertDepthToColorCoordinates(StreamBase* colorStream, int depthX, int depthY, OniDepthPixel depthZ, int* pColorX, int* pColorY)
+{
+  if (!reg)
+  {
+    return ONI_STATUS_NOT_SUPPORTED;
+  }
 
-/* todo : from StreamBase
-virtual OniStatus convertDepthToColorCoordinates(StreamBase* colorStream, int depthX, int depthY, OniDepthPixel depthZ, int* pColorX, int* pColorY) { return ONI_STATUS_NOT_SUPPORTED; }
-*/
+  float cx, cy;
+  const float dz = depthZ;
+  reg->depthToColor(depthX, depthY, dz, cx, cy);
+
+  *pColorX = cx;
+  *pColorY = cy;
+
+  return ONI_STATUS_OK;
+}
+
 }
