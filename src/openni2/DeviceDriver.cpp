@@ -437,14 +437,21 @@ namespace Freenect2Driver
           "?depth-size=640x480",
           "?depth-size=512x424",
         };
-        std::vector<std::string> modes(modes_c, modes_c + 3);
+
+        std::string serial = freenect2.getDeviceSerialNumber(i);
+
+        std::vector<std::string> modes;
+        std::string serial_mode;
+        for (int j = 0; j < 3; j++) {
+          serial_mode = "?serial=" + serial + modes_c[j];
+          modes.push_back(serial_mode);
+        }
 
         WriteMessage("Found device " + uri);
 
-        for (unsigned i = 0; i < modes.size(); i++) {
-          register_uri(uri + modes[i]);
+        for (unsigned j = 0; j < modes.size(); j++) {
+          register_uri(uri + modes[j]);
         }
-
 #if 0
         freenect_device* dev;
         if (freenect_open_device(m_ctx, &dev, i) == 0)
