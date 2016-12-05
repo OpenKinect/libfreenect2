@@ -164,6 +164,11 @@
 #include <CL/cl_ext.h>
 #endif
 
+// Disable warnings about "ignoring attributes on template argument"
+#if defined(__GNUC__) && __GNUC__ >= 6
+#pragma GCC diagnostic ignored "-Wignored-attributes"
+#endif
+
 #if defined(__APPLE__) || defined(__MACOSX)
 #include <OpenCL/opencl.h>
 #else
