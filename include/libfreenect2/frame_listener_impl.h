@@ -75,6 +75,10 @@ public:
   virtual bool onNewFrame(Frame::Type type, Frame *frame);
 private:
   SyncMultiFrameListenerImpl *impl_;
+
+  /* Disable copy and assignment constructors */
+  SyncMultiFrameListener(const SyncMultiFrameListener&);
+  SyncMultiFrameListener& operator=(const SyncMultiFrameListener&);
 };
 
 ///@}

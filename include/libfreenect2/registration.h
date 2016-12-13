@@ -116,6 +116,10 @@ public:
 
 private:
   RegistrationImpl *impl_;
+
+  /* Disable copy and assignment constructors */
+  Registration(const Registration&);
+  Registration& operator=(const Registration&);
 };
 
 } /* namespace libfreenect2 */
