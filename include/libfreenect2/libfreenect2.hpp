@@ -268,6 +268,10 @@ public:
   Freenect2Device *openDefaultDevice(const PacketPipeline *factory);
 private:
   Freenect2Impl *impl_;
+
+  /* Disable copy and assignment constructors */
+  Freenect2(const Freenect2&);
+  Freenect2& operator=(const Freenect2&);
 };
 
 ///@}
