@@ -380,7 +380,7 @@ RegistrationImpl::RegistrationImpl(Freenect2Device::IrCameraParams depth_p, Free
 
   for (int y = 0; y < 424; y++) {
     for (int x = 0; x < 512; x++) {
-      // compute the dirstored coordinate for current pixel
+      // compute the distorted coordinate for current pixel
       distort(x,y,mx,my);
       // rounding the values and check if the pixel is inside the image
       ix = (int)(mx + 0.5f);
@@ -388,7 +388,7 @@ RegistrationImpl::RegistrationImpl(Freenect2Device::IrCameraParams depth_p, Free
       if(ix < 0 || ix >= 512 || iy < 0 || iy >= 424)
         index = -1;
       else
-        // computing the index from the coordianted for faster access to the data
+        // computing the index from the coordinates for faster access to the data
         index = iy * 512 + ix;
       *map_dist++ = index;
 

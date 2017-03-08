@@ -123,6 +123,11 @@ ClientBin/
 *.pfx
 *.publishsettings
 
+# Nsight Nvidia Eclipse
+.cproject
+.project
+.settings/
+
 # RIA/Silverlight projects
 Generated_Code/
 
