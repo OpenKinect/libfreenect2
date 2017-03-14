@@ -378,6 +378,16 @@ IF(ENABLE_CUDA)
   ENDIF()
 ENDIF(ENABLE_CUDA)
 
+# RPATH handling for CUDA 8.0 libOpenCL.so conflict. See #804.
+IF(HAVE_OpenCL EQUAL yes AND UNIX AND NOT APPLE)
+  FILE(GLOB CUDA_ld_so_conf /etc/ld.so.conf.d/cuda*.conf)
+  IF(CUDA_ld_so_conf)
+    MESSAGE(WARNING "Your CUDA installation overrides OpenCL system library path.")
+    GET_FILENAME_COMPONENT(OpenCL_LIB_PATH ${OpenCL_LIBRARY} DIRECTORY)
+    SET(CMAKE_INSTALL_RPATH ${OpenCL_LIB_PATH} CACHE STRING "Set RPATH for system OpenCL")
+  ENDIF()
+ENDIF()
+
 # RPATH handling for private libusb copies
 # Users have two options:
 # 1. Build libusb in depends/ and leave it there:
