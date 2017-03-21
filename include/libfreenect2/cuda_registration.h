@@ -46,6 +46,23 @@ namespace libfreenect2
 
 typedef thrust::tuple<float, float, float, float> TupleXYZRGB;
 
+/**
+ * Frame whose data is allocated on device.
+ */
+class LIBFREENECT2_API CudaDeviceFrame: public Frame
+{
+public:
+	/** Construct a new frame.
+	 * @param width Width in pixel
+	 * @param height Height in pixel
+	 * @param bytes_per_pixel Bytes per pixel
+	 */
+	CudaDeviceFrame(size_t width, size_t height, size_t bytes_per_pixel);
+	virtual ~CudaDeviceFrame();
+private:
+	bool allocateMemory();
+};
+
 class CudaRegistrationImpl;
 
 /** @defgroup registration Registration and Geometry
@@ -83,7 +100,7 @@ public:
    * @param[out] bigdepth If not `NULL`, return mapping of depth onto colors (1920x1082 float). **1082** not 1080, with a blank top and bottom row.
    * @param[out] color_depth_map Index of mapped color pixel for each depth pixel (512x424).
    */
-  void apply(const Frame* rgb, const Frame* depth, Frame* undistorted, Frame* registered, const bool enable_filter = true, Frame* bigdepth = 0, int* color_depth_map = 0) const;
+  bool apply(const Frame* rgb, const Frame* depth, CudaDeviceFrame* undistorted, CudaDeviceFrame* registered, const bool enable_filter = true, CudaDeviceFrame* bigdepth = 0, int* color_depth_map = 0) const;
 
   /** Undistort depth
    * @param depth Depth image (512x424 float)
