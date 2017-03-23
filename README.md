@@ -192,7 +192,7 @@ make install
 ```
 * Run the test program: `./bin/Protonect`
 * Test OpenNI2. `make install-openni2` (may need sudo), then run `NiViewer`. Environment variable `LIBFREENECT2_PIPELINE` can be set to `cl`, `cuda`, etc to specify the pipeline.
-
+```
 ### Linux
 
 Note: Ubuntu 12.04 is too old to support. Debian jessie may also be too old, and Debian stretch is implied in the following.
