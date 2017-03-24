@@ -118,9 +118,9 @@ When you report USB issues, please attach relevant debug log from running the pr
 
     Open a Git shell (GitHub for Windows), or any shell that has access to git.exe and msbuild.exe
     ```
-cd depends/
-.\install_libusb_vs2013.cmd
-```
+    cd depends/
+    .\install_libusb_vs2013.cmd
+    ```
     Or `install_libusb_vs2015.cmd`. If you see some errors, you can always open the cmd files and follow the git commands, and maybe build `libusb_201x.sln` with Visual Studio by hand. Building with "Win32" is not recommended as it results in lower performance.
 * Install TurboJPEG
 
@@ -139,10 +139,10 @@ cd depends/
 
     The default installation path is `install`, you may change it by editing `CMAKE_INSTALL_PREFIX`.
     ```
-mkdir build && cd build
-cmake .. -G "Visual Studio 12 2013 Win64"
-cmake --build . --config RelWithDebInfo --target install
-```
+    mkdir build && cd build
+    cmake .. -G "Visual Studio 12 2013 Win64"
+    cmake --build . --config RelWithDebInfo --target install
+    ```
     Or `-G "Visual Studio 14 2015 Win64"`.
 * Run the test program: `.\install\bin\Protonect.exe`, or start debugging in Visual Studio.
 * Test OpenNI2 (optional)
@@ -155,64 +155,56 @@ Use your favorite package managers (brew, ports, etc.) to install most if not al
 
 * Make sure these build tools are available: wget, git, cmake, pkg-config. Xcode may provide some of them. Install the rest via package managers.
 * Download libfreenect2 source
-
     ```
-git clone https://github.com/OpenKinect/libfreenect2.git
-cd libfreenect2
-```
+    git clone https://github.com/OpenKinect/libfreenect2.git
+    cd libfreenect2
+    ```
 * Install dependencies: libusb, GLFW
-
     ```
-brew update
-brew install libusb
-brew tap homebrew/versions
-brew install glfw3
-```
+    brew update
+    brew install libusb
+    brew tap homebrew/versions
+    brew install glfw3
+    ```
 * Install TurboJPEG (optional)
-
     ```
-brew tap homebrew/science
-brew install jpeg-turbo
-```
+    brew tap homebrew/science
+    brew install jpeg-turbo
+    ```
 * Install CUDA (optional): TODO
 * Install OpenNI2 (optional)
-
     ```
-brew install openni2
-export OPENNI2_REDIST=/usr/local/lib/ni2
-export OPENNI2_INCLUDE=/usr/local/include/ni2
-```
+    brew install openni2
+    export OPENNI2_REDIST=/usr/local/lib/ni2
+    export OPENNI2_INCLUDE=/usr/local/include/ni2
+    ```
 * Build
-
     ```
-mkdir build && cd build
-cmake ..
-make
-make install
-```
+    mkdir build && cd build
+    cmake ..
+    make
+    make install
+    ```
 * Run the test program: `./bin/Protonect`
 * Test OpenNI2. `make install-openni2` (may need sudo), then run `NiViewer`. Environment variable `LIBFREENECT2_PIPELINE` can be set to `cl`, `cuda`, etc to specify the pipeline.
-```
+
 ### Linux
 
 Note: Ubuntu 12.04 is too old to support. Debian jessie may also be too old, and Debian stretch is implied in the following.
 
 * Download libfreenect2 source
-
     ```
-git clone https://github.com/OpenKinect/libfreenect2.git
-cd libfreenect2
-```
+    git clone https://github.com/OpenKinect/libfreenect2.git
+    cd libfreenect2
+    ```
 * (Ubuntu 14.04 only) Download upgrade deb files
-
     ```
-cd depends; ./download_debs_trusty.sh
-```
+    cd depends; ./download_debs_trusty.sh
+    ```
 * Install build tools
-
     ```
-sudo apt-get install build-essential cmake pkg-config
-```
+    sudo apt-get install build-essential cmake pkg-config
+    ```
 * Install libusb. The version must be >= 1.0.20.
     1. (Ubuntu 14.04 only) `sudo dpkg -i debs/libusb*deb`
     2. (Other) `sudo apt-get install libusb-1.0-0-dev`
@@ -244,14 +236,13 @@ sudo apt-get install build-essential cmake pkg-config
     1. (Ubuntu 14.04 only) `sudo apt-add-repository ppa:deb-rob/ros-trusty && sudo apt-get update` (You don't need this if you have ROS repos), then `sudo apt-get install libopenni2-dev`
     2. (Other) `sudo apt-get install libopenni2-dev`.
 * Build
-
     ```
-cd ..
-mkdir build && cd build
-cmake .. -DCMAKE_INSTALL_PREFIX=$HOME/freenect2
-make
-make install
-```
+    cd ..
+    mkdir build && cd build
+    cmake .. -DCMAKE_INSTALL_PREFIX=$HOME/freenect2
+    make
+    make install
+    ```
     You need to specify `cmake -Dfreenect2_DIR=$HOME/freenect2/lib/cmake/freenect2` for CMake based third-party application to find libfreenect2.
 * Set up udev rules for device access: `sudo cp ../platform/linux/udev/90-kinect2.rules /etc/udev/rules.d/`, then replug the Kinect.
 * Run the test program: `./bin/Protonect`
