@@ -234,7 +234,7 @@ Note: Ubuntu 12.04 is too old to support. Debian jessie may also be too old, and
     3. Linux kernels 4.1 to 4.3 have performance regression. Use 4.0 and earlier or 4.4 and later (Though Ubuntu kernel 4.2.0-28.33~14.04.1 has backported the fix).
 * Install OpenNI2 (optional)
     1. (Ubuntu 14.04 only) `sudo apt-add-repository ppa:deb-rob/ros-trusty && sudo apt-get update` (You don't need this if you have ROS repos), then `sudo apt-get install libopenni2-dev`
-    2. (Other) `sudo apt-get install libopenni2-dev`.
+    2. (Other) `sudo apt-get install libopenni2-dev`
 * Build
     ```
     cd ..
