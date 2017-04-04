@@ -23,5 +23,27 @@
  * Binary distributions must follow the binary distribution requirements of
  * either License.
  */
- 
+
+/** @file Implementation of merging depth and color images using cuda. */
+
 #include <libfreenect2/cuda_registration.h>
+
+namespace libfreenect2
+{
+
+/*
+ * The information used here has been taken from libfreenect2::Registration source
+ * code.
+ */
+static const float depth_q = 0.01;
+static const float color_q = 0.002199;
+
+CudaRegistration::CudaRegistration(Freenect2Device::IrCameraParams depth_p, Freenect2Device::ColorCameraParams rgb_p):
+  impl_(new RegistrationImpl(depth_p, rgb_p)) {}
+
+CudaRegistration::~CudaRegistration()
+{
+  delete impl_;
+}
+
+} /* namespace libfreenect2 */

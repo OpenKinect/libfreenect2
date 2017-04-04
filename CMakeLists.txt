@@ -363,6 +363,12 @@ IF(ENABLE_CUDA)
 
     SET(OLD_CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
     STRING(REGEX REPLACE "-std=c\\+\\+.." "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+    # Thrust requires exceptions.  If OpenCL from NVidia is used we don't need this flag.
+    STRING(REGEX REPLACE "-fno-exceptions" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+    MESSAGE(STATUS "*************")
+    mESSAGE(STATUS ${CMAKE_CXX_FLAGS})
+    MESSAGE(STATUS ${CUDA_FLAGS})
+    MESSAGE(STATUS "*************")
     CUDA_COMPILE(CUDA_OBJECTS
       src/cuda_depth_packet_processor.cu
       src/cuda_kde_depth_packet_processor.cu
