@@ -1,4 +1,5 @@
 build
+compile
 
 # Dependency folders
 depends/*/
