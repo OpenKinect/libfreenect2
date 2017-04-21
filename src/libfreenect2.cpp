@@ -459,6 +459,8 @@ public:
             {
               unsigned char buffer[1024];
               r = libusb_get_string_descriptor_ascii(dev_handle, dev_desc.iSerialNumber, buffer, sizeof(buffer));
+              // keep the ref until determined not kinect
+              libusb_ref_device(dev);
               libusb_close(dev_handle);
 
               if(r > LIBUSB_SUCCESS)
@@ -474,6 +476,7 @@ public:
               }
               else
               {
+                libusb_unref_device(dev);
                 LOG_ERROR << "failed to get serial number of Kinect v2: " << PrintBusAndDevice(dev, r);
               }
             }
@@ -1006,7 +1009,17 @@ Freenect2Device *Freenect2Impl::openDevice(int idx, const PacketPipeline *pipeli
     return device;
   }
 
-  int r = libusb_open(dev.dev, &dev_handle);
+  int r;
+  for (int i = 0; i < 10; i++)
+  {
+    r = libusb_open(dev.dev, &dev_handle);
+    if(r == LIBUSB_SUCCESS)
+    {
+      break;
+    }
+    LOG_INFO << "device unavailable right now, retrying";
+    this_thread::sleep_for(chrono::milliseconds(100));
+  }
 
   if(r != LIBUSB_SUCCESS)
   {
