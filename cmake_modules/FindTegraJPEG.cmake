@@ -34,61 +34,64 @@ IF(TegraJPEG_IS_L4T)
   ENDIF()
 
   IF(L4T_VER MATCHES ^21.3)
-    SET(L4T_GSTJPEG_URL_PART r21_Release_v3.0/sources)
+    SET(L4T_SRC_PART r21_Release_v3.0/sources/gstjpeg_src.tbz2)
   ELSEIF(L4T_VER MATCHES ^21.4)
-    SET(L4T_GSTJPEG_URL_PART r21_Release_v4.0/source)
+    SET(L4T_SRC_PART r21_Release_v4.0/source/gstjpeg_src.tbz2)
   ELSEIF(L4T_VER MATCHES ^21.5)
-    SET(L4T_GSTJPEG_URL_PART r21_Release_v5.0/source)  
+    SET(L4T_SRC_PART r21_Release_v5.0/source/gstjpeg_src.tbz2)
   ELSEIF(L4T_VER MATCHES ^23.1)
-    SET(L4T_GSTJPEG_URL_PART r23_Release_v1.0/source)
+    SET(L4T_SRC_PART r23_Release_v1.0/source/gstjpeg_src.tbz2)
   ELSEIF(L4T_VER MATCHES ^23.2)
-    SET(L4T_GSTJPEG_URL_PART r23_Release_v2.0/source)
+    SET(L4T_SRC_PART r23_Release_v2.0/source/gstjpeg_src.tbz2)
   ELSEIF(L4T_VER MATCHES ^24.1)
-    SET(L4T_GSTJPEG_URL_PART r24_Release_v1.0/24.1_64bit/source)
+    SET(L4T_SRC_PART r24_Release_v1.0/24.1_64bit/source/gstjpeg_src.tbz2)
   ELSEIF(L4T_VER MATCHES ^24.2)
-    SET(L4T_GSTJPEG_URL_PART r24_Release_v2.0/BSP)
+    SET(L4T_SRC_PART r24_Release_v2.0/BSP/sources.tbz2)
+  ELSEIF(L4T_VER MATCHES ^27.1)
+    SET(L4T_SRC_PART r27_Release_v1.0/BSP/r27.1.0_sources.tbz2)
   ELSE()
-    MESSAGE(WARNING "Linux4Tegra version (${L4T_VER}) is not recognized.")
+    MESSAGE(WARNING "Linux4Tegra version (${L4T_VER}) is not recognized. Add the new source URL part to FindTegraJPEG.cmake.")
     SET(TegraJPEG_L4T_OK FALSE)
   ENDIF()
 ENDIF()
 
 # Download gstjpeg source
 IF(TegraJPEG_L4T_OK)
-  IF(L4T_VER VERSION_LESS 24.2.0)
-    SET(L4T_SRC_FILE "gstjpeg_src.tbz2")
-  ELSE()
-    SET(L4T_SRC_FILE "sources.tbz2")
-  ENDIF()
-  SET(L4T_GSTJPEG_URL "http://developer.download.nvidia.com/embedded/L4T/${L4T_GSTJPEG_URL_PART}/${L4T_SRC_FILE}")
-  SET(L4T_GSTJPEG_DEST ${DEPENDS_DIR}/source/gstjpeg_src.tbz2)
-  SET(L4T_SRC_DEST ${DEPENDS_DIR}/source/${L4T_SRC_FILE})
-  IF(NOT EXISTS ${L4T_SRC_DEST})
-    MESSAGE(STATUS "Downloading ${L4T_SRC_FILE}...")
+  SET(L4T_SRC_PATH ${DEPENDS_DIR}/source/${L4T_SRC_PART})
+  GET_FILENAME_COMPONENT(L4T_SRC_DIR ${L4T_SRC_PATH} DIRECTORY)
+  IF(NOT EXISTS ${L4T_SRC_PATH})
+    MESSAGE(STATUS "Downloading ${L4T_SRC_PART}...")
+    SET(L4T_SRC_URL "http://developer.download.nvidia.com/embedded/L4T/${L4T_SRC_PART}")
     # Do we want checksum for the download?
-    FILE(DOWNLOAD ${L4T_GSTJPEG_URL} ${L4T_SRC_DEST} STATUS L4T_SRC_STATUS)
+    FILE(DOWNLOAD ${L4T_SRC_URL} ${L4T_SRC_PATH} STATUS L4T_SRC_STATUS)
     LIST(GET L4T_SRC_STATUS 0 L4T_SRC_ERROR)
     LIST(GET L4T_SRC_STATUS 1 L4T_SRC_MSG)
     IF(L4T_SRC_ERROR)
-      MESSAGE(WARNING "Failed to download ${L4T_SRC_FILE}: ${L4T_SRC_MSG}")
-      FILE(REMOVE ${L4T_SRC_FILE})
+      MESSAGE(WARNING "Failed to download ${L4T_SRC_PART}: ${L4T_SRC_MSG}")
+      FILE(REMOVE ${L4T_SRC_PATH})
     ENDIF()
   ENDIF()
-  IF(NOT EXISTS ${L4T_GSTJPEG_DEST} AND EXISTS ${L4T_SRC_DEST})
-    MESSAGE(STATUS "Extracting ${L4T_SRC_FILE}...")
+
+  FILE(GLOB_RECURSE L4T_GSTJPEG_PATH ${L4T_SRC_DIR}/gstjpeg_src.tbz2)
+  IF(NOT L4T_GSTJPEG_PATH)
+    MESSAGE(STATUS "Extracting ${L4T_SRC_PART}...")
     EXECUTE_PROCESS(
-      COMMAND ${CMAKE_COMMAND} -E tar xjf ${L4T_SRC_DEST}
-      WORKING_DIRECTORY ${DEPENDS_DIR}
+      COMMAND ${CMAKE_COMMAND} -E tar xjf ${L4T_SRC_PATH}
+      WORKING_DIRECTORY ${L4T_SRC_DIR}
     )
+    FILE(GLOB_RECURSE L4T_GSTJPEG_PATH ${L4T_SRC_DIR}/gstjpeg_src.tbz2)
   ENDIF()
-  EXECUTE_PROCESS(
-    COMMAND ${CMAKE_COMMAND} -E tar xjf ${L4T_GSTJPEG_DEST}
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-    RESULT_VARIABLE L4T_HEADERS_ERROR
-    ERROR_VARIABLE L4T_HEADERS_MSG
-  )
-  IF(L4T_HEADERS_ERROR)
-    MESSAGE(WARNING "Failed to unpack gstjpeg_src.tbz2: ${L4T_HEADERS_MSG}")
+
+  IF(L4T_GSTJPEG_PATH)
+    EXECUTE_PROCESS(
+      COMMAND ${CMAKE_COMMAND} -E tar xjf ${L4T_GSTJPEG_PATH}
+      WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+      RESULT_VARIABLE L4T_HEADERS_ERROR
+      ERROR_VARIABLE L4T_HEADERS_MSG
+    )
+    IF(L4T_HEADERS_ERROR)
+      MESSAGE(WARNING "Failed to unpack ${L4T_GSTJPEG_PATH}: ${L4T_HEADERS_MSG}")
+    ENDIF()
   ENDIF()
 ENDIF()
 
