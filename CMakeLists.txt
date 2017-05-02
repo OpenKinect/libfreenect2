@@ -435,12 +435,14 @@ MESSAGE(STATUS "Linking with these libraries: \n ${LIBRARIES_STRING}")
 TARGET_LINK_LIBRARIES(freenect2 ${LIBRARIES})
 
 CONFIGURE_FILE(freenect2.cmake.in "${PROJECT_BINARY_DIR}/freenect2Config.cmake" @ONLY)
+CONFIGURE_FILE(freenect2Version.cmake.in "${PROJECT_BINARY_DIR}/freenect2ConfigVersion.cmake" @ONLY)
 CONFIGURE_FILE(freenect2.pc.in "${PROJECT_BINARY_DIR}/freenect2.pc" @ONLY)
 
 INSTALL(TARGETS freenect2 DESTINATION lib RUNTIME DESTINATION bin)
 INSTALL(DIRECTORY "${MY_DIR}/include/${PROJECT_NAME}" DESTINATION include PATTERN "*.in" EXCLUDE)
 INSTALL(DIRECTORY "${PROJECT_BINARY_DIR}/${PROJECT_NAME}" DESTINATION include)
 INSTALL(FILES "${PROJECT_BINARY_DIR}/freenect2Config.cmake" DESTINATION lib/cmake/freenect2/)
+INSTALL(FILES "${PROJECT_BINARY_DIR}/freenect2ConfigVersion.cmake" DESTINATION lib/cmake/freenect2/)
 INSTALL(FILES "${PROJECT_BINARY_DIR}/freenect2.pc" DESTINATION lib/pkgconfig/)
 
 ADD_SUBDIRECTORY(${MY_DIR}/doc)
