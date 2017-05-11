@@ -271,7 +271,7 @@ public:
       char buf[16];
       if (clGetICDLoaderInfoOCLICD(CL_ICDL_VERSION, sizeof(buf), buf, NULL) == CL_SUCCESS)
       {
-        if (strcmp(buf, "2.2.4") < 0)
+        if (strcmp(buf, "2.2.4") < 0 && strlen(buf) <= 5)
           LOG_WARNING << "Your ocl-icd has deadlock bugs. Update to 2.2.4+ is recommended.";
       }
     }
