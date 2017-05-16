@@ -67,7 +67,7 @@ public:
     unsigned char *data;
     size_t size;
 
-    Texture() : texture(0), data(0), size(0), bytes_per_pixel(FormatT::BytesPerPixel), height(0), width(0)
+    Texture() : bytes_per_pixel(FormatT::BytesPerPixel), height(0), width(0), texture(0), data(0), size(0)
     {
     }
 
@@ -125,13 +125,13 @@ public:
     {
         typedef unsigned char type;
 
-        int linestep = width * bytes_per_pixel / sizeof(type);
+        size_t linestep = width * bytes_per_pixel / sizeof(type);
 
         type *first_line = reinterpret_cast<type *>(data), *last_line = reinterpret_cast<type *>(data) + (height - 1) * linestep;
 
-        for (int y = 0; y < height / 2; ++y)
+        for (size_t y = 0; y < height / 2; ++y)
         {
-            for (int x = 0; x < linestep; ++x, ++first_line, ++last_line)
+            for (size_t x = 0; x < linestep; ++x, ++first_line, ++last_line)
             {
                 std::swap(*first_line, *last_line);
             }
@@ -271,6 +271,8 @@ private:
     std::map<std::string,libfreenect2::Frame*> frames;
     Texture<F8C4> rgb;
     Texture<F32C1> ir;
+    int win_width;
+    int win_height;
 public:
     Viewer();
     void initialize();
@@ -278,7 +280,9 @@ public:
     bool render();
     void addFrame(std::string id,libfreenect2::Frame* frame);
     void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
+    void winsize_callback(GLFWwindow* window, int w, int h);
     static void key_callbackstatic(GLFWwindow* window, int key, int scancode, int action, int mods);
+    static void winsize_callbackstatic(GLFWwindow* window, int w, int h);
 };
 
 #endif

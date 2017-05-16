@@ -33,6 +33,7 @@
 #include <stdint.h>
 #include <algorithm>
 #include <libfreenect2/config.h>
+#include <libfreenect2/libfreenect2.hpp>
 
 namespace libfreenect2
 {
@@ -44,9 +45,10 @@ class SerialNumberResponse
 private:
   std::string serial_;
 public:
-  SerialNumberResponse(const unsigned char *data, int length)
+  SerialNumberResponse(const std::vector<unsigned char> &data)
   {
-    char *c = new char[length / 2];
+    int length = data.size();
+    char *c = new char[length / 2 + 1]();
 
     for(int i = 0, j = 0; i < length; i += 2, ++j)
     {
@@ -70,48 +72,62 @@ class FirmwareVersionResponse
 private:
   struct FWSubsystemVersion
   {
-    uint16_t minor;
-    uint16_t major;
-    uint16_t build;
-    uint16_t revision;
-    uint16_t reserved0[4];
+    uint32_t maj_min;
+    uint32_t revision;
+    uint32_t build;
+    uint32_t reserved0;
 
     FWSubsystemVersion()
     {
-      major = 0;
-      minor = 0;
-      build = 0;
+      maj_min = 0;
       revision = 0;
+      build = 0;
     }
   };
 
   std::vector<FWSubsystemVersion> versions_;
 public:
-  FirmwareVersionResponse(const unsigned char *data, int length)
+  FirmwareVersionResponse(const std::vector<unsigned char> &data)
   {
+    int length = data.size();
     int n = length / sizeof(FWSubsystemVersion);
-    const FWSubsystemVersion *sv = reinterpret_cast<const FWSubsystemVersion *>(data);
+    const FWSubsystemVersion *sv = reinterpret_cast<const FWSubsystemVersion *>(&data[0]);
 
-    for(int i = 0; i < n && sv->major > 0; ++i, ++sv)
+    for(int i = 0; i < 7 && i < n; ++i)
     {
-      versions_.push_back(*sv);
+      versions_.push_back(sv[i]);
     }
   }
 
   std::string toString()
   {
     FWSubsystemVersion max;
-    for(int i = 0; i < versions_.size(); ++i)
-    {
-      max.major = std::max<uint16_t>(max.major, versions_[i].major);
-      max.minor = std::max<uint16_t>(max.minor, versions_[i].minor);
-      max.build = std::max<uint16_t>(max.build, versions_[i].build);
-      max.revision = std::max<uint16_t>(max.revision, versions_[i].revision);
-    }
     std::stringstream version_string;
-    version_string << max.major << "." << max.minor << "." << max.build << "." << max.revision << "." << versions_.size();
+    // the main blob's index
+    size_t i = 3;
+    if (i < versions_.size())
+    {
+      const FWSubsystemVersion &ver = versions_[i];
+      version_string << (ver.maj_min >> 16) << "." << (ver.maj_min & 0xffff) << "." << ver.revision << "." << ver.build;
+    }
 
     return version_string.str();
+  }
+};
+
+class Status0x090000Response
+{
+private:
+  uint32_t status_;
+public:
+  Status0x090000Response(const std::vector<unsigned char> &data)
+  {
+    status_ = *reinterpret_cast<const uint32_t *>(&data[0]);
+  }
+
+  uint32_t toNumber()
+  {
+    return status_;
   }
 };
 
@@ -120,8 +136,9 @@ class GenericResponse
 private:
   std::string dump_;
 public:
-  GenericResponse(const unsigned char *data, int length)
+  GenericResponse(const std::vector<unsigned char> &data)
   {
+    int length = data.size();
     std::stringstream dump;
     dump << length << " bytes of raw data" << std::endl;
 
@@ -196,6 +213,46 @@ LIBFREENECT2_PACK(struct RgbCameraParamsResponse
   // matches the depth image aspect ratio of 512*424 very closely
   float table1[28 * 23 * 4];
   float table2[28 * 23];
+
+  RgbCameraParamsResponse(const std::vector<unsigned char> &data)
+  {
+    *this = *reinterpret_cast<const RgbCameraParamsResponse *>(&data[0]);
+  }
+
+  Freenect2Device::ColorCameraParams toColorCameraParams()
+  {
+    Freenect2Device::ColorCameraParams params;
+    params.fx = color_f;
+    params.fy = color_f;
+    params.cx = color_cx;
+    params.cy = color_cy;
+
+    params.shift_d = shift_d;
+    params.shift_m = shift_m;
+
+    params.mx_x3y0 = mx_x3y0; // xxx
+    params.mx_x0y3 = mx_x0y3; // yyy
+    params.mx_x2y1 = mx_x2y1; // xxy
+    params.mx_x1y2 = mx_x1y2; // yyx
+    params.mx_x2y0 = mx_x2y0; // xx
+    params.mx_x0y2 = mx_x0y2; // yy
+    params.mx_x1y1 = mx_x1y1; // xy
+    params.mx_x1y0 = mx_x1y0; // x
+    params.mx_x0y1 = mx_x0y1; // y
+    params.mx_x0y0 = mx_x0y0; // 1
+
+    params.my_x3y0 = my_x3y0; // xxx
+    params.my_x0y3 = my_x0y3; // yyy
+    params.my_x2y1 = my_x2y1; // xxy
+    params.my_x1y2 = my_x1y2; // yyx
+    params.my_x2y0 = my_x2y0; // xx
+    params.my_x0y2 = my_x0y2; // yy
+    params.my_x1y1 = my_x1y1; // xy
+    params.my_x1y0 = my_x1y0; // x
+    params.my_x0y1 = my_x0y1; // y
+    params.my_x0y0 = my_x0y0; // 1
+    return params;
+  }
 });
 
 
@@ -217,6 +274,26 @@ LIBFREENECT2_PACK(struct DepthCameraParamsResponse
   float k3;
 
   float unknown1[13]; // assumed to be always zero
+
+  DepthCameraParamsResponse(const std::vector<unsigned char> &data)
+  {
+    *this = *reinterpret_cast<const DepthCameraParamsResponse *>(&data[0]);
+  }
+
+  Freenect2Device::IrCameraParams toIrCameraParams()
+  {
+    Freenect2Device::IrCameraParams params;
+    params.fx = fx;
+    params.fy = fy;
+    params.cx = cx;
+    params.cy = cy;
+    params.k1 = k1;
+    params.k2 = k2;
+    params.k3 = k3;
+    params.p1 = p1;
+    params.p2 = p2;
+    return params;
+  }
 });
 
 // "P0" coefficient tables, input to the deconvolution code

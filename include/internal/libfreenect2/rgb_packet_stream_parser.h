@@ -32,7 +32,6 @@
 #include <stddef.h>
 
 #include <libfreenect2/config.h>
-#include <libfreenect2/double_buffer.h>
 #include <libfreenect2/rgb_packet_processor.h>
 
 #include <libfreenect2/data_callback.h>
@@ -51,7 +50,8 @@ public:
 
   virtual void onDataReceived(unsigned char* buffer, size_t length);
 private:
-  libfreenect2::DoubleBuffer buffer_; ///< Buffers for storage.
+  size_t buffer_size_;
+  RgbPacket packet_;
   BaseRgbPacketProcessor *processor_; ///< Parser implementation.
 };
 

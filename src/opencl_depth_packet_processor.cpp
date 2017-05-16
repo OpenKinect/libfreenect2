@@ -36,18 +36,28 @@
 #define _USE_MATH_DEFINES
 #include <math.h>
 
-#ifdef __APPLE__
-#include <OpenCL/cl.hpp>
-#else
+#define CL_USE_DEPRECATED_OPENCL_1_2_APIS
+#define CL_USE_DEPRECATED_OPENCL_2_0_APIS
+
+#ifdef LIBFREENECT2_OPENCL_ICD_LOADER_IS_OLD
 #define CL_USE_DEPRECATED_OPENCL_1_1_APIS
 #include <CL/cl.h>
+#ifdef CL_VERSION_1_2
 #undef CL_VERSION_1_2
+#endif //CL_VERSION_1_2
+#endif //LIBFREENECT2_OPENCL_ICD_LOADER_IS_OLD
+
 #include <CL/cl.hpp>
-#endif
 
 #ifndef REG_OPENCL_FILE
 #define REG_OPENCL_FILE ""
 #endif
+
+#include <cstdlib>
+
+#define CHECK_CL_PARAM(expr) do { cl_int err = CL_SUCCESS; (expr); if (err != CL_SUCCESS) { LOG_ERROR << #expr ": " << err; return false; } } while(0)
+#define CHECK_CL_RETURN(expr) do { cl_int err = (expr); if (err != CL_SUCCESS) { LOG_ERROR << #expr ": " << err; return false; } } while(0)
+#define CHECK_CL_ON_FAIL(expr, on_fail) do { cl_int err = (expr); if (err != CL_SUCCESS) { LOG_ERROR << #expr ": " << err; on_fail; return false; } } while(0)
 
 namespace libfreenect2
 {
@@ -66,17 +76,102 @@ std::string loadCLSource(const std::string &filename)
   return std::string(reinterpret_cast<const char *>(data), length);
 }
 
+class OpenCLDepthPacketProcessorImpl;
+
+class OpenCLBuffer: public Buffer
+{
+public:
+  cl::Buffer buffer;
+};
+
+class OpenCLAllocator: public Allocator
+{
+private:
+  cl::Context &context;
+  cl::CommandQueue &queue;
+  const bool isInputBuffer;
+
+  bool allocate_opencl(OpenCLBuffer *b, size_t size)
+  {
+    if(isInputBuffer)
+    {
+      CHECK_CL_PARAM(b->buffer = cl::Buffer(context, CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, size, NULL, &err));
+      CHECK_CL_PARAM(b->data = (unsigned char*)queue.enqueueMapBuffer(b->buffer, CL_TRUE, CL_MAP_WRITE, 0, size, NULL, NULL, &err));
+    }
+    else
+    {
+      CHECK_CL_PARAM(b->buffer = cl::Buffer(context, CL_MEM_WRITE_ONLY | CL_MEM_ALLOC_HOST_PTR, size, NULL, &err));
+      CHECK_CL_PARAM(b->data = (unsigned char*)queue.enqueueMapBuffer(b->buffer, CL_TRUE, CL_MAP_READ, 0, size, NULL, NULL, &err));
+    }
+
+    b->length = 0;
+    b->capacity = size;
+    return true;
+  }
+
+  bool release_opencl(OpenCLBuffer *b)
+  {
+    cl::Event event;
+    CHECK_CL_RETURN(queue.enqueueUnmapMemObject(b->buffer, b->data, NULL, &event));
+    CHECK_CL_RETURN(event.wait());
+    return true;
+  }
+
+public:
+  OpenCLAllocator(cl::Context &context, cl::CommandQueue &queue, bool isInputBuffer) : context(context), queue(queue), isInputBuffer(isInputBuffer)
+  {
+  }
+
+  virtual Buffer *allocate(size_t size)
+  {
+    OpenCLBuffer *b = new OpenCLBuffer();
+    if(!allocate_opencl(b, size))
+      b->data = NULL;
+    return b;
+  }
+
+  virtual void free(Buffer *b)
+  {
+    if(b == NULL)
+      return;
+    release_opencl(static_cast<OpenCLBuffer *>(b));
+    delete b;
+  }
+};
+
+class OpenCLFrame: public Frame
+{
+private:
+  OpenCLBuffer *buffer;
+
+public:
+  OpenCLFrame(OpenCLBuffer *buffer)
+    : Frame(512, 424, 4, (unsigned char*)-1)
+    , buffer(buffer)
+  {
+    data = buffer->data;
+  }
+
+  virtual ~OpenCLFrame()
+  {
+    buffer->allocator->free(buffer);
+    data = NULL;
+  }
+};
+
 class OpenCLDepthPacketProcessorImpl: public WithPerfLogging
 {
 public:
-  cl_short lut11to16[2048];
-  cl_float x_table[512 * 424];
-  cl_float z_table[512 * 424];
-  cl_float3 p0_table[512 * 424];
+  static const size_t IMAGE_SIZE = 512*424;
+  static const size_t LUT_SIZE = 2048;
+
   libfreenect2::DepthPacketProcessor::Config config;
   DepthPacketProcessor::Parameters params;
 
   Frame *ir_frame, *depth_frame;
+  Allocator *input_buffer_allocator;
+  Allocator *ir_buffer_allocator;
+  Allocator *depth_buffer_allocator;
 
   cl::Context context;
   cl::Device device;
@@ -88,8 +183,6 @@ public:
   cl::Kernel kernel_filterPixelStage1;
   cl::Kernel kernel_processPixelStage2;
   cl::Kernel kernel_filterPixelStage2;
-
-  size_t image_size;
 
   // Read only buffers
   size_t buf_lut11to16_size;
@@ -130,32 +223,67 @@ public:
   bool deviceInitialized;
   bool programBuilt;
   bool programInitialized;
+  bool runtimeOk;
   std::string sourceCode;
 
-  OpenCLDepthPacketProcessorImpl(const int deviceId = -1) 
+#ifdef LIBFREENECT2_WITH_PROFILING_CL
+  std::vector<double> timings;
+  int count;
+#endif
+
+  OpenCLDepthPacketProcessorImpl(const int deviceId = -1)
     : deviceInitialized(false)
     , programBuilt(false)
     , programInitialized(false)
+    , runtimeOk(true)
   {
-    newIrFrame();
-    newDepthFrame();
-
-    image_size = 512 * 424;
+#if _BSD_SOURCE || _POSIX_C_SOURCE >= 200112L || _XOPEN_SOURCE >= 600
+    setenv("OCL_IGNORE_SELF_TEST", "1", 0);
+    setenv("OCL_STRICT_CONFORMANCE", "0", 0);
+#endif
 
     deviceInitialized = initDevice(deviceId);
 
+    input_buffer_allocator = new PoolAllocator(new OpenCLAllocator(context, queue, true));
+    ir_buffer_allocator = new PoolAllocator(new OpenCLAllocator(context, queue, false));
+    depth_buffer_allocator = new PoolAllocator(new OpenCLAllocator(context, queue, false));
+
+    newIrFrame();
+    newDepthFrame();
+
     const int CL_ICDL_VERSION = 2;
     typedef cl_int (*icdloader_func)(int, size_t, void*, size_t*);
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4996)
+#else
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
     icdloader_func clGetICDLoaderInfoOCLICD = (icdloader_func)clGetExtensionFunctionAddress("clGetICDLoaderInfoOCLICD");
+#ifdef _MSC_VER
+#pragma warning(pop)
+#else
+#pragma GCC diagnostic pop
+#endif
     if (clGetICDLoaderInfoOCLICD != NULL)
     {
       char buf[16];
       if (clGetICDLoaderInfoOCLICD(CL_ICDL_VERSION, sizeof(buf), buf, NULL) == CL_SUCCESS)
       {
-        if (strcmp(buf, "2.2.4") < 0)
+        if (strcmp(buf, "2.2.4") < 0 && strlen(buf) <= 5)
           LOG_WARNING << "Your ocl-icd has deadlock bugs. Update to 2.2.4+ is recommended.";
       }
     }
+  }
+
+  ~OpenCLDepthPacketProcessorImpl()
+  {
+    delete ir_frame;
+    delete depth_frame;
+    delete input_buffer_allocator;
+    delete ir_buffer_allocator;
+    delete depth_buffer_allocator;
   }
 
   void generateOptions(std::string &options) const
@@ -208,6 +336,8 @@ public:
 
     oss << " -D MIN_DEPTH=" << config.MinDepth * 1000.0f << "f";
     oss << " -D MAX_DEPTH=" << config.MaxDepth * 1000.0f << "f";
+
+    oss << " -cl-mad-enable -cl-no-signed-zeros -cl-fast-relaxed-math";
     options = oss.str();
   }
 
@@ -290,8 +420,6 @@ public:
     return selected;
   }
 
-#define CHECK_CL_ERROR(err, str) do {if (err != CL_SUCCESS) {LOG_ERROR << str << " failed: " << err; return false; } } while(0)
-
   bool initDevice(const int deviceId)
   {
     if(!readProgram(sourceCode))
@@ -299,33 +427,79 @@ public:
       return false;
     }
 
-    cl_int err = CL_SUCCESS;
+    std::vector<cl::Platform> platforms;
+    CHECK_CL_RETURN(cl::Platform::get(&platforms));
+
+    if(platforms.empty())
     {
-      std::vector<cl::Platform> platforms;
-      err = cl::Platform::get(&platforms);
-      CHECK_CL_ERROR(err, "cl::Platform::get");
-
-      if(platforms.empty())
-      {
-        LOG_ERROR << "no opencl platforms found.";
-        return false;
-      }
-
-      std::vector<cl::Device> devices;
-      getDevices(platforms, devices);
-      listDevice(devices);
-      if(!selectDevice(devices, deviceId))
-      {
-        LOG_ERROR << "could not find any suitable device";
-        return false;
-      }
-      LOG_INFO << "selected device: " << deviceString(device);
-
-      context = cl::Context(device, NULL, NULL, NULL, &err);
-      CHECK_CL_ERROR(err, "cl::Context");
+      LOG_ERROR << "no opencl platforms found.";
+      return false;
     }
 
+    std::vector<cl::Device> devices;
+    getDevices(platforms, devices);
+    listDevice(devices);
+    if(!selectDevice(devices, deviceId))
+    {
+      LOG_ERROR << "could not find any suitable device";
+      return false;
+    }
+    LOG_INFO << "selected device: " << deviceString(device);
+
+    CHECK_CL_PARAM(context = cl::Context(device, NULL, NULL, NULL, &err));
+
+    if(!initBuffers())
+      return false;
+
     return buildProgram(sourceCode);
+  }
+
+  bool initBuffers()
+  {
+#ifdef LIBFREENECT2_WITH_PROFILING_CL
+    count = 0;
+    CHECK_CL_PARAM(queue = cl::CommandQueue(context, device, CL_QUEUE_PROFILING_ENABLE, &err));
+#else
+    CHECK_CL_PARAM(queue = cl::CommandQueue(context, device, 0, &err));
+#endif
+
+    //Read only
+    buf_lut11to16_size = LUT_SIZE * sizeof(cl_short);
+    buf_p0_table_size = IMAGE_SIZE * sizeof(cl_float3);
+    buf_x_table_size = IMAGE_SIZE * sizeof(cl_float);
+    buf_z_table_size = IMAGE_SIZE * sizeof(cl_float);
+    buf_packet_size = ((IMAGE_SIZE * 11) / 16) * 10 * sizeof(cl_ushort);
+
+    CHECK_CL_PARAM(buf_lut11to16 = cl::Buffer(context, CL_MEM_READ_ONLY, buf_lut11to16_size, NULL, &err));
+    CHECK_CL_PARAM(buf_p0_table = cl::Buffer(context, CL_MEM_READ_ONLY, buf_p0_table_size, NULL, &err));
+    CHECK_CL_PARAM(buf_x_table = cl::Buffer(context, CL_MEM_READ_ONLY, buf_x_table_size, NULL, &err));
+    CHECK_CL_PARAM(buf_z_table = cl::Buffer(context, CL_MEM_READ_ONLY, buf_z_table_size, NULL, &err));
+    CHECK_CL_PARAM(buf_packet = cl::Buffer(context, CL_MEM_READ_ONLY, buf_packet_size, NULL, &err));
+
+    //Read-Write
+    buf_a_size = IMAGE_SIZE * sizeof(cl_float3);
+    buf_b_size = IMAGE_SIZE * sizeof(cl_float3);
+    buf_n_size = IMAGE_SIZE * sizeof(cl_float3);
+    buf_ir_size = IMAGE_SIZE * sizeof(cl_float);
+    buf_a_filtered_size = IMAGE_SIZE * sizeof(cl_float3);
+    buf_b_filtered_size = IMAGE_SIZE * sizeof(cl_float3);
+    buf_edge_test_size = IMAGE_SIZE * sizeof(cl_uchar);
+    buf_depth_size = IMAGE_SIZE * sizeof(cl_float);
+    buf_ir_sum_size = IMAGE_SIZE * sizeof(cl_float);
+    buf_filtered_size = IMAGE_SIZE * sizeof(cl_float);
+
+    CHECK_CL_PARAM(buf_a = cl::Buffer(context, CL_MEM_READ_WRITE, buf_a_size, NULL, &err));
+    CHECK_CL_PARAM(buf_b = cl::Buffer(context, CL_MEM_READ_WRITE, buf_b_size, NULL, &err));
+    CHECK_CL_PARAM(buf_n = cl::Buffer(context, CL_MEM_READ_WRITE, buf_n_size, NULL, &err));
+    CHECK_CL_PARAM(buf_ir = cl::Buffer(context, CL_MEM_WRITE_ONLY, buf_ir_size, NULL, &err));
+    CHECK_CL_PARAM(buf_a_filtered = cl::Buffer(context, CL_MEM_READ_WRITE, buf_a_filtered_size, NULL, &err));
+    CHECK_CL_PARAM(buf_b_filtered = cl::Buffer(context, CL_MEM_READ_WRITE, buf_b_filtered_size, NULL, &err));
+    CHECK_CL_PARAM(buf_edge_test = cl::Buffer(context, CL_MEM_READ_WRITE, buf_edge_test_size, NULL, &err));
+    CHECK_CL_PARAM(buf_depth = cl::Buffer(context, CL_MEM_READ_WRITE, buf_depth_size, NULL, &err));
+    CHECK_CL_PARAM(buf_ir_sum = cl::Buffer(context, CL_MEM_READ_WRITE, buf_ir_sum_size, NULL, &err));
+    CHECK_CL_PARAM(buf_filtered = cl::Buffer(context, CL_MEM_WRITE_ONLY, buf_filtered_size, NULL, &err));
+
+    return true;
   }
 
   bool initProgram()
@@ -339,141 +513,37 @@ public:
       if (!buildProgram(sourceCode))
         return false;
 
-    cl_int err = CL_SUCCESS;
-    {
-      queue = cl::CommandQueue(context, device, 0, &err);
-      CHECK_CL_ERROR(err, "cl::CommandQueue");
+    CHECK_CL_PARAM(kernel_processPixelStage1 = cl::Kernel(program, "processPixelStage1", &err));
+    CHECK_CL_RETURN(kernel_processPixelStage1.setArg(0, buf_lut11to16));
+    CHECK_CL_RETURN(kernel_processPixelStage1.setArg(1, buf_z_table));
+    CHECK_CL_RETURN(kernel_processPixelStage1.setArg(2, buf_p0_table));
+    CHECK_CL_RETURN(kernel_processPixelStage1.setArg(3, buf_packet));
+    CHECK_CL_RETURN(kernel_processPixelStage1.setArg(4, buf_a));
+    CHECK_CL_RETURN(kernel_processPixelStage1.setArg(5, buf_b));
+    CHECK_CL_RETURN(kernel_processPixelStage1.setArg(6, buf_n));
+    CHECK_CL_RETURN(kernel_processPixelStage1.setArg(7, buf_ir));
 
-      //Read only
-      buf_lut11to16_size = 2048 * sizeof(cl_short);
-      buf_p0_table_size = image_size * sizeof(cl_float3);
-      buf_x_table_size = image_size * sizeof(cl_float);
-      buf_z_table_size = image_size * sizeof(cl_float);
-      buf_packet_size = ((image_size * 11) / 16) * 10 * sizeof(cl_ushort);
+    CHECK_CL_PARAM(kernel_filterPixelStage1 = cl::Kernel(program, "filterPixelStage1", &err));
+    CHECK_CL_RETURN(kernel_filterPixelStage1.setArg(0, buf_a));
+    CHECK_CL_RETURN(kernel_filterPixelStage1.setArg(1, buf_b));
+    CHECK_CL_RETURN(kernel_filterPixelStage1.setArg(2, buf_n));
+    CHECK_CL_RETURN(kernel_filterPixelStage1.setArg(3, buf_a_filtered));
+    CHECK_CL_RETURN(kernel_filterPixelStage1.setArg(4, buf_b_filtered));
+    CHECK_CL_RETURN(kernel_filterPixelStage1.setArg(5, buf_edge_test));
 
-      buf_lut11to16 = cl::Buffer(context, CL_READ_ONLY_CACHE, buf_lut11to16_size, NULL, &err);
-      CHECK_CL_ERROR(err, "cl::Buffer");
-      buf_p0_table = cl::Buffer(context, CL_READ_ONLY_CACHE, buf_p0_table_size, NULL, &err);
-      CHECK_CL_ERROR(err, "cl::Buffer");
-      buf_x_table = cl::Buffer(context, CL_READ_ONLY_CACHE, buf_x_table_size, NULL, &err);
-      CHECK_CL_ERROR(err, "cl::Buffer");
-      buf_z_table = cl::Buffer(context, CL_READ_ONLY_CACHE, buf_z_table_size, NULL, &err);
-      CHECK_CL_ERROR(err, "cl::Buffer");
-      buf_packet = cl::Buffer(context, CL_READ_ONLY_CACHE, buf_packet_size, NULL, &err);
-      CHECK_CL_ERROR(err, "cl::Buffer");
+    CHECK_CL_PARAM(kernel_processPixelStage2 = cl::Kernel(program, "processPixelStage2", &err));
+    CHECK_CL_RETURN(kernel_processPixelStage2.setArg(0, config.EnableBilateralFilter ? buf_a_filtered : buf_a));
+    CHECK_CL_RETURN(kernel_processPixelStage2.setArg(1, config.EnableBilateralFilter ? buf_b_filtered : buf_b));
+    CHECK_CL_RETURN(kernel_processPixelStage2.setArg(2, buf_x_table));
+    CHECK_CL_RETURN(kernel_processPixelStage2.setArg(3, buf_z_table));
+    CHECK_CL_RETURN(kernel_processPixelStage2.setArg(4, buf_depth));
+    CHECK_CL_RETURN(kernel_processPixelStage2.setArg(5, buf_ir_sum));
 
-      //Read-Write
-      buf_a_size = image_size * sizeof(cl_float3);
-      buf_b_size = image_size * sizeof(cl_float3);
-      buf_n_size = image_size * sizeof(cl_float3);
-      buf_ir_size = image_size * sizeof(cl_float);
-      buf_a_filtered_size = image_size * sizeof(cl_float3);
-      buf_b_filtered_size = image_size * sizeof(cl_float3);
-      buf_edge_test_size = image_size * sizeof(cl_uchar);
-      buf_depth_size = image_size * sizeof(cl_float);
-      buf_ir_sum_size = image_size * sizeof(cl_float);
-      buf_filtered_size = image_size * sizeof(cl_float);
-
-      buf_a = cl::Buffer(context, CL_READ_WRITE_CACHE, buf_a_size, NULL, &err);
-      CHECK_CL_ERROR(err, "cl::Buffer");
-      buf_b = cl::Buffer(context, CL_READ_WRITE_CACHE, buf_b_size, NULL, &err);
-      CHECK_CL_ERROR(err, "cl::Buffer");
-      buf_n = cl::Buffer(context, CL_READ_WRITE_CACHE, buf_n_size, NULL, &err);
-      CHECK_CL_ERROR(err, "cl::Buffer");
-      buf_ir = cl::Buffer(context, CL_READ_WRITE_CACHE, buf_ir_size, NULL, &err);
-      CHECK_CL_ERROR(err, "cl::Buffer");
-      buf_a_filtered = cl::Buffer(context, CL_READ_WRITE_CACHE, buf_a_filtered_size, NULL, &err);
-      CHECK_CL_ERROR(err, "cl::Buffer");
-      buf_b_filtered = cl::Buffer(context, CL_READ_WRITE_CACHE, buf_b_filtered_size, NULL, &err);
-      CHECK_CL_ERROR(err, "cl::Buffer");
-      buf_edge_test = cl::Buffer(context, CL_READ_WRITE_CACHE, buf_edge_test_size, NULL, &err);
-      CHECK_CL_ERROR(err, "cl::Buffer");
-      buf_depth = cl::Buffer(context, CL_READ_WRITE_CACHE, buf_depth_size, NULL, &err);
-      CHECK_CL_ERROR(err, "cl::Buffer");
-      buf_ir_sum = cl::Buffer(context, CL_READ_WRITE_CACHE, buf_ir_sum_size, NULL, &err);
-      CHECK_CL_ERROR(err, "cl::Buffer");
-      buf_filtered = cl::Buffer(context, CL_READ_WRITE_CACHE, buf_filtered_size, NULL, &err);
-      CHECK_CL_ERROR(err, "cl::Buffer");
-
-      kernel_processPixelStage1 = cl::Kernel(program, "processPixelStage1", &err);
-      CHECK_CL_ERROR(err, "cl::Kernel");
-      err = kernel_processPixelStage1.setArg(0, buf_lut11to16);
-      CHECK_CL_ERROR(err, "setArg");
-      err = kernel_processPixelStage1.setArg(1, buf_z_table);
-      CHECK_CL_ERROR(err, "setArg");
-      err = kernel_processPixelStage1.setArg(2, buf_p0_table);
-      CHECK_CL_ERROR(err, "setArg");
-      err = kernel_processPixelStage1.setArg(3, buf_packet);
-      CHECK_CL_ERROR(err, "setArg");
-      err = kernel_processPixelStage1.setArg(4, buf_a);
-      CHECK_CL_ERROR(err, "setArg");
-      err = kernel_processPixelStage1.setArg(5, buf_b);
-      CHECK_CL_ERROR(err, "setArg");
-      err = kernel_processPixelStage1.setArg(6, buf_n);
-      CHECK_CL_ERROR(err, "setArg");
-      err = kernel_processPixelStage1.setArg(7, buf_ir);
-      CHECK_CL_ERROR(err, "setArg");
-
-      kernel_filterPixelStage1 = cl::Kernel(program, "filterPixelStage1", &err);
-      CHECK_CL_ERROR(err, "cl::Kernel");
-      err = kernel_filterPixelStage1.setArg(0, buf_a);
-      CHECK_CL_ERROR(err, "setArg");
-      err = kernel_filterPixelStage1.setArg(1, buf_b);
-      CHECK_CL_ERROR(err, "setArg");
-      err = kernel_filterPixelStage1.setArg(2, buf_n);
-      CHECK_CL_ERROR(err, "setArg");
-      err = kernel_filterPixelStage1.setArg(3, buf_a_filtered);
-      CHECK_CL_ERROR(err, "setArg");
-      err = kernel_filterPixelStage1.setArg(4, buf_b_filtered);
-      CHECK_CL_ERROR(err, "setArg");
-      err = kernel_filterPixelStage1.setArg(5, buf_edge_test);
-      CHECK_CL_ERROR(err, "setArg");
-
-      kernel_processPixelStage2 = cl::Kernel(program, "processPixelStage2", &err);
-      CHECK_CL_ERROR(err, "cl::Kernel");
-      err = kernel_processPixelStage2.setArg(0, config.EnableBilateralFilter ? buf_a_filtered : buf_a);
-      CHECK_CL_ERROR(err, "setArg");
-      err = kernel_processPixelStage2.setArg(1, config.EnableBilateralFilter ? buf_b_filtered : buf_b);
-      CHECK_CL_ERROR(err, "setArg");
-      err = kernel_processPixelStage2.setArg(2, buf_x_table);
-      CHECK_CL_ERROR(err, "setArg");
-      err = kernel_processPixelStage2.setArg(3, buf_z_table);
-      CHECK_CL_ERROR(err, "setArg");
-      err = kernel_processPixelStage2.setArg(4, buf_depth);
-      CHECK_CL_ERROR(err, "setArg");
-      err = kernel_processPixelStage2.setArg(5, buf_ir_sum);
-      CHECK_CL_ERROR(err, "setArg");
-
-      kernel_filterPixelStage2 = cl::Kernel(program, "filterPixelStage2", &err);
-      CHECK_CL_ERROR(err, "cl::Kernel");
-      err = kernel_filterPixelStage2.setArg(0, buf_depth);
-      CHECK_CL_ERROR(err, "setArg");
-      err = kernel_filterPixelStage2.setArg(1, buf_ir_sum);
-      CHECK_CL_ERROR(err, "setArg");
-      err = kernel_filterPixelStage2.setArg(2, buf_edge_test);
-      CHECK_CL_ERROR(err, "setArg");
-      err = kernel_filterPixelStage2.setArg(3, buf_filtered);
-      CHECK_CL_ERROR(err, "setArg");
-
-      cl::Event event0, event1, event2, event3;
-      err = queue.enqueueWriteBuffer(buf_lut11to16, CL_FALSE, 0, buf_lut11to16_size, lut11to16, NULL, &event0);
-      CHECK_CL_ERROR(err, "enqueueWriteBuffer");
-      err = queue.enqueueWriteBuffer(buf_p0_table, CL_FALSE, 0, buf_p0_table_size, p0_table, NULL, &event1);
-      CHECK_CL_ERROR(err, "enqueueWriteBuffer");
-      err = queue.enqueueWriteBuffer(buf_x_table, CL_FALSE, 0, buf_x_table_size, x_table, NULL, &event2);
-      CHECK_CL_ERROR(err, "enqueueWriteBuffer");
-      err = queue.enqueueWriteBuffer(buf_z_table, CL_FALSE, 0, buf_z_table_size, z_table, NULL, &event3);
-      CHECK_CL_ERROR(err, "enqueueWriteBuffer");
-
-      err = event0.wait();
-      CHECK_CL_ERROR(err, "wait");
-      err = event1.wait();
-      CHECK_CL_ERROR(err, "wait");
-      err = event2.wait();
-      CHECK_CL_ERROR(err, "wait");
-      err = event3.wait();
-      CHECK_CL_ERROR(err, "wait");
-    }
+    CHECK_CL_PARAM(kernel_filterPixelStage2 = cl::Kernel(program, "filterPixelStage2", &err));
+    CHECK_CL_RETURN(kernel_filterPixelStage2.setArg(0, buf_depth));
+    CHECK_CL_RETURN(kernel_filterPixelStage2.setArg(1, buf_ir_sum));
+    CHECK_CL_RETURN(kernel_filterPixelStage2.setArg(2, buf_edge_test));
+    CHECK_CL_RETURN(kernel_filterPixelStage2.setArg(3, buf_filtered));
 
     programInitialized = true;
     return true;
@@ -481,49 +551,67 @@ public:
 
   bool run(const DepthPacket &packet)
   {
-    cl_int err;
+    std::vector<cl::Event> eventWrite(1), eventPPS1(1), eventFPS1(1), eventPPS2(1), eventFPS2(1);
+    cl::Event eventReadIr, eventReadDepth;
+
+    CHECK_CL_RETURN(queue.enqueueWriteBuffer(buf_packet, CL_FALSE, 0, buf_packet_size, packet.buffer, NULL, &eventWrite[0]));
+    CHECK_CL_RETURN(queue.enqueueNDRangeKernel(kernel_processPixelStage1, cl::NullRange, cl::NDRange(IMAGE_SIZE), cl::NullRange, &eventWrite, &eventPPS1[0]));
+    CHECK_CL_RETURN(queue.enqueueReadBuffer(buf_ir, CL_FALSE, 0, buf_ir_size, ir_frame->data, &eventPPS1, &eventReadIr));
+
+    if(config.EnableBilateralFilter)
     {
-      std::vector<cl::Event> eventWrite(1), eventPPS1(1), eventFPS1(1), eventPPS2(1), eventFPS2(1);
-      cl::Event event0, event1;
-
-      err = queue.enqueueWriteBuffer(buf_packet, CL_FALSE, 0, buf_packet_size, packet.buffer, NULL, &eventWrite[0]);
-      CHECK_CL_ERROR(err, "enqueueWriteBuffer");
-
-      err = queue.enqueueNDRangeKernel(kernel_processPixelStage1, cl::NullRange, cl::NDRange(image_size), cl::NullRange, &eventWrite, &eventPPS1[0]);
-      CHECK_CL_ERROR(err, "enqueueNDRangeKernel");
-      err = queue.enqueueReadBuffer(buf_ir, CL_FALSE, 0, buf_ir_size, ir_frame->data, &eventPPS1, &event0);
-      CHECK_CL_ERROR(err, "enqueueReadBuffer");
-
-      if(config.EnableBilateralFilter)
-      {
-        err = queue.enqueueNDRangeKernel(kernel_filterPixelStage1, cl::NullRange, cl::NDRange(image_size), cl::NullRange, &eventPPS1, &eventFPS1[0]);
-        CHECK_CL_ERROR(err, "enqueueNDRangeKernel");
-      }
-      else
-      {
-        eventFPS1[0] = eventPPS1[0];
-      }
-
-      err = queue.enqueueNDRangeKernel(kernel_processPixelStage2, cl::NullRange, cl::NDRange(image_size), cl::NullRange, &eventFPS1, &eventPPS2[0]);
-      CHECK_CL_ERROR(err, "enqueueNDRangeKernel");
-
-      if(config.EnableEdgeAwareFilter)
-      {
-        err = queue.enqueueNDRangeKernel(kernel_filterPixelStage2, cl::NullRange, cl::NDRange(image_size), cl::NullRange, &eventPPS2, &eventFPS2[0]);
-        CHECK_CL_ERROR(err, "enqueueWriteBuffer");
-      }
-      else
-      {
-        eventFPS2[0] = eventPPS2[0];
-      }
-
-      err = queue.enqueueReadBuffer(config.EnableEdgeAwareFilter ? buf_filtered : buf_depth, CL_FALSE, 0, buf_depth_size, depth_frame->data, &eventFPS2, &event1);
-      CHECK_CL_ERROR(err, "enqueueReadBuffer");
-      err = event0.wait();
-      CHECK_CL_ERROR(err, "wait");
-      err = event1.wait();
-      CHECK_CL_ERROR(err, "wait");
+      CHECK_CL_RETURN(queue.enqueueNDRangeKernel(kernel_filterPixelStage1, cl::NullRange, cl::NDRange(IMAGE_SIZE), cl::NullRange, &eventPPS1, &eventFPS1[0]));
     }
+    else
+    {
+      eventFPS1[0] = eventPPS1[0];
+    }
+
+    CHECK_CL_RETURN(queue.enqueueNDRangeKernel(kernel_processPixelStage2, cl::NullRange, cl::NDRange(IMAGE_SIZE), cl::NullRange, &eventFPS1, &eventPPS2[0]));
+
+    if(config.EnableEdgeAwareFilter)
+    {
+      CHECK_CL_RETURN(queue.enqueueNDRangeKernel(kernel_filterPixelStage2, cl::NullRange, cl::NDRange(IMAGE_SIZE), cl::NullRange, &eventPPS2, &eventFPS2[0]));
+    }
+    else
+    {
+      eventFPS2[0] = eventPPS2[0];
+    }
+
+    CHECK_CL_RETURN(queue.enqueueReadBuffer(config.EnableEdgeAwareFilter ? buf_filtered : buf_depth, CL_FALSE, 0, buf_depth_size, depth_frame->data, &eventFPS2, &eventReadDepth));
+    CHECK_CL_RETURN(eventReadIr.wait());
+    CHECK_CL_RETURN(eventReadDepth.wait());
+
+#ifdef LIBFREENECT2_WITH_PROFILING_CL
+    if(count == 0)
+    {
+      timings.clear();
+      timings.resize(7, 0.0);
+    }
+
+    timings[0] += eventWrite[0].getProfilingInfo<CL_PROFILING_COMMAND_END>() - eventWrite[0].getProfilingInfo<CL_PROFILING_COMMAND_START>();
+    timings[1] += eventPPS1[0].getProfilingInfo<CL_PROFILING_COMMAND_END>() - eventPPS1[0].getProfilingInfo<CL_PROFILING_COMMAND_START>();
+    timings[2] += eventFPS1[0].getProfilingInfo<CL_PROFILING_COMMAND_END>() - eventFPS1[0].getProfilingInfo<CL_PROFILING_COMMAND_START>();
+    timings[3] += eventPPS2[0].getProfilingInfo<CL_PROFILING_COMMAND_END>() - eventPPS2[0].getProfilingInfo<CL_PROFILING_COMMAND_START>();
+    timings[4] += eventFPS2[0].getProfilingInfo<CL_PROFILING_COMMAND_END>() - eventFPS2[0].getProfilingInfo<CL_PROFILING_COMMAND_START>();
+    timings[5] += eventReadIr.getProfilingInfo<CL_PROFILING_COMMAND_END>() - eventReadIr.getProfilingInfo<CL_PROFILING_COMMAND_START>();
+    timings[6] += eventReadDepth.getProfilingInfo<CL_PROFILING_COMMAND_END>() - eventReadDepth.getProfilingInfo<CL_PROFILING_COMMAND_START>();
+
+    if(++count == 100)
+    {
+      double sum = timings[0] + timings[1] + timings[2] + timings[3] + timings[4] + timings[5] + timings[6];
+      LOG_INFO << "writing package: " << timings[0] / 100000000.0 << " ms.";
+      LOG_INFO << "stage 1: " << timings[1] / 100000000.0 << " ms.";
+      LOG_INFO << "filter 1: " << timings[2] / 100000000.0 << " ms.";
+      LOG_INFO << "stage 2: " << timings[3] / 100000000.0 << " ms.";
+      LOG_INFO << "filter 2: " << timings[4] / 100000000.0 << " ms.";
+      LOG_INFO << "reading ir: " << timings[5] / 100000000.0 << " ms.";
+      LOG_INFO << "reading depth: " << timings[6] / 100000000.0 << " ms.";
+      LOG_INFO << "overall: " << sum / 100000000.0 << " ms.";
+      count = 0;
+    }
+#endif
+
     return true;
   }
 
@@ -533,30 +621,21 @@ public:
     return !source.empty();
   }
 
-  bool buildProgram(const std::string& sources)
+  bool buildProgram(const std::string &sources)
   {
-    cl_int err;
-    {
-      LOG_INFO << "building OpenCL program...";
+    LOG_INFO << "building OpenCL program...";
 
-      std::string options;
-      generateOptions(options);
+    std::string options;
+    generateOptions(options);
 
-      cl::Program::Sources source(1, std::make_pair(sources.c_str(), sources.length()));
-      program = cl::Program(context, source, &err);
-      CHECK_CL_ERROR(err, "cl::Program");
+    cl::Program::Sources source(1, std::make_pair(sources.c_str(), sources.length()));
+    CHECK_CL_PARAM(program = cl::Program(context, source, &err));
 
-      err = program.build(options.c_str());
-      if (err != CL_SUCCESS)
-      {
-        LOG_ERROR << "failed to build program: " << err;
-        LOG_ERROR << "Build Status: " << program.getBuildInfo<CL_PROGRAM_BUILD_STATUS>(device);
-        LOG_ERROR << "Build Options:\t" << program.getBuildInfo<CL_PROGRAM_BUILD_OPTIONS>(device);
-        LOG_ERROR << "Build Log:\t " << program.getBuildInfo<CL_PROGRAM_BUILD_LOG>(device);
-        programBuilt = false;
-        return false;
-      }
-    }
+    CHECK_CL_ON_FAIL(program.build(options.c_str()),
+      LOG_ERROR << "failed to build program: " << err;
+      LOG_ERROR << "Build Status: " << program.getBuildInfo<CL_PROGRAM_BUILD_STATUS>(device);
+      LOG_ERROR << "Build Options:\t" << program.getBuildInfo<CL_PROGRAM_BUILD_OPTIONS>(device);
+      LOG_ERROR << "Build Log:\t " << program.getBuildInfo<CL_PROGRAM_BUILD_LOG>(device));
 
     LOG_INFO << "OpenCL program built successfully";
     programBuilt = true;
@@ -565,16 +644,26 @@ public:
 
   void newIrFrame()
   {
-    ir_frame = new Frame(512, 424, 4);
+    ir_frame = new OpenCLFrame(static_cast<OpenCLBuffer *>(ir_buffer_allocator->allocate(IMAGE_SIZE * sizeof(cl_float))));
+    ir_frame->format = Frame::Float;
   }
 
   void newDepthFrame()
   {
-    depth_frame = new Frame(512, 424, 4);
+    depth_frame = new OpenCLFrame(static_cast<OpenCLBuffer *>(depth_buffer_allocator->allocate(IMAGE_SIZE * sizeof(cl_float))));
+    depth_frame->format = Frame::Float;
   }
 
-  void fill_trig_table(const libfreenect2::protocol::P0TablesResponse *p0table)
+  bool fill_trig_table(const libfreenect2::protocol::P0TablesResponse *p0table)
   {
+    if(!deviceInitialized)
+    {
+      LOG_ERROR << "OpenCLDepthPacketProcessor is not initialized!";
+      return false;
+    }
+
+    cl_float3 *p0_table = new cl_float3[IMAGE_SIZE];
+
     for(int r = 0; r < 424; ++r)
     {
       cl_float3 *it = &p0_table[r * 512];
@@ -583,12 +672,48 @@ public:
       const uint16_t *it2 = &p0table->p0table2[r * 512];
       for(int c = 0; c < 512; ++c, ++it, ++it0, ++it1, ++it2)
       {
-        it->s[0] = -((float) * it0) * 0.000031 * M_PI;
-        it->s[1] = -((float) * it1) * 0.000031 * M_PI;
-        it->s[2] = -((float) * it2) * 0.000031 * M_PI;
+        it->s[0] = -((float)*it0) * 0.000031 * M_PI;
+        it->s[1] = -((float)*it1) * 0.000031 * M_PI;
+        it->s[2] = -((float)*it2) * 0.000031 * M_PI;
         it->s[3] = 0.0f;
       }
     }
+
+    cl::Event event;
+    CHECK_CL_ON_FAIL(queue.enqueueWriteBuffer(buf_p0_table, CL_FALSE, 0, buf_p0_table_size, p0_table, NULL, &event), delete[] p0_table);
+    CHECK_CL_ON_FAIL(event.wait(), delete[] p0_table);
+    delete[] p0_table;
+    return true;
+  }
+
+  bool fill_xz_tables(const float *xtable, const float *ztable)
+  {
+    if(!deviceInitialized)
+    {
+      LOG_ERROR << "OpenCLDepthPacketProcessor is not initialized!";
+      return false;
+    }
+
+    cl::Event event0, event1;
+    CHECK_CL_RETURN(queue.enqueueWriteBuffer(buf_x_table, CL_FALSE, 0, buf_x_table_size, xtable, NULL, &event0));
+    CHECK_CL_RETURN(queue.enqueueWriteBuffer(buf_z_table, CL_FALSE, 0, buf_z_table_size, ztable, NULL, &event1));
+    CHECK_CL_RETURN(event0.wait());
+    CHECK_CL_RETURN(event1.wait());
+    return true;
+  }
+
+  bool fill_lut(const short *lut)
+  {
+    if(!deviceInitialized)
+    {
+      LOG_ERROR << "OpenCLDepthPacketProcessor is not initialized!";
+      return false;
+    }
+
+    cl::Event event;
+    CHECK_CL_RETURN(queue.enqueueWriteBuffer(buf_lut11to16, CL_FALSE, 0, buf_lut11to16_size, lut, NULL, &event));
+    CHECK_CL_RETURN(event.wait());
+    return true;
   }
 };
 
@@ -606,7 +731,7 @@ void OpenCLDepthPacketProcessor::setConfiguration(const libfreenect2::DepthPacke
 {
   DepthPacketProcessor::setConfiguration(config);
 
-  if ( impl_->config.MaxDepth != config.MaxDepth 
+  if ( impl_->config.MaxDepth != config.MaxDepth
     || impl_->config.MinDepth != config.MinDepth)
   {
     // OpenCL program needs to be rebuilt, then reinitialized
@@ -638,36 +763,29 @@ void OpenCLDepthPacketProcessor::loadP0TablesFromCommandResponse(unsigned char *
   impl_->fill_trig_table(p0table);
 }
 
-void OpenCLDepthPacketProcessor::loadXTableFromFile(const char *filename)
+void OpenCLDepthPacketProcessor::loadXZTables(const float *xtable, const float *ztable)
 {
-  if(!loadBufferFromResources(filename, (unsigned char *)impl_->x_table, impl_->image_size * sizeof(float)))
-  {
-    LOG_ERROR << "could not load x table from: " << filename;
-  }
+  impl_->fill_xz_tables(xtable, ztable);
 }
 
-void OpenCLDepthPacketProcessor::loadZTableFromFile(const char *filename)
+void OpenCLDepthPacketProcessor::loadLookupTable(const short *lut)
 {
-  if(!loadBufferFromResources(filename, (unsigned char *)impl_->z_table, impl_->image_size * sizeof(float)))
-  {
-    LOG_ERROR << "could not load z table from: " << filename;
-  }
+  impl_->fill_lut(lut);
 }
 
-void OpenCLDepthPacketProcessor::load11To16LutFromFile(const char *filename)
+bool OpenCLDepthPacketProcessor::good()
 {
-  if(!loadBufferFromResources(filename, (unsigned char *)impl_->lut11to16, 2048 * sizeof(cl_ushort)))
-  {
-    LOG_ERROR << "could not load lut table from: " << filename;
-  }
+  return impl_->deviceInitialized && impl_->runtimeOk;
 }
 
 void OpenCLDepthPacketProcessor::process(const DepthPacket &packet)
 {
-  bool has_listener = this->listener_ != 0;
+  if (!listener_)
+    return;
 
   if(!impl_->programInitialized && !impl_->initProgram())
   {
+    impl_->runtimeOk = false;
     LOG_ERROR << "could not initialize OpenCLDepthPacketProcessor";
     return;
   }
@@ -679,23 +797,25 @@ void OpenCLDepthPacketProcessor::process(const DepthPacket &packet)
   impl_->ir_frame->sequence = packet.sequence;
   impl_->depth_frame->sequence = packet.sequence;
 
-  bool r = impl_->run(packet);
+  impl_->runtimeOk = impl_->run(packet);
 
   impl_->stopTiming(LOG_INFO);
 
-  if(has_listener && r)
+  if (!impl_->runtimeOk)
   {
-    if(this->listener_->onNewFrame(Frame::Ir, impl_->ir_frame))
-    {
-      impl_->newIrFrame();
-    }
-
-    if(this->listener_->onNewFrame(Frame::Depth, impl_->depth_frame))
-    {
-      impl_->newDepthFrame();
-    }
+    impl_->ir_frame->status = 1;
+    impl_->depth_frame->status = 1;
   }
+
+  if(listener_->onNewFrame(Frame::Ir, impl_->ir_frame))
+    impl_->newIrFrame();
+  if(listener_->onNewFrame(Frame::Depth, impl_->depth_frame))
+    impl_->newDepthFrame();
 }
 
+Allocator *OpenCLDepthPacketProcessor::getAllocator()
+{
+  return impl_->input_buffer_allocator;
+}
 } /* namespace libfreenect2 */
 

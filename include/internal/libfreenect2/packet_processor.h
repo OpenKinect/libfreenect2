@@ -29,6 +29,8 @@
 #ifndef PACKET_PROCESSOR_H_
 #define PACKET_PROCESSOR_H_
 
+#include "libfreenect2/allocator.h"
+
 namespace libfreenect2
 {
 
@@ -48,11 +50,36 @@ public:
    */
   virtual bool ready() { return true; }
 
+  virtual bool good() { return true; }
+
+  virtual const char *name() { return "a packet processor"; }
+
   /**
    * A new packet has arrived, process it.
    * @param packet Packet to process.
    */
   virtual void process(const PacketT &packet) = 0;
+
+  virtual void allocateBuffer(PacketT &p, size_t size)
+  {
+    Allocator *a = getAllocator();
+    if (a)
+      p.memory = a->allocate(size);
+  }
+
+  virtual void releaseBuffer(PacketT &p)
+  {
+    Allocator *a = getAllocator();
+    if (a)
+      a->free(p.memory);
+    p.memory = NULL;
+  }
+
+protected:
+  virtual Allocator *getAllocator() { return &default_allocator_; }
+
+private:
+  PoolAllocator default_allocator_;
 };
 
 /**

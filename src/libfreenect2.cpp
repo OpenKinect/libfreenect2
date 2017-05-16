@@ -30,13 +30,17 @@
 #include <vector>
 #include <algorithm>
 #include <libusb.h>
+#include <limits>
+#include <cmath>
+#include <cstdlib>
 #define WRITE_LIBUSB_ERROR(__RESULT) libusb_error_name(__RESULT) << " " << libusb_strerror((libusb_error)__RESULT)
 
 #include <libfreenect2/libfreenect2.hpp>
 
 #include <libfreenect2/usb/event_loop.h>
 #include <libfreenect2/usb/transfer_pool.h>
-#include <libfreenect2/packet_pipeline.h>
+#include <libfreenect2/depth_packet_processor.h>
+#include <libfreenect2/rgb_packet_processor.h>
 #include <libfreenect2/protocol/usb_control.h>
 #include <libfreenect2/protocol/command.h>
 #include <libfreenect2/protocol/response.h>
@@ -48,6 +52,154 @@ namespace libfreenect2
 using namespace libfreenect2;
 using namespace libfreenect2::usb;
 using namespace libfreenect2::protocol;
+
+/*
+For detailed analysis see https://github.com/OpenKinect/libfreenect2/issues/144
+
+The following discussion is in no way authoritative. It is the current best
+explanation considering the hardcoded parameters and decompiled code.
+
+p0 tables are the "initial shift" of phase values, as in US8587771 B2.
+
+Three p0 tables are used for "disamgibuation" in the first half of stage 2
+processing.
+
+At the end of stage 2 processing:
+
+phase_final is the phase shift used to compute the travel distance.
+
+What is being measured is max_depth (d), the total travel distance of the
+reflected ray.
+
+But what we want is depth_fit (z), the distance from reflection to the XY
+plane. There are two issues: the distance before reflection is not needed;
+and the measured ray is not normal to the XY plane.
+
+Suppose L is the distance between the light source and the focal point (a
+fixed constant), and xu,yu is the undistorted and normalized coordinates for
+each measured pixel at unit depth.
+
+Through some derivation, we have
+
+    z = (d*d - L*L)/(d*sqrt(xu*xu + yu*yu + 1) - xu*L)/2.
+
+The expression in stage 2 processing is a variant of this, with the term
+`-L*L` removed. Detailed derivation can be found in the above issue.
+
+Here, the two terms `sqrt(xu*xu + yu*yu + 1)` and `xu` requires undistorted
+coordinates, which is hard to compute in real-time because the inverse of
+radial and tangential distortion has no analytical solutions and requires
+numeric methods to solve. Thus these two terms are precomputed once and
+their variants are stored as ztable and xtable respectively.
+
+Even though x/ztable is derived with undistortion, they are only used to
+correct the effect of distortion on the z value. Image warping is needed for
+correcting distortion on x-y value, which happens in registration.cpp.
+*/
+struct IrCameraTables: Freenect2Device::IrCameraParams
+{
+  std::vector<float> xtable;
+  std::vector<float> ztable;
+  std::vector<short> lut;
+
+  IrCameraTables(const Freenect2Device::IrCameraParams &parent):
+    Freenect2Device::IrCameraParams(parent),
+    xtable(DepthPacketProcessor::TABLE_SIZE),
+    ztable(DepthPacketProcessor::TABLE_SIZE),
+    lut(DepthPacketProcessor::LUT_SIZE)
+  {
+    const double scaling_factor = 8192;
+    const double unambigious_dist = 6250.0/3;
+    size_t divergence = 0;
+    for (size_t i = 0; i < DepthPacketProcessor::TABLE_SIZE; i++)
+    {
+      size_t xi = i % 512;
+      size_t yi = i / 512;
+      double xd = (xi + 0.5 - cx)/fx;
+      double yd = (yi + 0.5 - cy)/fy;
+      double xu, yu;
+      divergence += !undistort(xd, yd, xu, yu);
+      xtable[i] = scaling_factor*xu;
+      ztable[i] = unambigious_dist/sqrt(xu*xu + yu*yu + 1);
+    }
+
+    if (divergence > 0)
+      LOG_ERROR << divergence << " pixels in x/ztable have incorrect undistortion.";
+
+    short y = 0;
+    for (int x = 0; x < 1024; x++)
+    {
+      unsigned inc = 1 << (x/128 - (x>=128));
+      lut[x] = y;
+      lut[1024 + x] = -y;
+      y += inc;
+    }
+    lut[1024] = 32767;
+  }
+
+  //x,y: undistorted, normalized coordinates
+  //xd,yd: distorted, normalized coordinates
+  void distort(double x, double y, double &xd, double &yd) const
+  {
+    double x2 = x * x;
+    double y2 = y * y;
+    double r2 = x2 + y2;
+    double xy = x * y;
+    double kr = ((k3 * r2 + k2) * r2 + k1) * r2 + 1.0;
+    xd = x*kr + p2*(r2 + 2*x2) + 2*p1*xy;
+    yd = y*kr + p1*(r2 + 2*y2) + 2*p2*xy;
+  }
+
+  //The inverse of distort() using Newton's method
+  //Return true if converged correctly
+  //This function considers tangential distortion with double precision.
+  bool undistort(double x, double y, double &xu, double &yu) const
+  {
+    double x0 = x;
+    double y0 = y;
+
+    double last_x = x;
+    double last_y = y;
+    const int max_iterations = 100;
+    int iter;
+    for (iter = 0; iter < max_iterations; iter++) {
+      double x2 = x*x;
+      double y2 = y*y;
+      double x2y2 = x2 + y2;
+      double x2y22 = x2y2*x2y2;
+      double x2y23 = x2y2*x2y22;
+
+      //Jacobian matrix
+      double Ja = k3*x2y23 + (k2+6*k3*x2)*x2y22 + (k1+4*k2*x2)*x2y2 + 2*k1*x2 + 6*p2*x + 2*p1*y + 1;
+      double Jb = 6*k3*x*y*x2y22 + 4*k2*x*y*x2y2 + 2*k1*x*y + 2*p1*x + 2*p2*y;
+      double Jc = Jb;
+      double Jd = k3*x2y23 + (k2+6*k3*y2)*x2y22 + (k1+4*k2*y2)*x2y2 + 2*k1*y2 + 2*p2*x + 6*p1*y + 1;
+
+      //Inverse Jacobian
+      double Jdet = 1/(Ja*Jd - Jb*Jc);
+      double a = Jd*Jdet;
+      double b = -Jb*Jdet;
+      double c = -Jc*Jdet;
+      double d = Ja*Jdet;
+
+      double f, g;
+      distort(x, y, f, g);
+      f -= x0;
+      g -= y0;
+
+      x -= a*f + b*g;
+      y -= c*f + d*g;
+      const double eps = std::numeric_limits<double>::epsilon()*16;
+      if (fabs(x - last_x) <= eps && fabs(y - last_y) <= eps)
+        break;
+      last_x = x;
+      last_y = y;
+    }
+    xu = x;
+    yu = y;
+    return iter < max_iterations;
+  }
+};
 
 /** Freenect2 device implementation. */
 class Freenect2DeviceImpl : public Freenect2Device
@@ -90,6 +242,9 @@ public:
 
   virtual Freenect2Device::ColorCameraParams getColorCameraParams();
   virtual Freenect2Device::IrCameraParams getIrCameraParams();
+  virtual void setColorCameraParams(const Freenect2Device::ColorCameraParams &params);
+  virtual void setIrCameraParams(const Freenect2Device::IrCameraParams &params);
+  virtual void setConfiguration(const Freenect2Device::Config &config);
 
   int nextCommandSeq();
 
@@ -97,9 +252,10 @@ public:
 
   virtual void setColorFrameListener(libfreenect2::FrameListener* rgb_frame_listener);
   virtual void setIrAndDepthFrameListener(libfreenect2::FrameListener* ir_frame_listener);
-  virtual void start();
-  virtual void stop();
-  virtual void close();
+  virtual bool start();
+  virtual bool startStreams(bool rgb, bool depth);
+  virtual bool stop();
+  virtual bool close();
 };
 
 struct PrintBusAndDevice
@@ -143,14 +299,16 @@ public:
   Freenect2Impl(void *usb_context) :
     managed_usb_context_(usb_context == 0),
     usb_context_(reinterpret_cast<libusb_context *>(usb_context)),
-    initialized(false),
-    has_device_enumeration_(false)
+    has_device_enumeration_(false),
+    initialized(false)
   {
+#ifdef __linux__
     if (libusb_get_version()->nano < 10952)
     {
       LOG_ERROR << "Your libusb does not support large iso buffer!";
       return;
     }
+#endif
 
     if(managed_usb_context_)
     {
@@ -301,6 +459,9 @@ public:
             {
               unsigned char buffer[1024];
               r = libusb_get_string_descriptor_ascii(dev_handle, dev_desc.iSerialNumber, buffer, sizeof(buffer));
+              // keep the ref until determined not kinect
+              libusb_ref_device(dev);
+              libusb_close(dev_handle);
 
               if(r > LIBUSB_SUCCESS)
               {
@@ -315,10 +476,9 @@ public:
               }
               else
               {
+                libusb_unref_device(dev);
                 LOG_ERROR << "failed to get serial number of Kinect v2: " << PrintBusAndDevice(dev, r);
               }
-
-              libusb_close(dev_handle);
             }
             else
             {
@@ -347,6 +507,8 @@ public:
     }
     return enumerated_devices_.size();
   }
+
+  Freenect2Device *openDevice(int idx, const PacketPipeline *factory, bool attempting_reset);
 };
 
 
@@ -424,6 +586,37 @@ Freenect2Device::IrCameraParams Freenect2DeviceImpl::getIrCameraParams()
 {
   return ir_camera_params_;
 }
+
+void Freenect2DeviceImpl::setColorCameraParams(const Freenect2Device::ColorCameraParams &params)
+{
+  rgb_camera_params_ = params;
+}
+
+void Freenect2DeviceImpl::setIrCameraParams(const Freenect2Device::IrCameraParams &params)
+{
+  ir_camera_params_ = params;
+  DepthPacketProcessor *proc = pipeline_->getDepthPacketProcessor();
+  if (proc != 0)
+  {
+    IrCameraTables tables(params);
+    proc->loadXZTables(&tables.xtable[0], &tables.ztable[0]);
+    proc->loadLookupTable(&tables.lut[0]);
+  }
+}
+
+Freenect2Device::Config::Config() :
+  MinDepth(0.5f),
+  MaxDepth(4.5f), //set to > 8000 for best performance when using the kde pipeline
+  EnableBilateralFilter(true),
+  EnableEdgeAwareFilter(true) {}
+
+void Freenect2DeviceImpl::setConfiguration(const Freenect2Device::Config &config)
+{
+  DepthPacketProcessor *proc = pipeline_->getDepthPacketProcessor();
+  if (proc != 0)
+    proc->setConfiguration(config);
+}
+
 void Freenect2DeviceImpl::setColorFrameListener(libfreenect2::FrameListener* rgb_frame_listener)
 {
   // TODO: should only be possible, if not started
@@ -464,8 +657,37 @@ bool Freenect2DeviceImpl::open()
     return false;
   }
 
-  rgb_transfer_pool_.allocate(50, 0x4000);
-  ir_transfer_pool_.allocate(80, 8, max_iso_packet_size);
+  unsigned rgb_xfer_size = 0x4000;
+  unsigned rgb_num_xfers = 20;
+  unsigned ir_pkts_per_xfer = 8;
+  unsigned ir_num_xfers = 60;
+
+#if defined(__APPLE__)
+  ir_pkts_per_xfer = 128;
+  ir_num_xfers = 4;
+#elif defined(_WIN32) || defined(__WIN32__) || defined(__WINDOWS__)
+  // For multi-Kinect setup, there is a 64 fd limit on poll().
+  rgb_xfer_size = 1048576;
+  rgb_num_xfers = 3;
+  ir_pkts_per_xfer = 64;
+  ir_num_xfers = 8;
+#endif
+
+  const char *xfer_str;
+  xfer_str = std::getenv("LIBFREENECT2_RGB_TRANSFER_SIZE");
+  if(xfer_str) rgb_xfer_size = std::atoi(xfer_str);
+  xfer_str = std::getenv("LIBFREENECT2_RGB_TRANSFERS");
+  if(xfer_str) rgb_num_xfers = std::atoi(xfer_str);
+  xfer_str = std::getenv("LIBFREENECT2_IR_PACKETS");
+  if(xfer_str) ir_pkts_per_xfer = std::atoi(xfer_str);
+  xfer_str = std::getenv("LIBFREENECT2_IR_TRANSFERS");
+  if(xfer_str) ir_num_xfers = std::atoi(xfer_str);
+
+  LOG_INFO << "transfer pool sizes"
+           << " rgb: " << rgb_num_xfers << "*" << rgb_xfer_size
+           << " ir: " << ir_num_xfers << "*" << ir_pkts_per_xfer << "*" << max_iso_packet_size;
+  rgb_transfer_pool_.allocate(rgb_num_xfers, rgb_xfer_size);
+  ir_transfer_pool_.allocate(ir_num_xfers, ir_pkts_per_xfer, max_iso_packet_size);
 
   state_ = Open;
 
@@ -474,93 +696,70 @@ bool Freenect2DeviceImpl::open()
   return true;
 }
 
-void Freenect2DeviceImpl::start()
+bool Freenect2DeviceImpl::start()
+{
+  return startStreams(true, true);
+}
+
+bool Freenect2DeviceImpl::startStreams(bool enable_rgb, bool enable_depth)
 {
   LOG_INFO << "starting...";
-  if(state_ != Open) return;
+  if(state_ != Open) return false;
 
   CommandTransaction::Result serial_result, firmware_result, result;
 
-  usb_control_.setVideoTransferFunctionState(UsbControl::Enabled);
+  if (usb_control_.setVideoTransferFunctionState(UsbControl::Enabled) != UsbControl::Success) return false;
 
-  command_tx_.execute(ReadFirmwareVersionsCommand(nextCommandSeq()), firmware_result);
-  firmware_ = FirmwareVersionResponse(firmware_result.data, firmware_result.length).toString();
+  if (!command_tx_.execute(ReadFirmwareVersionsCommand(nextCommandSeq()), firmware_result)) return false;
+  firmware_ = FirmwareVersionResponse(firmware_result).toString();
 
-  command_tx_.execute(ReadData0x14Command(nextCommandSeq()), result);
-  LOG_DEBUG << "ReadData0x14 response";
-  LOG_DEBUG << GenericResponse(result.data, result.length).toString();
+  if (!command_tx_.execute(ReadHardwareInfoCommand(nextCommandSeq()), result)) return false;
+  //The hardware version is currently useless.  It is only used to select the
+  //IR normalization table, but we don't have that.
 
-  command_tx_.execute(ReadSerialNumberCommand(nextCommandSeq()), serial_result);
-  std::string new_serial = SerialNumberResponse(serial_result.data, serial_result.length).toString();
+  if (!command_tx_.execute(ReadSerialNumberCommand(nextCommandSeq()), serial_result)) return false;
+  std::string new_serial = SerialNumberResponse(serial_result).toString();
 
   if(serial_ != new_serial)
   {
     LOG_WARNING << "serial number reported by libusb " << serial_ << " differs from serial number " << new_serial << " in device protocol! ";
   }
 
-  command_tx_.execute(ReadDepthCameraParametersCommand(nextCommandSeq()), result);
-  DepthCameraParamsResponse *ir_p = reinterpret_cast<DepthCameraParamsResponse *>(result.data);
+  if (!command_tx_.execute(ReadDepthCameraParametersCommand(nextCommandSeq()), result)) return false;
+  setIrCameraParams(DepthCameraParamsResponse(result).toIrCameraParams());
 
-  ir_camera_params_.fx = ir_p->fx;
-  ir_camera_params_.fy = ir_p->fy;
-  ir_camera_params_.cx = ir_p->cx;
-  ir_camera_params_.cy = ir_p->cy;
-  ir_camera_params_.k1 = ir_p->k1;
-  ir_camera_params_.k2 = ir_p->k2;
-  ir_camera_params_.k3 = ir_p->k3;
-  ir_camera_params_.p1 = ir_p->p1;
-  ir_camera_params_.p2 = ir_p->p2;
-
-  command_tx_.execute(ReadP0TablesCommand(nextCommandSeq()), result);
+  if (!command_tx_.execute(ReadP0TablesCommand(nextCommandSeq()), result)) return false;
   if(pipeline_->getDepthPacketProcessor() != 0)
-    pipeline_->getDepthPacketProcessor()->loadP0TablesFromCommandResponse(result.data, result.length);
+    pipeline_->getDepthPacketProcessor()->loadP0TablesFromCommandResponse(&result[0], result.size());
 
-  command_tx_.execute(ReadRgbCameraParametersCommand(nextCommandSeq()), result);
-  RgbCameraParamsResponse *rgb_p = reinterpret_cast<RgbCameraParamsResponse *>(result.data);
+  if (!command_tx_.execute(ReadRgbCameraParametersCommand(nextCommandSeq()), result)) return false;
+  setColorCameraParams(RgbCameraParamsResponse(result).toColorCameraParams());
 
-  rgb_camera_params_.fx = rgb_p->color_f;
-  rgb_camera_params_.fy = rgb_p->color_f;
-  rgb_camera_params_.cx = rgb_p->color_cx;
-  rgb_camera_params_.cy = rgb_p->color_cy;
+  if (!command_tx_.execute(SetModeEnabledWith0x00640064Command(nextCommandSeq()), result)) return false;
+  if (!command_tx_.execute(SetModeDisabledCommand(nextCommandSeq()), result)) return false;
 
-  rgb_camera_params_.shift_d = rgb_p->shift_d;
-  rgb_camera_params_.shift_m = rgb_p->shift_m;
+  int timeout = 50; // about 5 seconds (100ms x 50)
+  for (uint32_t status = 0, last = 0; (status & 1) == 0 && 0 < timeout; last = status, timeout--)
+  {
+    if (!command_tx_.execute(ReadStatus0x090000Command(nextCommandSeq()), result)) return false;
+    status = Status0x090000Response(result).toNumber();
+    if (status != last)
+      LOG_DEBUG << "status 0x090000: " << status;
+    if ((status & 1) == 0)
+      this_thread::sleep_for(chrono::milliseconds(100));
+  }
+  if (timeout == 0) {
+    LOG_DEBUG << "status 0x090000: timeout";
+  }
 
-  rgb_camera_params_.mx_x3y0 = rgb_p->mx_x3y0; // xxx
-  rgb_camera_params_.mx_x0y3 = rgb_p->mx_x0y3; // yyy
-  rgb_camera_params_.mx_x2y1 = rgb_p->mx_x2y1; // xxy
-  rgb_camera_params_.mx_x1y2 = rgb_p->mx_x1y2; // yyx
-  rgb_camera_params_.mx_x2y0 = rgb_p->mx_x2y0; // xx
-  rgb_camera_params_.mx_x0y2 = rgb_p->mx_x0y2; // yy
-  rgb_camera_params_.mx_x1y1 = rgb_p->mx_x1y1; // xy
-  rgb_camera_params_.mx_x1y0 = rgb_p->mx_x1y0; // x
-  rgb_camera_params_.mx_x0y1 = rgb_p->mx_x0y1; // y
-  rgb_camera_params_.mx_x0y0 = rgb_p->mx_x0y0; // 1
+  if (!command_tx_.execute(InitStreamsCommand(nextCommandSeq()), result)) return false;
 
-  rgb_camera_params_.my_x3y0 = rgb_p->my_x3y0; // xxx
-  rgb_camera_params_.my_x0y3 = rgb_p->my_x0y3; // yyy
-  rgb_camera_params_.my_x2y1 = rgb_p->my_x2y1; // xxy
-  rgb_camera_params_.my_x1y2 = rgb_p->my_x1y2; // yyx
-  rgb_camera_params_.my_x2y0 = rgb_p->my_x2y0; // xx
-  rgb_camera_params_.my_x0y2 = rgb_p->my_x0y2; // yy
-  rgb_camera_params_.my_x1y1 = rgb_p->my_x1y1; // xy
-  rgb_camera_params_.my_x1y0 = rgb_p->my_x1y0; // x
-  rgb_camera_params_.my_x0y1 = rgb_p->my_x0y1; // y
-  rgb_camera_params_.my_x0y0 = rgb_p->my_x0y0; // 1
+  if (usb_control_.setIrInterfaceState(UsbControl::Enabled) != UsbControl::Success) return false;
 
-  command_tx_.execute(ReadStatus0x090000Command(nextCommandSeq()), result);
-  LOG_DEBUG << "ReadStatus0x090000 response";
-  LOG_DEBUG << GenericResponse(result.data, result.length).toString();
+  if (!command_tx_.execute(ReadStatus0x090000Command(nextCommandSeq()), result)) return false;
+  LOG_DEBUG << "status 0x090000: " << Status0x090000Response(result).toNumber();
 
-  command_tx_.execute(InitStreamsCommand(nextCommandSeq()), result);
-
-  usb_control_.setIrInterfaceState(UsbControl::Enabled);
-
-  command_tx_.execute(ReadStatus0x090000Command(nextCommandSeq()), result);
-  LOG_DEBUG << "ReadStatus0x090000 response";
-  LOG_DEBUG << GenericResponse(result.data, result.length).toString();
-
-  command_tx_.execute(SetStreamEnabledCommand(nextCommandSeq()), result);
+  if (!command_tx_.execute(SetStreamEnabledCommand(nextCommandSeq()), result)) return false;
 
   //command_tx_.execute(Unknown0x47Command(nextCommandSeq()), result);
   //command_tx_.execute(Unknown0x46Command(nextCommandSeq()), result);
@@ -579,62 +778,99 @@ void Freenect2DeviceImpl::start()
   command_tx_.execute(ReadData0x26Command(nextCommandSeq()), result);
   command_tx_.execute(ReadData0x26Command(nextCommandSeq()), result);
 */
-  LOG_INFO << "enabling usb transfer submission...";
-  rgb_transfer_pool_.enableSubmission();
-  ir_transfer_pool_.enableSubmission();
+  if (enable_rgb)
+  {
+    LOG_INFO << "submitting rgb transfers...";
+    rgb_transfer_pool_.enableSubmission();
+    if (!rgb_transfer_pool_.submit()) return false;
+  }
 
-  LOG_INFO << "submitting usb transfers...";
-  rgb_transfer_pool_.submit(20);
-  ir_transfer_pool_.submit(60);
+  if (enable_depth)
+  {
+    LOG_INFO << "submitting depth transfers...";
+    ir_transfer_pool_.enableSubmission();
+    if (!ir_transfer_pool_.submit()) return false;
+  }
 
   state_ = Streaming;
   LOG_INFO << "started";
+  return true;
 }
 
-void Freenect2DeviceImpl::stop()
+bool Freenect2DeviceImpl::stop()
 {
   LOG_INFO << "stopping...";
 
   if(state_ != Streaming)
   {
     LOG_INFO << "already stopped, doing nothing";
-    return;
+    return false;
   }
 
-  LOG_INFO << "disabling usb transfer submission...";
-  rgb_transfer_pool_.disableSubmission();
-  ir_transfer_pool_.disableSubmission();
+  if (rgb_transfer_pool_.enabled())
+  {
+    LOG_INFO << "canceling rgb transfers...";
+    rgb_transfer_pool_.disableSubmission();
+    rgb_transfer_pool_.cancel();
+  }
 
-  LOG_INFO << "canceling usb transfers...";
-  rgb_transfer_pool_.cancel();
-  ir_transfer_pool_.cancel();
+  if (ir_transfer_pool_.enabled())
+  {
+    LOG_INFO << "canceling depth transfers...";
+    ir_transfer_pool_.disableSubmission();
+    ir_transfer_pool_.cancel();
+  }
 
-  usb_control_.setIrInterfaceState(UsbControl::Disabled);
+  if (usb_control_.setIrInterfaceState(UsbControl::Disabled) != UsbControl::Success) return false;
 
   CommandTransaction::Result result;
-  command_tx_.execute(Unknown0x0ACommand(nextCommandSeq()), result);
-  command_tx_.execute(SetStreamDisabledCommand(nextCommandSeq()), result);
+  if (!command_tx_.execute(SetModeEnabledWith0x00640064Command(nextCommandSeq()), result)) return false;
+  if (!command_tx_.execute(SetModeDisabledCommand(nextCommandSeq()), result)) return false;
+  if (!command_tx_.execute(StopCommand(nextCommandSeq()), result)) return false;
+  if (!command_tx_.execute(SetStreamDisabledCommand(nextCommandSeq()), result)) return false;
+  if (!command_tx_.execute(SetModeEnabledCommand(nextCommandSeq()), result)) return false;
+  if (!command_tx_.execute(SetModeDisabledCommand(nextCommandSeq()), result)) return false;
+  if (!command_tx_.execute(SetModeEnabledCommand(nextCommandSeq()), result)) return false;
+  if (!command_tx_.execute(SetModeDisabledCommand(nextCommandSeq()), result)) return false;
 
-  usb_control_.setVideoTransferFunctionState(UsbControl::Disabled);
+  if (usb_control_.setVideoTransferFunctionState(UsbControl::Disabled) != UsbControl::Success) return false;
 
   state_ = Open;
   LOG_INFO << "stopped";
+  return true;
 }
 
-void Freenect2DeviceImpl::close()
+bool Freenect2DeviceImpl::close()
 {
   LOG_INFO << "closing...";
 
   if(state_ == Closed)
   {
     LOG_INFO << "already closed, doing nothing";
-    return;
+    return true;
   }
 
   if(state_ == Streaming)
   {
     stop();
   }
+
+  CommandTransaction::Result result;
+  command_tx_.execute(SetModeEnabledWith0x00640064Command(nextCommandSeq()), result);
+  command_tx_.execute(SetModeDisabledCommand(nextCommandSeq()), result);
+  /* This command actually reboots the device and makes it disappear for 3 seconds.
+   * Protonect can restart instantly without it.
+   */
+#ifdef __APPLE__
+  /* Kinect will disappear on Mac OS X regardless during close().
+   * Painstaking effort could not determine the root cause.
+   * See https://github.com/OpenKinect/libfreenect2/issues/539
+   *
+   * Shut down Kinect explicitly on Mac and wait a fixed time.
+   */
+  command_tx_.execute(ShutdownCommand(nextCommandSeq()), result);
+  libfreenect2::this_thread::sleep_for(libfreenect2::chrono::milliseconds(4*1000));
+#endif
 
   if(pipeline_->getRgbPacketProcessor() != 0)
     pipeline_->getRgbPacketProcessor()->setFrameListener(0);
@@ -662,18 +898,48 @@ void Freenect2DeviceImpl::close()
 
   state_ = Closed;
   LOG_INFO << "closed";
+  return true;
+}
+
+PacketPipeline *createPacketPipelineByName(std::string name)
+{
+#if defined(LIBFREENECT2_WITH_OPENGL_SUPPORT)
+  if (name == "gl")
+    return new OpenGLPacketPipeline();
+#endif
+#if defined(LIBFREENECT2_WITH_CUDA_SUPPORT)
+  if (name == "cuda")
+    return new CudaPacketPipeline();
+#endif
+#if defined(LIBFREENECT2_WITH_OPENCL_SUPPORT)
+  if (name == "cl")
+    return new OpenCLPacketPipeline();
+#endif
+  if (name == "cpu")
+    return new CpuPacketPipeline();
+  return NULL;
 }
 
 PacketPipeline *createDefaultPacketPipeline()
 {
-#ifdef LIBFREENECT2_WITH_OPENGL_SUPPORT
+  const char *pipeline_env = std::getenv("LIBFREENECT2_PIPELINE");
+  if (pipeline_env)
+  {
+    PacketPipeline *pipeline = createPacketPipelineByName(pipeline_env);
+    if (pipeline)
+      return pipeline;
+    else
+      LOG_WARNING << "`" << pipeline_env << "' pipeline is not available.";
+  }
+
+#if defined(LIBFREENECT2_WITH_OPENGL_SUPPORT)
   return new OpenGLPacketPipeline();
+#elif defined(LIBFREENECT2_WITH_CUDA_SUPPORT)
+  return new CudaPacketPipeline();
+#elif defined(LIBFREENECT2_WITH_OPENCL_SUPPORT)
+  return new OpenCLPacketPipeline();
 #else
-  #ifdef LIBFREENECT2_WITH_OPENCL_SUPPORT
-    return new OpenCLPacketPipeline();
-  #else
   return new CpuPacketPipeline();
-  #endif
 #endif
 }
 
@@ -697,6 +963,8 @@ std::string Freenect2::getDeviceSerialNumber(int idx)
 {
   if (!impl_->initialized)
     return std::string();
+  if (idx >= impl_->getNumDevices() || idx < 0)
+    return std::string();
 
   return impl_->enumerated_devices_[idx].serial;
 }
@@ -713,12 +981,12 @@ Freenect2Device *Freenect2::openDevice(int idx)
 
 Freenect2Device *Freenect2::openDevice(int idx, const PacketPipeline *pipeline)
 {
-  return openDevice(idx, pipeline, true);
+  return impl_->openDevice(idx, pipeline, true);
 }
 
-Freenect2Device *Freenect2::openDevice(int idx, const PacketPipeline *pipeline, bool attempting_reset)
+Freenect2Device *Freenect2Impl::openDevice(int idx, const PacketPipeline *pipeline, bool attempting_reset)
 {
-  int num_devices = impl_->getNumDevices();
+  int num_devices = getNumDevices();
   Freenect2DeviceImpl *device = 0;
 
   if(idx >= num_devices)
@@ -729,10 +997,10 @@ Freenect2Device *Freenect2::openDevice(int idx, const PacketPipeline *pipeline, 
     return device;
   }
 
-  Freenect2Impl::UsbDeviceWithSerial &dev = impl_->enumerated_devices_[idx];
+  Freenect2Impl::UsbDeviceWithSerial &dev = enumerated_devices_[idx];
   libusb_device_handle *dev_handle;
 
-  if(impl_->tryGetDevice(dev.dev, &device))
+  if(tryGetDevice(dev.dev, &device))
   {
     LOG_WARNING << "device " << PrintBusAndDevice(dev.dev)
         << " is already be open!";
@@ -741,7 +1009,17 @@ Freenect2Device *Freenect2::openDevice(int idx, const PacketPipeline *pipeline, 
     return device;
   }
 
-  int r = libusb_open(dev.dev, &dev_handle);
+  int r;
+  for (int i = 0; i < 10; i++)
+  {
+    r = libusb_open(dev.dev, &dev_handle);
+    if(r == LIBUSB_SUCCESS)
+    {
+      break;
+    }
+    LOG_INFO << "device unavailable right now, retrying";
+    this_thread::sleep_for(chrono::milliseconds(100));
+  }
 
   if(r != LIBUSB_SUCCESS)
   {
@@ -755,7 +1033,7 @@ Freenect2Device *Freenect2::openDevice(int idx, const PacketPipeline *pipeline, 
   {
     r = libusb_reset_device(dev_handle);
 
-    if(r == LIBUSB_ERROR_NOT_FOUND) 
+    if(r == LIBUSB_ERROR_NOT_FOUND)
     {
       // From libusb documentation:
       // "If the reset fails, the descriptors change, or the previous state
@@ -776,8 +1054,8 @@ Freenect2Device *Freenect2::openDevice(int idx, const PacketPipeline *pipeline, 
 
       // reenumerate devices
       LOG_INFO << "re-enumerating devices after reset";
-      impl_->clearDeviceEnumeration();
-      impl_->enumerateDevices();
+      clearDeviceEnumeration();
+      enumerateDevices();
 
       // re-open without reset
       return openDevice(idx, pipeline, false);
@@ -791,8 +1069,8 @@ Freenect2Device *Freenect2::openDevice(int idx, const PacketPipeline *pipeline, 
     }
   }
 
-  device = new Freenect2DeviceImpl(impl_, pipeline, dev.dev, dev_handle, dev.serial);
-  impl_->addDevice(device);
+  device = new Freenect2DeviceImpl(this, pipeline, dev.dev, dev_handle, dev.serial);
+  addDevice(device);
 
   if(!device->open())
   {

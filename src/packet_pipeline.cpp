@@ -31,21 +31,58 @@
 #include <libfreenect2/data_callback.h>
 #include <libfreenect2/rgb_packet_stream_parser.h>
 #include <libfreenect2/depth_packet_stream_parser.h>
+#include <libfreenect2/protocol/response.h>
 
 namespace libfreenect2
 {
 
-PacketPipeline::~PacketPipeline()
+static RgbPacketProcessor *getDefaultRgbPacketProcessor()
 {
+#if defined(LIBFREENECT2_WITH_VT_SUPPORT)
+  return new VTRgbPacketProcessor();
+#elif defined(LIBFREENECT2_WITH_VAAPI_SUPPORT)
+  RgbPacketProcessor *vaapi = new VaapiRgbPacketProcessor();
+  if (vaapi->good())
+    return vaapi;
+  else
+    delete vaapi;
+  return new TurboJpegRgbPacketProcessor();
+#elif defined(LIBFREENECT2_WITH_TEGRAJPEG_SUPPORT)
+  RgbPacketProcessor *tegra = new TegraJpegRgbPacketProcessor();
+  if (tegra->good())
+    return tegra;
+  else
+    delete tegra;
+  return new TurboJpegRgbPacketProcessor();
+#elif defined(LIBFREENECT2_WITH_TURBOJPEG_SUPPORT)
+  return new TurboJpegRgbPacketProcessor();
+#else
+  #error No jpeg decoder is enabled
+#endif
 }
 
-void BasePacketPipeline::initialize()
+class PacketPipelineComponents
+{
+public:
+  RgbPacketStreamParser *rgb_parser_;
+  DepthPacketStreamParser *depth_parser_;
+
+  RgbPacketProcessor *rgb_processor_;
+  BaseRgbPacketProcessor *async_rgb_processor_;
+  DepthPacketProcessor *depth_processor_;
+  BaseDepthPacketProcessor *async_depth_processor_;
+
+  ~PacketPipelineComponents();
+  void initialize(RgbPacketProcessor *rgb, DepthPacketProcessor *depth);
+};
+
+void PacketPipelineComponents::initialize(RgbPacketProcessor *rgb, DepthPacketProcessor *depth)
 {
   rgb_parser_ = new RgbPacketStreamParser();
   depth_parser_ = new DepthPacketStreamParser();
 
-  rgb_processor_ = new TurboJpegRgbPacketProcessor();
-  depth_processor_ = createDepthPacketProcessor();
+  rgb_processor_ = rgb;
+  depth_processor_ = depth;
 
   async_rgb_processor_ = new AsyncPacketProcessor<RgbPacket>(rgb_processor_);
   async_depth_processor_ = new AsyncPacketProcessor<DepthPacket>(depth_processor_);
@@ -54,7 +91,7 @@ void BasePacketPipeline::initialize()
   depth_parser_->setPacketProcessor(async_depth_processor_);
 }
 
-BasePacketPipeline::~BasePacketPipeline()
+PacketPipelineComponents::~PacketPipelineComponents()
 {
   delete async_rgb_processor_;
   delete async_depth_processor_;
@@ -64,81 +101,110 @@ BasePacketPipeline::~BasePacketPipeline()
   delete depth_parser_;
 }
 
-BasePacketPipeline::PacketParser *BasePacketPipeline::getRgbPacketParser() const
+PacketPipeline::PacketPipeline(): comp_(new PacketPipelineComponents()) {}
+
+PacketPipeline::~PacketPipeline()
 {
-  return rgb_parser_;
+  delete comp_;
 }
 
-BasePacketPipeline::PacketParser *BasePacketPipeline::getIrPacketParser() const
+PacketPipeline::PacketParser *PacketPipeline::getRgbPacketParser() const
 {
-  return depth_parser_;
+  return comp_->rgb_parser_;
 }
 
-RgbPacketProcessor *BasePacketPipeline::getRgbPacketProcessor() const
+PacketPipeline::PacketParser *PacketPipeline::getIrPacketParser() const
 {
-  return rgb_processor_;
+  return comp_->depth_parser_;
 }
 
-DepthPacketProcessor *BasePacketPipeline::getDepthPacketProcessor() const
+RgbPacketProcessor *PacketPipeline::getRgbPacketProcessor() const
 {
-  return depth_processor_;
+  return comp_->rgb_processor_;
+}
+
+DepthPacketProcessor *PacketPipeline::getDepthPacketProcessor() const
+{
+  return comp_->depth_processor_;
 }
 
 CpuPacketPipeline::CpuPacketPipeline()
-{ 
-  initialize();
+{
+  comp_->initialize(getDefaultRgbPacketProcessor(), new CpuDepthPacketProcessor());
 }
 
 CpuPacketPipeline::~CpuPacketPipeline() { }
 
-DepthPacketProcessor *CpuPacketPipeline::createDepthPacketProcessor()
-{
-  CpuDepthPacketProcessor *depth_processor = new CpuDepthPacketProcessor();
-  depth_processor->load11To16LutFromFile("11to16.bin");
-  depth_processor->loadXTableFromFile("xTable.bin");
-  depth_processor->loadZTableFromFile("zTable.bin");
-  
-  return depth_processor;
-}
-
 #ifdef LIBFREENECT2_WITH_OPENGL_SUPPORT
 OpenGLPacketPipeline::OpenGLPacketPipeline(void *parent_opengl_context, bool debug) : parent_opengl_context_(parent_opengl_context), debug_(debug)
-{ 
-  initialize();
+{
+  comp_->initialize(getDefaultRgbPacketProcessor(), new OpenGLDepthPacketProcessor(parent_opengl_context_, debug_));
 }
 
 OpenGLPacketPipeline::~OpenGLPacketPipeline() { }
-
-DepthPacketProcessor *OpenGLPacketPipeline::createDepthPacketProcessor()
-{
-  OpenGLDepthPacketProcessor *depth_processor = new OpenGLDepthPacketProcessor(parent_opengl_context_, debug_);
-  depth_processor->load11To16LutFromFile("11to16.bin");
-  depth_processor->loadXTableFromFile("xTable.bin");
-  depth_processor->loadZTableFromFile("zTable.bin");
-  
-  return depth_processor;
-}
 #endif // LIBFREENECT2_WITH_OPENGL_SUPPORT
 
 
 #ifdef LIBFREENECT2_WITH_OPENCL_SUPPORT
-
 OpenCLPacketPipeline::OpenCLPacketPipeline(const int deviceId) : deviceId(deviceId)
-{ 
-  initialize();
+{
+  comp_->initialize(getDefaultRgbPacketProcessor(), new OpenCLDepthPacketProcessor(deviceId));
 }
 
 OpenCLPacketPipeline::~OpenCLPacketPipeline() { }
 
-DepthPacketProcessor *OpenCLPacketPipeline::createDepthPacketProcessor()
+
+OpenCLKdePacketPipeline::OpenCLKdePacketPipeline(const int deviceId) : deviceId(deviceId)
 {
-  OpenCLDepthPacketProcessor *depth_processor = new OpenCLDepthPacketProcessor(deviceId);
-  depth_processor->load11To16LutFromFile("11to16.bin");
-  depth_processor->loadXTableFromFile("xTable.bin");
-  depth_processor->loadZTableFromFile("zTable.bin");
-  
-  return depth_processor;
+  comp_->initialize(getDefaultRgbPacketProcessor(), new OpenCLKdeDepthPacketProcessor(deviceId));
 }
+
+OpenCLKdePacketPipeline::~OpenCLKdePacketPipeline() { }
 #endif // LIBFREENECT2_WITH_OPENCL_SUPPORT
+
+#ifdef LIBFREENECT2_WITH_CUDA_SUPPORT
+CudaPacketPipeline::CudaPacketPipeline(const int deviceId) : deviceId(deviceId)
+{
+  comp_->initialize(getDefaultRgbPacketProcessor(), new CudaDepthPacketProcessor(deviceId));
+}
+
+CudaKdePacketPipeline::~CudaKdePacketPipeline() { }
+
+CudaKdePacketPipeline::CudaKdePacketPipeline(const int deviceId) : deviceId(deviceId)
+{
+  comp_->initialize(getDefaultRgbPacketProcessor(), new CudaKdeDepthPacketProcessor(deviceId));
+}
+
+CudaPacketPipeline::~CudaPacketPipeline() { }
+#endif // LIBFREENECT2_WITH_CUDA_SUPPORT
+
+DumpPacketPipeline::DumpPacketPipeline()
+{
+  RgbPacketProcessor *rgb = new DumpRgbPacketProcessor();
+  DepthPacketProcessor *depth = new DumpDepthPacketProcessor();
+  comp_->initialize(rgb, depth);
+}
+
+DumpPacketPipeline::~DumpPacketPipeline() {}
+
+const unsigned char* DumpPacketPipeline::getDepthP0Tables(size_t* length) {
+  *length = sizeof(libfreenect2::protocol::P0TablesResponse);
+  return static_cast<DumpDepthPacketProcessor*>(getDepthPacketProcessor())->getP0Tables();
+}
+
+const float* DumpPacketPipeline::getDepthXTable(size_t* length) {
+  *length = DepthPacketProcessor::TABLE_SIZE;
+  return static_cast<DumpDepthPacketProcessor*>(getDepthPacketProcessor())->getXTable();
+}
+
+const float* DumpPacketPipeline::getDepthZTable(size_t* length) {
+  *length = DepthPacketProcessor::TABLE_SIZE;
+  return static_cast<DumpDepthPacketProcessor*>(getDepthPacketProcessor())->getZTable();
+}
+
+const short* DumpPacketPipeline::getDepthLookupTable(size_t* length) {
+  *length = DepthPacketProcessor::LUT_SIZE;
+  return static_cast<DumpDepthPacketProcessor*>(getDepthPacketProcessor())->getLookupTable();
+}
 
 } /* namespace libfreenect2 */

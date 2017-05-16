@@ -40,19 +40,24 @@ namespace libfreenect2
 {
 
 /** Packet with JPEG data. */
-struct LIBFREENECT2_API RgbPacket
+struct RgbPacket
 {
   uint32_t sequence;
 
   uint32_t timestamp;
   unsigned char *jpeg_buffer; ///< JPEG data.
   size_t jpeg_buffer_length;  ///< Length of the JPEG data.
+  float exposure;
+  float gain;
+  float gamma;
+
+  Buffer *memory;
 };
 
 typedef PacketProcessor<RgbPacket> BaseRgbPacketProcessor;
 
 /** JPEG processor. */
-class LIBFREENECT2_API RgbPacketProcessor : public BaseRgbPacketProcessor
+class RgbPacketProcessor : public BaseRgbPacketProcessor
 {
 public:
   RgbPacketProcessor();
@@ -64,28 +69,78 @@ protected:
 };
 
 /** Class for dumping the JPEG information, eg to file. */
-class LIBFREENECT2_API DumpRgbPacketProcessor : public RgbPacketProcessor
+class DumpRgbPacketProcessor : public RgbPacketProcessor
 {
 public:
   DumpRgbPacketProcessor();
   virtual ~DumpRgbPacketProcessor();
-protected:
   virtual void process(const libfreenect2::RgbPacket &packet);
 };
 
+#ifdef LIBFREENECT2_WITH_TURBOJPEG_SUPPORT
 class TurboJpegRgbPacketProcessorImpl;
 
 /** Processor to decode JPEG to image, using TurboJpeg. */
-class LIBFREENECT2_API TurboJpegRgbPacketProcessor : public RgbPacketProcessor
+class TurboJpegRgbPacketProcessor : public RgbPacketProcessor
 {
 public:
   TurboJpegRgbPacketProcessor();
   virtual ~TurboJpegRgbPacketProcessor();
-protected:
   virtual void process(const libfreenect2::RgbPacket &packet);
+  virtual const char *name() { return "TurboJPEG"; }
 private:
   TurboJpegRgbPacketProcessorImpl *impl_; ///< Decoder implementation.
 };
+#endif
+
+#ifdef LIBFREENECT2_WITH_VT_SUPPORT
+class VTRgbPacketProcessorImpl;
+
+class VTRgbPacketProcessor : public RgbPacketProcessor
+{
+public:
+  VTRgbPacketProcessor();
+  virtual ~VTRgbPacketProcessor();
+  virtual void process(const libfreenect2::RgbPacket &packet);
+  virtual const char *name() { return "VideoToolbox"; }
+private:
+  VTRgbPacketProcessorImpl *impl_;
+};
+#endif
+
+#ifdef LIBFREENECT2_WITH_VAAPI_SUPPORT
+class VaapiRgbPacketProcessorImpl;
+
+class VaapiRgbPacketProcessor : public RgbPacketProcessor
+{
+public:
+  VaapiRgbPacketProcessor();
+  virtual ~VaapiRgbPacketProcessor();
+  virtual bool good();
+  virtual const char *name() { return "VAAPI"; }
+  virtual void process(const libfreenect2::RgbPacket &packet);
+protected:
+  virtual Allocator *getAllocator();
+private:
+  VaapiRgbPacketProcessorImpl *impl_;
+};
+#endif //LIBFREENECT2_WITH_VAAPI_SUPPORT
+
+#ifdef LIBFREENECT2_WITH_TEGRAJPEG_SUPPORT
+class TegraJpegRgbPacketProcessorImpl;
+
+class TegraJpegRgbPacketProcessor : public RgbPacketProcessor
+{
+public:
+  TegraJpegRgbPacketProcessor();
+  virtual ~TegraJpegRgbPacketProcessor();
+  virtual bool good();
+  virtual const char *name() { return "TegraJPEG"; }
+  virtual void process(const libfreenect2::RgbPacket &packet);
+private:
+  TegraJpegRgbPacketProcessorImpl *impl_;
+};
+#endif //LIBFREENECT2_WITH_TEGRAJPEG_SUPPORT
 
 } /* namespace libfreenect2 */
 #endif /* RGB_PACKET_PROCESSOR_H_ */

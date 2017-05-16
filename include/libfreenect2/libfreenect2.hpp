@@ -31,13 +31,17 @@
 
 #include <libfreenect2/config.h>
 #include <libfreenect2/frame_listener.hpp>
+#include <libfreenect2/packet_pipeline.h>
+#include <string>
 
 namespace libfreenect2
 {
 
-class PacketPipeline;
+/** @defgroup device Initialization and Device Control
+ * Find, open, and control Kinect v2 devices. */
+///@{
 
-/** Device class. */
+/** Device control. */
 class LIBFREENECT2_API Freenect2Device
 {
 public:
@@ -45,11 +49,26 @@ public:
   static const unsigned int ProductId = 0x02D8;
   static const unsigned int ProductIdPreview = 0x02C4;
 
-  /** Parameters of the color camera. */
+  /** Color camera calibration parameters.
+   * Kinect v2 includes factory preset values for these parameters. They are used in Registration.
+   */
   struct ColorCameraParams
   {
-    float fx, fy, cx, cy;
+    /** @name Intrinsic parameters */
+    ///@{
+    float fx; ///< Focal length x (pixel)
+    float fy; ///< Focal length y (pixel)
+    float cx; ///< Principal point x (pixel)
+    float cy; ///< Principal point y (pixel)
+    ///@}
 
+    /** @name Extrinsic parameters
+     * These parameters are used in [a formula](https://github.com/OpenKinect/libfreenect2/issues/41#issuecomment-72022111) to map coordinates in the
+     * depth camera to the color camera.
+     *
+     * They cannot be used for matrix transformation.
+     */
+    ///@{
     float shift_d, shift_m;
 
     float mx_x3y0; // xxx
@@ -73,12 +92,36 @@ public:
     float my_x1y0; // x
     float my_x0y1; // y
     float my_x0y0; // 1
+    ///@}
   };
 
-  /** IR camera parameters. */
+  /** IR camera intrinsic calibration parameters.
+   * Kinect v2 includes factory preset values for these parameters. They are used in depth image decoding, and Registration.
+   */
   struct IrCameraParams
   {
-    float fx, fy, cx, cy, k1, k2, k3, p1, p2;
+    float fx; ///< Focal length x (pixel)
+    float fy; ///< Focal length y (pixel)
+    float cx; ///< Principal point x (pixel)
+    float cy; ///< Principal point y (pixel)
+    float k1; ///< Radial distortion coefficient, 1st-order
+    float k2; ///< Radial distortion coefficient, 2nd-order
+    float k3; ///< Radial distortion coefficient, 3rd-order
+    float p1; ///< Tangential distortion coefficient
+    float p2; ///< Tangential distortion coefficient
+  };
+
+  /** Configuration of depth processing. */
+  struct Config
+  {
+    float MinDepth;             ///< Clip at this minimum distance (meter).
+    float MaxDepth;             ///< Clip at this maximum distance (meter).
+
+    bool EnableBilateralFilter; ///< Remove some "flying pixels".
+    bool EnableEdgeAwareFilter; ///< Remove pixels on edges because ToF cameras produce noisy edges.
+
+    /** Default is 0.5, 4.5, true, true */
+    LIBFREENECT2_API Config();
   };
 
   virtual ~Freenect2Device();
@@ -86,51 +129,151 @@ public:
   virtual std::string getSerialNumber() = 0;
   virtual std::string getFirmwareVersion() = 0;
 
-  virtual Freenect2Device::ColorCameraParams getColorCameraParams() = 0;
-  virtual Freenect2Device::IrCameraParams getIrCameraParams() = 0;
+  /** Get current color parameters.
+   * @copydetails ColorCameraParams
+   */
+  virtual ColorCameraParams getColorCameraParams() = 0;
 
+  /** Get current depth parameters.
+   * @copydetails IrCameraParams
+   */
+  virtual IrCameraParams getIrCameraParams() = 0;
 
-  virtual void setColorFrameListener(libfreenect2::FrameListener* rgb_frame_listener) = 0;
-  virtual void setIrAndDepthFrameListener(libfreenect2::FrameListener* ir_frame_listener) = 0;
+  /** Replace factory preset color camera parameters.
+   * We do not have a clear understanding of the meaning of the parameters right now.
+   * You probably want to leave it as it is.
+   */
+  virtual void setColorCameraParams(const ColorCameraParams &params) = 0;
 
-  virtual void start() = 0;
-  virtual void stop() = 0;
-  virtual void close() = 0;
+  /** Replace factory preset depth camera parameters.
+   * This decides accuracy in depth images. You are recommended to provide calibrated values.
+   */
+  virtual void setIrCameraParams(const IrCameraParams &params) = 0;
+
+  /** Configure depth processing. */
+  virtual void setConfiguration(const Config &config) = 0;
+
+  /** Provide your listener to receive color frames. */
+  virtual void setColorFrameListener(FrameListener* rgb_frame_listener) = 0;
+
+  /** Provide your listener to receive IR and depth frames. */
+  virtual void setIrAndDepthFrameListener(FrameListener* ir_frame_listener) = 0;
+
+  /** Start data processing with both RGB and depth streams.
+   * All above configuration must only be called before start() or after stop().
+   *
+   * FrameListener will receive frames when the device is running.
+   *
+   * @return true if ok, false if error.
+   */
+  virtual bool start() = 0;
+
+  /** Start data processing with or without some streams.
+   * FrameListener will receive enabled frames when the device is running.
+   *
+   * @param rgb Whether to enable RGB stream.
+   * @param depth Whether to enable depth stream.
+   * @return true if ok, false if error.
+   */
+  virtual bool startStreams(bool rgb, bool depth) = 0;
+
+  /** Stop data processing.
+   *
+   * @return true if ok, false if error.
+   */
+  virtual bool stop() = 0;
+
+  /** Shut down the device.
+   *
+   * @return true if ok, false if error.
+   */
+  virtual bool close() = 0;
 };
 
 class Freenect2Impl;
 
 /**
- * Device control class.
+ * Library context to find and open devices.
  *
- * Important note:
+ * You will first find existing devices by calling enumerateDevices().
+ *
+ * Then you can openDevice() and control the devices with returned Freenect2Device object.
+ *
+ * You may open devices with custom PacketPipeline.
  * After passing a PacketPipeline object to libfreenect2 do not use or free the object,
- * libfreenect2 will take care. If openDevice fails the PacketPipeline object will get
+ * libfreenect2 will take care. If openDevice() fails the PacketPipeline object will get
  * deleted. A new PacketPipeline object has to be created each time a device is opened.
  */
 class LIBFREENECT2_API Freenect2
 {
 public:
+  /**
+   * @param usb_context If the libusb context is provided,
+   * Freenect2 will use it instead of creating one.
+   */
   Freenect2(void *usb_context = 0);
   virtual ~Freenect2();
 
+  /** Must be called before doing anything else.
+   * @return Number of devices, 0 if none
+   */
   int enumerateDevices();
 
+  /**
+   * @param idx Device index
+   * @return Device serial number, or empty if the index is invalid.
+   */
   std::string getDeviceSerialNumber(int idx);
+
+  /**
+   * @return Device serial number, or empty if no device exists.
+   */
   std::string getDefaultDeviceSerialNumber();
 
+  /** Open device by index with default pipeline.
+   * @param idx Index number. Index numbers are not determinstic during enumeration.
+   * @return New device object, or NULL on failure
+   */
   Freenect2Device *openDevice(int idx);
+
+  /** Open device by index.
+   * @param idx Index number. Index numbers are not determinstic during enumeration.
+   * @param factory New PacketPipeline instance. This is always automatically freed.
+   * @return New device object, or NULL on failure
+   */
   Freenect2Device *openDevice(int idx, const PacketPipeline *factory);
+
+  /** Open device by serial number with default pipeline.
+   * @param serial Serial number
+   * @return New device object, or NULL on failure
+   */
   Freenect2Device *openDevice(const std::string &serial);
+
+  /** Open device by serial number.
+   * @param serial Serial number
+   * @param factory New PacketPipeline instance. This is always automatically freed.
+   * @return New device object, or NULL on failure
+   */
   Freenect2Device *openDevice(const std::string &serial, const PacketPipeline *factory);
 
+  /** Open the first device with default pipeline.
+   * @return New device object, or NULL on failure
+   */
   Freenect2Device *openDefaultDevice();
+
+  /** Open the first device.
+   * @param factory New PacketPipeline instance. This is always automatically freed.
+   * @return New device object, or NULL on failure
+   */
   Freenect2Device *openDefaultDevice(const PacketPipeline *factory);
-protected:
-  Freenect2Device *openDevice(int idx, const PacketPipeline *factory, bool attempting_reset);
 private:
   Freenect2Impl *impl_;
+
+  /* Disable copy and assignment constructors */
+  Freenect2(const Freenect2&);
+  Freenect2& operator=(const Freenect2&);
 };
 
+///@}
 } /* namespace libfreenect2 */
 #endif /* LIBFREENECT2_HPP_ */

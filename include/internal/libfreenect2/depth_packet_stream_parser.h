@@ -34,7 +34,6 @@
 
 #include <libfreenect2/config.h>
 
-#include <libfreenect2/double_buffer.h>
 #include <libfreenect2/depth_packet_processor.h>
 
 #include <libfreenect2/data_callback.h>
@@ -70,12 +69,13 @@ public:
 private:
   libfreenect2::BaseDepthPacketProcessor *processor_;
 
-  libfreenect2::DoubleBuffer buffer_;
+  size_t buffer_size_;
+  DepthPacket packet_;
   libfreenect2::Buffer work_buffer_;
 
+  uint32_t processed_packets_;
   uint32_t current_sequence_;
   uint32_t current_subsequence_;
-  uint32_t processed_packets_;
 };
 
 } /* namespace libfreenect2 */

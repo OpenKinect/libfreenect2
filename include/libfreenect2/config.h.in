@@ -27,23 +27,40 @@
 #ifndef LIBFREENECT2_CONFIG_H
 #define LIBFREENECT2_CONFIG_H
 
+#define LIBFREENECT2_VERSION "@PROJECT_VER@"
+#define LIBFREENECT2_API_VERSION ((@PROJECT_VER_MAJOR@ << 16) | @PROJECT_VER_MINOR@)
+
 #ifdef _MSC_VER
 #define LIBFREENECT2_PACK( __Declaration__ ) __pragma( pack(push, 1) ) __Declaration__ __pragma( pack(pop) )
 #else
 #define LIBFREENECT2_PACK( __Declaration__ ) __Declaration__ __attribute__((__packed__))
 #endif
 
-#include "libfreenect2_export.h"
+#include <libfreenect2/export.h>
 #define LIBFREENECT2_API LIBFREENECT2_EXPORT
 
 #cmakedefine LIBFREENECT2_WITH_OPENGL_SUPPORT
 
 #cmakedefine LIBFREENECT2_WITH_OPENCL_SUPPORT
+#cmakedefine LIBFREENECT2_OPENCL_ICD_LOADER_IS_OLD
+
+#cmakedefine LIBFREENECT2_WITH_CUDA_SUPPORT
+
+#cmakedefine LIBFREENECT2_WITH_VT_SUPPORT
+
+#cmakedefine LIBFREENECT2_WITH_VAAPI_SUPPORT
+
+#cmakedefine LIBFREENECT2_WITH_TURBOJPEG_SUPPORT
+
+#cmakedefine LIBFREENECT2_WITH_TEGRAJPEG_SUPPORT
+#define LIBFREENECT2_TEGRAJPEG_LIBRARY "@TegraJPEG_LIBRARIES@"
 
 #cmakedefine LIBFREENECT2_THREADING_STDLIB
 
 #cmakedefine LIBFREENECT2_THREADING_TINYTHREAD
 
 #cmakedefine LIBFREENECT2_WITH_CXX11_SUPPORT
+
+#cmakedefine LIBFREENECT2_WITH_PROFILING
 
 #endif // LIBFREENECT2_CONFIG_H

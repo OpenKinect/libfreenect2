@@ -1,11 +1,34 @@
-For a list of libfreenect2 authors, please see the Git history of the project,
-such as with 'git log'. This file will contain a list of authors on release
-snapshots of libfreenect2.
-
-THIS FILE IS NOT VALID FOR NON-GIT DISTRIBUTIONS. If you wish to redistribute
-libfreenect source code outside of the Git infrastructure, you MUST either use
-a release version or generate a complete CONTRIB file valid for the source Git
-revision tree that you use for your distribution. Redistributions of libfreenect
-source code without a valid CONTRIB file and without Git metadata are not
-compliant with the license.
-
+Albert Hofkamp <a.t.hofkamp@tue.nl>
+Alistair <alistair.wk@gmail.com>
+augmenta <augmenta@augmenta.home>
+Brendan Burns <bburns@google.com>
+Christian Kerl <christian.kerl@in.tum.de>
+Dave Coleman <davetcoleman@gmail.com>
+Dorian Galvez-Lopez <dorian@email.gwu.edu>
+Federico Spinelli <fspinelli@gmail.com>
+Florian Echtler <floe@butterbrot.org>
+Francisco Facioni <fran6co@gmail.com>
+Gabor Papp <gabor.papp@gmail.com>
+Giacomo Dabisias <g.dabisias@sssup.it>
+Henning Jungkurth <henning.jungkurth@gmail.com>
+James Billingham <james@jamesbillingham.com>
+Joshua Blake <joshblake@gmail.com>
+Lars Glud <larshg@gmail.com>
+Lingzhu Xiang <lingzhu@lingzhuxiang.com>
+Ludique <contacto@ludique.cl>
+Mario Wündsch <dev@wuendsch.net>
+Matthias Goldhoorn <matthias.goldhoorn@dfki.de>
+Matthieu FT <matthieu.ft@gmx.fr>
+MrTatsch <tatsch@gmail.com>
+Paul Reynolds <paul@blastoffgames.net>
+P.E. Viau <viau.pe@gmail.com>
+rahulraw <rahulrawat.can@gmail.com>
+Rich Wareham <rjw57@cam.ac.uk>
+Ryan Gordon <ryan@quizlet.com>
+Sergey Gusarov <laborer2008@gmail.com>
+Serguei Mokhov <mokhov@cse.concordia.ca>
+Steffen Fuchs <st.fuchs.tr@gmail.com>
+Thiemo Wiedemeyer <wiedemeyer@cs.uni-bremen.de>
+vinouz <vinouz@yahoo.fr>
+yuanmingze <3054502461@sina.com>
+Zou Hanya <hanyazou@gmail.com>

@@ -90,6 +90,7 @@ int main(int argc, char **argv)
     cout << "  { \"" << path << "\", resource" << (i - 2) << ", " << "sizeof(resource" << (i - 2) << ") }," << endl;
   }
 
+  cout << "  {NULL, NULL, 0}," << endl;
   cout << "};" << endl;
   cout << "static int resource_descriptors_length = " << (argc - 2) << ";" << endl;
   

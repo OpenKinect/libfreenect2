@@ -37,155 +37,108 @@ namespace libfreenect2
 {
 namespace protocol
 {
-CommandTransaction::Result::Result() :
-    code(Error), data(NULL), capacity(0), length(0)
-{
-}
-
-CommandTransaction::Result::~Result()
-{
-  deallocate();
-}
-
-void CommandTransaction::Result::allocate(size_t size)
-{
-  if (capacity < size)
-  {
-    deallocate();
-    data = new unsigned char[size];
-    capacity = size;
-  }
-  length = 0;
-}
-
-void CommandTransaction::Result::deallocate()
-{
-  if (data != NULL)
-  {
-    delete[] data;
-  }
-  length = 0;
-  capacity = 0;
-}
-
-bool CommandTransaction::Result::notSuccessfulThenDeallocate()
-{
-  bool not_successful = (code != Success);
-
-  if (not_successful)
-  {
-    deallocate();
-  }
-
-  return not_successful;
-}
-
 CommandTransaction::CommandTransaction(libusb_device_handle *handle, int inbound_endpoint, int outbound_endpoint) :
   handle_(handle),
   inbound_endpoint_(inbound_endpoint),
   outbound_endpoint_(outbound_endpoint),
   timeout_(1000)
 {
-  response_complete_result_.allocate(ResponseCompleteLength);
 }
 
 CommandTransaction::~CommandTransaction() {}
 
-void CommandTransaction::execute(const CommandBase& command, Result& result)
+bool CommandTransaction::execute(const CommandBase& command, Result& result)
 {
-  result.allocate(command.maxResponseLength());
+  result.resize(command.maxResponseLength());
+  response_complete_result_.resize(ResponseCompleteLength);
 
   // send command
-  result.code = send(command);
-
-  if(result.notSuccessfulThenDeallocate()) return;
-
-  bool complete = false;
+  if (!send(command))
+    return false;
 
   // receive response data
   if(command.maxResponseLength() > 0)
   {
-    receive(result);
-    complete = isResponseCompleteResult(result, command.sequence());
-
-    if(complete)
+    if (!receive(result, command.minResponseLength()))
+      return false;
+    if (isResponseCompleteResult(result, command.sequence()))
     {
       LOG_ERROR << "received premature response complete!";
-      result.code = Error;
+      return false;
     }
-
-    if(result.notSuccessfulThenDeallocate()) return;
   }
 
   // receive response complete
-  receive(response_complete_result_);
-  complete = isResponseCompleteResult(response_complete_result_, command.sequence());
-
-  if(!complete)
+  if (!receive(response_complete_result_, ResponseCompleteLength))
+    return false;
+  if (!isResponseCompleteResult(response_complete_result_, command.sequence()))
   {
     LOG_ERROR << "missing response complete!";
-    result.code = Error;
+    return false;
   }
 
-  result.notSuccessfulThenDeallocate();
+  return true;
 }
 
-CommandTransaction::ResultCode CommandTransaction::send(const CommandBase& command)
+bool CommandTransaction::send(const CommandBase& command)
 {
-  ResultCode code = Success;
-
   int transferred_bytes = 0;
   int r = libusb_bulk_transfer(handle_, outbound_endpoint_, const_cast<uint8_t *>(command.data()), command.size(), &transferred_bytes, timeout_);
 
   if(r != LIBUSB_SUCCESS)
   {
     LOG_ERROR << "bulk transfer failed: " << WRITE_LIBUSB_ERROR(r);
-    code = Error;
+    return false;
   }
 
-  if(transferred_bytes != command.size())
+  if((size_t)transferred_bytes != command.size())
   {
     LOG_ERROR << "sent number of bytes differs from expected number! expected: " << command.size() << " got: " << transferred_bytes;
-    code = Error;
+    return false;
   }
 
-  return code;
+  return true;
 }
 
-void CommandTransaction::receive(CommandTransaction::Result& result)
+bool CommandTransaction::receive(CommandTransaction::Result& result, uint32_t min_length)
 {
-  result.code = Success;
-  result.length = 0;
+  int length = 0;
 
-  int r = libusb_bulk_transfer(handle_, inbound_endpoint_, result.data, result.capacity, &result.length, timeout_);
+  int r = libusb_bulk_transfer(handle_, inbound_endpoint_, &result[0], result.size(), &length, timeout_);
+  result.resize(length);
 
   if(r != LIBUSB_SUCCESS)
   {
     LOG_ERROR << "bulk transfer failed: " << WRITE_LIBUSB_ERROR(r);
-    result.code = Error;
+    return false;
   }
+
+  if ((uint32_t)length < min_length)
+  {
+    LOG_ERROR << "bulk transfer too short! expected at least: " << min_length << " got : " << length;
+    return false;
+  }
+
+  return true;
 }
 
 bool CommandTransaction::isResponseCompleteResult(CommandTransaction::Result& result, uint32_t sequence)
 {
-  bool complete = false;
-
-  if(result.code == Success && result.length == ResponseCompleteLength)
+  if(result.size() == ResponseCompleteLength)
   {
-    uint32_t *data = reinterpret_cast<uint32_t *>(result.data);
+    uint32_t *data = reinterpret_cast<uint32_t *>(&result[0]);
 
     if(data[0] == ResponseCompleteMagic)
     {
-      complete = true;
-
       if(data[1] != sequence)
       {
         LOG_ERROR << "response complete with wrong sequence number! expected: " << sequence << " got: " << data[1];
       }
+      return true;
     }
   }
 
-  return complete;
+  return false;
 }
 
 

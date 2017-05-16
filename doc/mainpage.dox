@@ -1,0 +1,221 @@
+/** @mainpage API Reference
+
+Older versions: [0.1](0.1).
+
+Introduction
+============
+
+%libfreenect2 is an open source cross-platform driver for Kinect for Windows v2
+devices. For information on installation and troubleshooting, see the
+[GitHub repository](https://github.com/OpenKinect/libfreenect2).
+
+This documentation is designed for application developers who want to extract
+and use depth and color images from Kinect v2 for further processing.
+Additional questions and comments not covered by this documentation can be
+posted to [GitHub issues](https://github.com/OpenKinect/libfreenect2/issues).
+
+This documentation may require some understanding on camera calibration and 3-D
+geometry.
+
+Features
+========
+
+- Color image processing
+- IR and depth image processing
+- Registration of color and depth images
+- Multiple GPU and hardware acceleration implementations for image processing
+
+### Issues and Future Work
+
+- Audio. Raw audio is accessible via Linux USB audio. There is no support for
+  the calibrated directional audio.
+- Unstable USB and crashes. Due to differences in driver support, USB problems
+  can happen a lot. Error handling in %libfreenect2 is not fully verified for
+  production use.
+- Firmware upload. The protocol has been reverse engineered, but use Windows
+  for this right now.
+- Example of multiple Kinects.
+- Example utility of dumping image frames.
+- API for on-demand processing.
+- Verification of systematic errors through accurate calibration.
+- Bindings for C, Python, Java, etc.
+
+Getting Started
+===============
+
+To read the API documentation, start with the [Modules](modules.html) page
+which nicely organizes classes according to their functionalities.
+
+Example programs can be found in the source distribution under the `examples`
+directory. There also includes an example CMake build system for a standalone
+application that uses %libfreenect2 binary installation.
+
+Many internal details are hidden from this public API. For details on Kinect
+v2's USB protocols, depth decoding algorithms, calibration algorithms, and how
+to implement performance optimizers, you are encouraged to read the source
+code. The source code is the updated and authoritative reference for any
+functionalities.
+
+Environment Variables
+=====================
+
+There are a few environment variables providing controls for both end-users and
+programmers:
+
+* `LIBFREENECT2_LOGGER_LEVEL`: The default logging level if not explicitly set
+  by the code.
+* `LIBFREENECT2_PIPELINE`: The default pipeline if not explicitly set by the
+  code.
+* `LIBFREENECT2_RGB_TRANSFER_SIZE`, `LIBFREENECT2_RGB_TRANSFERS`,
+  `LIBFREENECT2_IR_PACKETS`, `LIBFREENECT2_IR_TRANSFERS`: Tuning the USB buffer
+  sizes. Use only if you know what you are doing.
+
+You can also see the following walkthrough for the most basic usage.
+
+Walkthrough
+===========
+
+Here is an example to walk you through the API. See `examples/Protonect.cpp`
+for the full source.
+
+Headers
+-------
+
+First, include necessary headers. `registration.h` and `logger.h` are optional
+if you don't use them.
+
+@snippet Protonect.cpp headers
+
+Logging
+-------
+
+This shows how to set up the logger and logging level.
+
+@snippet Protonect.cpp logging
+
+Though @copydetails libfreenect2::createConsoleLoggerWithDefaultLevel
+
+You can implement a custom [Logger](@ref libfreenect2::Logger) and redirect
+%libfreenect2's log messages to desired places.
+
+Here is an example to save log messages to a file.
+
+@snippet Protonect.cpp logger
+
+And use it
+
+@snippet Protonect.cpp file logging
+
+%libfreenect2 uses a single global logger regardless of number of contexts and
+devices. You may have to implement thread safety measure in
+[log()](@ref libfreenect2::Logger::log), which is called from multiple threads.
+Console loggers are thread safe because `std::cout` and `std::cerr` are thread
+safe.
+
+Initialize and Discover Devices
+-------------------------------
+
+You need these structures for all operations. Here it uses only one device.
+
+@snippet Protonect.cpp context
+
+You must enumerate all Kinect v2 devices before doing anything else related to
+devices.
+
+@snippet Protonect.cpp discovery
+
+Also, you can create a specific [PacketPipeline](@ref libfreenect2::PacketPipeline)
+instead using the default one for opening the device. Alternatives include
+[OpenGLPacketPipeline](@ref libfreenect2::OpenGLPacketPipeline),
+[OpenCLPacketPipeline](@ref libfreenect2::OpenCLPacketPipeline), etc.
+
+@snippet Protonect.cpp pipeline
+
+Open and Configure the Device
+-----------------------------
+
+Now you can open the device by its serial number, and using the specific
+pipeline.
+
+@snippet Protonect.cpp open
+
+You can also open the device without providing a pipeline, then a default is
+used. There are a few alternative ways to [openDevice()](@ref libfreenect2::Freenect2::openDevice).
+
+After opening, you need to attach [Framelisteners](@ref libfreenect2::FrameListener)
+to the device to receive images frames.
+
+This [SyncMultiFrameListener](@ref libfreenect2::SyncMultiFrameListener) will
+wait until all specified types of frames are received once. Like loggers, you
+may also implement your own frame listeners using the same interface.
+
+@snippet Protonect.cpp listeners
+
+You cannot configure the device after starting it.
+
+Start the Device
+----------------
+
+After finishing configuring the device, you can start the device. You must
+start the device before querying any information of the device.
+
+@snippet Protonect.cpp start
+
+You can [setIrCameraParams()](@ref libfreenect2::Freenect2Device::setIrCameraParams)
+after start if you have your own depth calibration parameters.
+
+Otherwise you can also use the factory preset parameters for
+[Registration](@ref libfreenect2::Registration).  You can also provide your own
+depth calibration parameterss (though not color camera calibration parameters
+right now). Registration is optional.
+
+@snippet Protonect.cpp registration setup
+
+At this time, the processing has begun, and the data flows through the pipeline
+towards your frame listeners.
+
+Receive Image Frames
+--------------------
+
+This example uses a loop to receive image frames.
+
+@snippet Protonect.cpp loop start
+
+[waitForNewFrame()](@ref libfreenect2::SyncMultiFrameListener::waitForNewFrame)
+here will block until required frames are all received, and then you can
+extract `Frame` according to the type.
+
+See libfreenect2::Frame for details about pixel format, dimensions, and
+metadata.
+
+You can do your own things using the frame data.  You can feed it to OpenCV,
+PCL, etc. Here, you can perform registration:
+
+@snippet Protonect.cpp registration
+
+After you are done with this frame, you must release it.
+
+@snippet Protonect.cpp loop end
+
+Stop the Device
+---------------
+
+If you are finished and no longer need to receive more frames, you can stop
+the device and exit.
+
+@snippet Protonect.cpp stop
+
+Pause the Device
+----------------
+
+You can also temporarily pause the device with
+[stop()](@ref libfreenect2::Freenect2Device::stop) and
+[start()](@ref libfreenect2::Freenect2Device::start).
+
+@snippet Protonect.cpp pause
+
+Doing this during `waitForNewFrame()` should be thread safe, and tests also
+show well. But a guarantee of thread safety has not been checked yet.
+
+THE END.
+*/

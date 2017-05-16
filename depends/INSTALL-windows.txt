@@ -1,0 +1,49 @@
+Source code: https://github.com/OpenKinect/libfreenect2
+API reference: http://openkinect.github.io/libfreenect2
+
+This release is x64 only with basic features enabled. If you want better performance or extra features, you will have to build it from source.
+
+glfw3.dll, turbojpeg.dll, and libusb-1.0.dll are provided for convenience. You can download and upgrade them yourself.
+
+"lib" and "include" directories contains libraries and headers. Configure your IDE respectively.
+
+You must have or install respective version of VC++ runtime, if you are using a -vs201x release variant.
+
+To try out the OpenNI2 example, copy bin\*.dll to C:\Program Files\OpenNI2\Tools\OpenNI2\Drivers, then run C:\Program Files\OpenNI\Tools\NiViewer.exe.
+
+You must choose one USB driver backend and follow respective instructions:
+
+a. UsbDk backend: 
+
+1. (Windows 7) You must first install Microsoft Security Advisory 3033929 otherwise your USB keyboards and mice will stop working!
+2. Download the latest x64 installer from https://github.com/daynix/UsbDk/releases, install it.
+3. If UsbDk somehow does not work, uninstall UsbDk and follow the libusbK instructions.
+
+UsbDk overrides libusbK and Microsoft SDK. If you want to use the latter two, just uninstall UsbDk.
+
+b. libusbK backend:
+
+You don't need the Kinect for Windows v2 SDK to build and install libfreenect2, though it doesn't hurt to have it too. You don't need to uninstall the SDK or the driver before doing this procedure.
+
+Install the libusbK backend driver for libusb. Please follow the steps exactly:
+
+1. Download Zadig from http://zadig.akeo.ie/
+2. Run Zadig and in options, check "List All Devices" and uncheck "Ignore Hubs or Composite Parents"
+3. Select the "Xbox NUI Sensor (composite parent)" from the drop-down box. (Important: Ignore the "NuiSensor Adaptor" varieties, which are the adapter, NOT the Kinect) The current driver will list usbccgp. USB ID is VID 045E, PID 02C4 or 02D8.
+4. Select libusbK (v3.0.7.0 or newer) from the replacement driver list.
+5. Click the "Replace Driver" button. Click yes on the warning about replacing a system driver. (This is because it is a composite parent.)
+6. Done. 
+
+To uninstall the libusbK driver (and get back the official SDK driver, if installed):
+
+1. Open Device Manager
+2. Under "libusbK USB Devices" tree, right click the "Xbox NUI Sensor (Composite Parent)" device and select uninstall.
+3. Important: Check the "Delete the driver software for this device." checkbox, then click OK.
+
+If you already had the official SDK driver installed and you want to use it:
+
+1.In Device Manager, in the Action menu, click "Scan for hardware changes."
+
+This will enumerate the Kinect sensor again and it will pick up the K4W2 SDK driver, and you should be ready to run KinectService.exe again immediately.
+
+You can go back and forth between the SDK driver and the libusbK driver very quickly and easily with these steps.

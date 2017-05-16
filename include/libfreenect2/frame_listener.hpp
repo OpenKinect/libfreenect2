@@ -36,57 +36,71 @@
 namespace libfreenect2
 {
 
-/** A frame from the stream. */
+/** @defgroup frame Frame Listeners
+ * Receive decoded image frames, and the frame format.
+ */
+
+/** Frame format and metadata. @ingroup frame */
 class LIBFREENECT2_API Frame
 {
   public:
   /** Available types of frames. */
   enum Type
   {
-    Color = 1, ///< RGB frame.
-    Ir = 2,    ///< IR frame.
-    Depth = 4  ///< Depth frame.
+    Color = 1, ///< 1920x1080. BGRX or RGBX.
+    Ir = 2,    ///< 512x424 float. Range is [0.0, 65535.0].
+    Depth = 4  ///< 512x424 float, unit: millimeter. Non-positive, NaN, and infinity are invalid or missing data.
   };
 
-  uint32_t timestamp;
-  uint32_t sequence;
+  /** Pixel format. */
+  enum Format
+  {
+    Invalid = 0, ///< Invalid format.
+    Raw = 1, ///< Raw bitstream. 'bytes_per_pixel' defines the number of bytes
+    Float = 2, ///< A 4-byte float per pixel
+    BGRX = 4, ///< 4 bytes of B, G, R, and unused per pixel
+    RGBX = 5, ///< 4 bytes of R, G, B, and unused per pixel
+    Gray = 6, ///< 1 byte of gray per pixel
+  };
+
   size_t width;           ///< Length of a line (in pixels).
   size_t height;          ///< Number of lines in the frame.
-  size_t bytes_per_pixel; ///< Number of bytes in a pixel.
-  unsigned char* data;    ///< Data of the frame (aligned).
+  size_t bytes_per_pixel; ///< Number of bytes in a pixel. If frame format is 'Raw' this is the buffer size.
+  unsigned char* data;    ///< Data of the frame (aligned). @see See Frame::Type for pixel format.
+  uint32_t timestamp;     ///< Unit: 0.125 millisecond. Usually incrementing by 266 (30Hz) or 533 (15Hz).
+  uint32_t sequence;      ///< Increasing frame sequence number
+  float exposure;         ///< From 0.5 (very bright) to ~60.0 (fully covered)
+  float gain;             ///< From 1.0 (bright) to 1.5 (covered)
+  float gamma;            ///< From 1.0 (bright) to 6.4 (covered)
+  uint32_t status;        ///< zero if ok; non-zero for errors.
+  Format format;          ///< Byte format. Informative only, doesn't indicate errors.
 
-  Frame(size_t width, size_t height, size_t bytes_per_pixel) :
-    width(width),
-    height(height),
-    bytes_per_pixel(bytes_per_pixel)
-  {
-    const size_t alignment = 64;
-    size_t space = width * height * bytes_per_pixel + alignment;
-    rawdata = new unsigned char[space];
-    uintptr_t ptr = reinterpret_cast<uintptr_t>(rawdata);
-    uintptr_t aligned = (ptr - 1u + alignment) & -alignment;
-    data = reinterpret_cast<unsigned char *>(aligned);
-  }
-
-  ~Frame()
-  {
-    delete[] rawdata;
-  }
+  /** Construct a new frame.
+   * @param width Width in pixel
+   * @param height Height in pixel
+   * @param bytes_per_pixel Bytes per pixel
+   * @param data_ Memory to store frame data. If `NULL`, new memory is allocated.
+   */
+  Frame(size_t width, size_t height, size_t bytes_per_pixel, unsigned char *data_ = NULL);
+  virtual ~Frame();
 
   protected:
   unsigned char* rawdata; ///< Unaligned start of #data.
 };
 
-/** Callback class for waiting on a new frame. */
+/** Callback interface to receive new frames. @ingroup frame
+ * You can inherit from FrameListener and define your own listener.
+ */
 class LIBFREENECT2_API FrameListener
 {
 public:
   virtual ~FrameListener();
 
   /**
-   * A new frame has arrived, process it.
+   * libfreenect2 calls this function when a new frame is decoded.
    * @param type Type of the new frame.
    * @param frame Data of the frame.
+   * @return true if you want to take ownership of the frame, i.e. reuse/delete it. Will be reused/deleted by caller otherwise.
    */
   virtual bool onNewFrame(Frame::Type type, Frame *frame) = 0;
 };

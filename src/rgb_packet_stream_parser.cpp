@@ -57,14 +57,15 @@ LIBFREENECT2_PACK(struct RgbPacketFooter {
   float gain; // ? ranges from 1.0 when camera is clear to 1.5 when camera is covered.
   uint32_t magic_footer; // is 'BBBB' equal 0x42424242
   uint32_t packet_size;
-  float unknown3; // seems 1.0f always
+  float gamma; // ranges from 1.0f to about 6.4 when camera is fully covered
   uint32_t unknown4[3]; // seems to be 0 all the time.
 });
 
 RgbPacketStreamParser::RgbPacketStreamParser() :
+    buffer_size_(2*1024*1024),
     processor_(noopProcessor<RgbPacket>())
 {
-  buffer_.allocate(1920*1080*3+sizeof(RgbPacket));
+  processor_->allocateBuffer(packet_, buffer_size_);
 }
 
 RgbPacketStreamParser::~RgbPacketStreamParser()
@@ -73,12 +74,19 @@ RgbPacketStreamParser::~RgbPacketStreamParser()
 
 void RgbPacketStreamParser::setPacketProcessor(BaseRgbPacketProcessor *processor)
 {
+  processor_->releaseBuffer(packet_);
   processor_ = (processor != 0) ? processor : noopProcessor<RgbPacket>();
+  processor_->allocateBuffer(packet_, buffer_size_);
 }
 
 void RgbPacketStreamParser::onDataReceived(unsigned char* buffer, size_t length)
 {
-  Buffer &fb = buffer_.front();
+  if (packet_.memory == NULL || packet_.memory->data == NULL)
+  {
+    LOG_ERROR << "Packet buffer is NULL";
+    return;
+  }
+  Buffer &fb = *packet_.memory;
 
   // package containing data
   if(length > 0)
@@ -90,7 +98,7 @@ void RgbPacketStreamParser::onDataReceived(unsigned char* buffer, size_t length)
     }
     else
     {
-      LOG_ERROR << "buffer overflow!";
+      LOG_INFO << "buffer overflow!";
       fb.length = 0;
       return;
     }
@@ -107,14 +115,14 @@ void RgbPacketStreamParser::onDataReceived(unsigned char* buffer, size_t length)
 
       if (fb.length != footer->packet_size || raw_packet->sequence != footer->sequence)
       {
-        LOG_ERROR << "packetsize or sequence doesn't match!";
+        LOG_INFO << "packetsize or sequence doesn't match!";
         fb.length = 0;
         return;
       }
 
       if (fb.length - sizeof(RawRgbPacket) - sizeof(RgbPacketFooter) < footer->filler_length)
       {
-        LOG_ERROR << "not enough space for packet filler!";
+        LOG_INFO << "not enough space for packet filler!";
         fb.length = 0;
         return;
       }
@@ -134,7 +142,7 @@ void RgbPacketStreamParser::onDataReceived(unsigned char* buffer, size_t length)
 
       if (jpeg_length == 0)
       {
-        LOG_ERROR << "no JPEG detected!";
+        LOG_INFO << "no JPEG detected!";
         fb.length = 0;
         return;
       }
@@ -142,26 +150,27 @@ void RgbPacketStreamParser::onDataReceived(unsigned char* buffer, size_t length)
       // can the processor handle the next image?
       if(processor_->ready())
       {
-        buffer_.swap();
-        Buffer &bb = buffer_.back();
-
-        RawRgbPacket *raw_packet = reinterpret_cast<RawRgbPacket *>(bb.data);
-        RgbPacket rgb_packet;
+        RgbPacket &rgb_packet = packet_;
         rgb_packet.sequence = raw_packet->sequence;
         rgb_packet.timestamp = footer->timestamp;
+        rgb_packet.exposure = footer->exposure;
+        rgb_packet.gain = footer->gain;
+        rgb_packet.gamma = footer->gamma;
         rgb_packet.jpeg_buffer = raw_packet->jpeg_buffer;
         rgb_packet.jpeg_buffer_length = jpeg_length;
 
         // call the processor
         processor_->process(rgb_packet);
+        //allocatePacket() should never return NULL when processor is ready()
+        processor_->allocateBuffer(packet_, buffer_size_);
       }
       else
       {
-        LOG_WARNING << "skipping rgb packet!";
+        LOG_DEBUG << "skipping rgb packet!";
       }
 
       // reset front buffer
-      buffer_.front().length = 0;
+      packet_.memory->length = 0;
     }
   }
 }

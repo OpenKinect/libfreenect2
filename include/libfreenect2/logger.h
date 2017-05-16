@@ -36,7 +36,12 @@
 namespace libfreenect2
 {
 
-/** Logger class. */
+/** @defgroup logging Logging utilities
+ * Specify logging level and custom logging destination. */
+///@{
+
+/** Provide interfaces to receive log messages.
+ * You can inherit this class and implement your custom logger. */
 class LIBFREENECT2_API Logger
 {
 public:
@@ -49,24 +54,47 @@ public:
     Info = 3,
     Debug = 4,
   };
+
+  /** Default is Info, or overridden by environment variable `LIBFREENECT2_LOGGER_LEVEL`.
+   * `LIBFREENECT2_LOGGER_LEVEL` can contain a case-insensitive name of level.
+   */
   static Level getDefaultLevel();
+
+  /** Convert logging level to a human-readable name.
+   */
   static std::string level2str(Level level);
 
   virtual ~Logger();
 
+  /** Get the level of the logger; the level is immutable. */
   virtual Level level() const;
 
+  /** libfreenect2 calls this function to output all log messages. */
   virtual void log(Level level, const std::string &message) = 0;
 protected:
   Level level_;
 };
 
+/** Allocate a Logger instance that outputs log to standard input/output  */
 LIBFREENECT2_API Logger *createConsoleLogger(Logger::Level level);
+
+/** @copybrief Logger::getDefaultLevel
+ *
+ * %libfreenect2 will have an initial global logger created with createConsoleLoggerWithDefaultLevel().
+ * You do not have to explicitly call this if the default is already what you want.
+ */
 LIBFREENECT2_API Logger *createConsoleLoggerWithDefaultLevel();
 
-//libfreenect2 frees the memory of the logger passed in.
+/** Get the pointer to the current logger.
+ * @return Pointer to the logger. This is purely informational. You should not free the pointer.
+ */
 LIBFREENECT2_API Logger *getGlobalLogger();
+
+/** Set the logger for all log output in this library.
+ * @param logger Pointer to your logger, or `NULL` to disable logging. The memory will be freed automatically. You should not free the pointer.
+ */
 LIBFREENECT2_API void setGlobalLogger(Logger *logger);
 
+///@}
 } /* namespace libfreenect2 */
 #endif /* LIBFREENECT2_LOGGER_H_ */

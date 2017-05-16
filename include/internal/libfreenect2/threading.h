@@ -94,5 +94,25 @@ using namespace tthread::this_thread;
 
 #endif
 
+#if defined(__linux__)
+#include <sys/prctl.h>
+#elif defined(__APPLE__)
+#include <pthread.h>
+#endif
+
+namespace libfreenect2
+{
+namespace this_thread
+{
+  static inline void set_name(const char *name)
+  {
+#if defined(__linux__)
+    prctl(PR_SET_NAME, name);
+#elif defined(__APPLE__)
+    pthread_setname_np(name);
+#endif
+  }
+}
+}
 
 #endif /* THREADING_H_ */

@@ -61,6 +61,11 @@ void TransferPool::disableSubmission()
   enable_submit_ = false;
 }
 
+bool TransferPool::enabled()
+{
+  return enable_submit_;
+}
+
 void TransferPool::deallocate()
 {
   for(TransferQueue::iterator it = transfers_.begin(); it != transfers_.end(); ++it)
@@ -77,22 +82,16 @@ void TransferPool::deallocate()
   }
 }
 
-void TransferPool::submit(size_t num_parallel_transfers)
+bool TransferPool::submit()
 {
   if(!enable_submit_)
   {
     LOG_WARNING << "transfer submission disabled!";
-    return;
-  }
-
-  if(transfers_.size() < num_parallel_transfers)
-  {
-    LOG_ERROR << "too few idle transfers!";
-    return;
+    return false;
   }
 
   size_t failcount = 0;
-  for(size_t i = 0; i < num_parallel_transfers; ++i)
+  for(size_t i = 0; i < transfers_.size(); ++i)
   {
     libusb_transfer *transfer = transfers_[i].transfer;
     transfers_[i].setStopped(false);
@@ -107,8 +106,13 @@ void TransferPool::submit(size_t num_parallel_transfers)
     }
   }
 
-  if (failcount == num_parallel_transfers)
-    LOG_ERROR << "all submissions failed. Try debugging with environment variable: LIBUSB_DEBUG=4.";
+  if (failcount == transfers_.size())
+  {
+    LOG_ERROR << "all submissions failed. Try debugging with environment variable: LIBUSB_DEBUG=3.";
+    return false;
+  }
+
+  return true;
 }
 
 void TransferPool::cancel()

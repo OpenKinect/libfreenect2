@@ -55,6 +55,8 @@ public:
 
   ~TurboJpegRgbPacketProcessorImpl()
   {
+    delete frame;
+
     if(decompressor != 0)
     {
       if(tjDestroy(decompressor) == -1)
@@ -67,6 +69,7 @@ public:
   void newFrame()
   {
     frame = new Frame(1920, 1080, tjPixelSize[TJPF_BGRX]);
+    frame->format = Frame::BGRX;
   }
 };
 
@@ -88,8 +91,13 @@ void TurboJpegRgbPacketProcessor::process(const RgbPacket &packet)
 
     impl_->frame->timestamp = packet.timestamp;
     impl_->frame->sequence = packet.sequence;
+    impl_->frame->exposure = packet.exposure;
+    impl_->frame->gain = packet.gain;
+    impl_->frame->gamma = packet.gamma;
 
     int r = tjDecompress2(impl_->decompressor, packet.jpeg_buffer, packet.jpeg_buffer_length, impl_->frame->data, 1920, 1920 * tjPixelSize[TJPF_BGRX], 1080, TJPF_BGRX, 0);
+
+    impl_->stopTiming(LOG_INFO);
 
     if(r == 0)
     {
@@ -103,7 +111,6 @@ void TurboJpegRgbPacketProcessor::process(const RgbPacket &packet)
       LOG_ERROR << "Failed to decompress rgb image! TurboJPEG error: '" << tjGetErrorStr() << "'";
     }
 
-    impl_->stopTiming(LOG_INFO);
   }
 }
 

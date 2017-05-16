@@ -261,26 +261,6 @@ void flipHorizontal(const Mat<ScalarT> &in, Mat<ScalarT>& out)
 namespace libfreenect2
 {
 
-/**
- * Load a buffer from data of a file.
- * @param filename Name of the file to load.
- * @param buffer Start of the buffer to load.
- * @param n Size of the buffer to load.
- * @return Whether loading succeeded.
- */
-bool loadBufferFromFile2(const std::string& filename, unsigned char *buffer, size_t n)
-{
-  bool success;
-  std::ifstream in(filename.c_str());
-
-  in.read(reinterpret_cast<char*>(buffer), n);
-  success = in.gcount() == n;
-
-  in.close();
-
-  return success;
-}
-
 inline int bfi(int width, int offset, int src2, int src3)
 {
   int bitmask = (((1 << width)-1) << offset) & 0xffffffff;
@@ -321,74 +301,45 @@ public:
   void newIrFrame()
   {
     ir_frame = new Frame(512, 424, 4);
+    ir_frame->format = Frame::Float;
     //ir_frame = new Frame(512, 424, 12);
+  }
+
+  ~CpuDepthPacketProcessorImpl()
+  {
+    delete ir_frame;
+    delete depth_frame;
   }
 
   /** Allocate a new depth frame. */
   void newDepthFrame()
   {
     depth_frame = new Frame(512, 424, 4);
+    depth_frame->format = Frame::Float;
   }
 
   int32_t decodePixelMeasurement(unsigned char* data, int sub, int x, int y)
   {
+    if (x < 1 || y < 0 || 510 < x || 423 < y)
+    {
+      return lut11to16[0];
+    }
+
+    int r1zi = (x >> 2) + ((x & 0x3) << 7); // Range 1..510
+    r1zi = r1zi * 11L; // Range 11..5610
+
     // 298496 = 512 * 424 * 11 / 8 = number of bytes per sub image
     uint16_t *ptr = reinterpret_cast<uint16_t *>(data + 298496 * sub);
     int i = y < 212 ? y + 212 : 423 - y;
     ptr += 352*i;
 
-    /**
-     r1.yz = r2.xxyx < l(0, 1, 0, 0) // ilt
-     r1.y = r1.z | r1.y // or
-     */
-    bool r1y = x < 1 || y < 0;
-    /*
-    r1.zw = l(0, 0, 510, 423) < r2.xxxy // ilt
-    r1.z = r1.w | r1.z // or
-    */
-    bool r1z = 510 < x || 423 < y;
-    /*
-    r1.y = r1.z | r1.y // or
-    */
-    r1y = r1y || r1z;
-    /*
-    r1.y = r1.y & l(0x1fffffff) // and
-    */
-    int r1yi = r1y ? 0xffffffff : 0x0;
-    r1yi &= 0x1fffffff;
-
-    /*
-    bfi r1.z, l(2), l(7), r2.x, l(0)
-    ushr r1.w, r2.x, l(2)
-    r1.z = r1.w + r1.z // iadd
-    */
-    int r1zi = bfi(2, 7, x, 0);
-    int r1wi = x >> 2;
-    r1zi = r1wi + r1zi;
-
-    /*
-    imul null, r1.z, r1.z, l(11)
-    ushr r1.w, r1.z, l(4)
-    r1.y = r1.w + r1.y // iadd
-    r1.w = r1.y + l(1) // iadd
-    r1.z = r1.z & l(15) // and
-    r4.w = -r1.z + l(16) // iadd
-     */
-    r1zi = (r1zi * 11L) & 0xffffffff;
-    r1wi = r1zi >> 4;
-    r1yi = r1yi + r1wi;
+    int r1yi = r1zi >> 4; // Range 0..350
     r1zi = r1zi & 15;
-    int r4wi = -r1zi + 16;
-
-    if(r1yi > 352)
-    {
-      return lut11to16[0];
-    }
 
     int i1 = ptr[r1yi];
     int i2 = ptr[r1yi + 1];
     i1 = i1 >> r1zi;
-    i2 = i2 << r4wi;
+    i2 = i2 << (16 - r1zi);
 
     return lut11to16[((i1 | i2) & 2047)];
   }
@@ -432,44 +383,52 @@ public:
    */
   void processMeasurementTriple(float trig_table[512*424][6], float abMultiplierPerFrq, int x, int y, const int32_t* m, float* m_out)
   {
-    int offset = y * 512 + x;
-    float cos_tmp0 = trig_table[offset][0];
-    float cos_tmp1 = trig_table[offset][1];
-    float cos_tmp2 = trig_table[offset][2];
-
-    float sin_negtmp0 = trig_table[offset][3];
-    float sin_negtmp1 = trig_table[offset][4];
-    float sin_negtmp2 = trig_table[offset][5];
-
     float zmultiplier = z_table.at(y, x);
-    bool cond0 = 0 < zmultiplier;
-    bool cond1 = (m[0] == 32767 || m[1] == 32767 || m[2] == 32767) && cond0;
-
-    // formula given in Patent US 8,587,771 B2
-    float tmp3 = cos_tmp0 * m[0] + cos_tmp1 * m[1] + cos_tmp2 * m[2];
-    float tmp4 = sin_negtmp0 * m[0] + sin_negtmp1 * m[1] + sin_negtmp2 * m[2];
-
-    // only if modeMask & 32 != 0;
-    if(true)//(modeMask & 32) != 0)
+    if (0 < zmultiplier)
     {
-        tmp3 *= abMultiplierPerFrq;
-        tmp4 *= abMultiplierPerFrq;
+      bool saturated = (m[0] == 32767 || m[1] == 32767 || m[2] == 32767);
+      if (!saturated)
+      {
+        int offset = y * 512 + x;
+        float cos_tmp0 = trig_table[offset][0];
+        float cos_tmp1 = trig_table[offset][1];
+        float cos_tmp2 = trig_table[offset][2];
+
+        float sin_negtmp0 = trig_table[offset][3];
+        float sin_negtmp1 = trig_table[offset][4];
+        float sin_negtmp2 = trig_table[offset][5];
+
+        // formula given in Patent US 8,587,771 B2
+        float ir_image_a = cos_tmp0 * m[0] + cos_tmp1 * m[1] + cos_tmp2 * m[2];
+        float ir_image_b = sin_negtmp0 * m[0] + sin_negtmp1 * m[1] + sin_negtmp2 * m[2];
+
+        // only if modeMask & 32 != 0;
+        if(true)//(modeMask & 32) != 0)
+        {
+            ir_image_a *= abMultiplierPerFrq;
+            ir_image_b *= abMultiplierPerFrq;
+        }
+        float ir_amplitude = std::sqrt(ir_image_a * ir_image_a + ir_image_b * ir_image_b) * params.ab_multiplier;
+
+        m_out[0] = ir_image_a;
+        m_out[1] = ir_image_b;
+        m_out[2] = ir_amplitude;
+      }
+      else
+      {
+        // Saturated pixel.
+        m_out[0] = 0;
+        m_out[1] = 0;
+        m_out[2] = 65535.0;
+      }
     }
-    float tmp5 = std::sqrt(tmp3 * tmp3 + tmp4 * tmp4) * params.ab_multiplier;
-
-    // invalid pixel because zmultiplier < 0 ??
-    tmp3 = cond0 ? tmp3 : 0;
-    tmp4 = cond0 ? tmp4 : 0;
-    tmp5 = cond0 ? tmp5 : 0;
-
-    // invalid pixel because saturated?
-    tmp3 = !cond1 ? tmp3 : 0;
-    tmp4 = !cond1 ? tmp4 : 0;
-    tmp5 = !cond1 ? tmp5 : 65535.0; // some kind of norm calculated from tmp3 and tmp4
-
-    m_out[0] = tmp3; // ir image a
-    m_out[1] = tmp4; // ir image b
-    m_out[2] = tmp5; // ir amplitude
+    else
+    {
+      // Invalid pixel.
+      m_out[0] = 0;
+      m_out[1] = 0;
+      m_out[2] = 0;
+    }
   }
 
   /**
@@ -637,6 +596,7 @@ public:
     // if(DISABLE_DISAMBIGUATION)
     if(false)
     {
+#if 0
         //r0.yz = r3.zx + r4.zx // add
         //r0.yz = r5.xz + r0.zy // add
         float phase = m0[0] + m1[0] + m2[0]; // r0.y
@@ -648,6 +608,7 @@ public:
         //r3.zw = r4.xy // mov
         float tmp3 = m0[2] + m1[2] + m2[2]; // r3.z
         float tmp4 = m0[1] + m1[1] + m2[1]; // r3.w
+#endif
     }
     else
     {
@@ -897,111 +858,18 @@ void CpuDepthPacketProcessor::loadP0TablesFromCommandResponse(unsigned char* buf
   impl_->fillTrigTable(impl_->p0_table2, impl_->trig_table2);
 }
 
-/**
- * Load p0 tables.
- * @param p0_filename Filename of the first p0 table.
- * @param p1_filename Filename of the second p0 table.
- * @param p2_filename Filename of the third p0 table.
- */
-void CpuDepthPacketProcessor::loadP0TablesFromFiles(const char* p0_filename, const char* p1_filename, const char* p2_filename)
-{
-  Mat<uint16_t> p0_table0(424, 512);
-  if(!loadBufferFromFile2(p0_filename, p0_table0.buffer(), p0_table0.sizeInBytes()))
-  {
-    LOG_ERROR << "Loading p0table 0 from '" << p0_filename << "' failed!";
-  }
-
-  Mat<uint16_t> p0_table1(424, 512);
-  if(!loadBufferFromFile2(p1_filename, p0_table1.buffer(), p0_table1.sizeInBytes()))
-  {
-    LOG_ERROR << "Loading p0table 1 from '" << p1_filename << "' failed!";
-  }
-
-  Mat<uint16_t> p0_table2(424, 512);
-  if(!loadBufferFromFile2(p2_filename, p0_table2.buffer(), p0_table2.sizeInBytes()))
-  {
-    LOG_ERROR << "Loading p0table 2 from '" << p2_filename << "' failed!";
-  }
-
-  if(impl_->flip_ptables)
-  {
-    flipHorizontal(p0_table0, impl_->p0_table0);
-    flipHorizontal(p0_table1, impl_->p0_table1);
-    flipHorizontal(p0_table2, impl_->p0_table2);
-
-    impl_->fillTrigTable(impl_->p0_table0, impl_->trig_table0);
-    impl_->fillTrigTable(impl_->p0_table1, impl_->trig_table1);
-    impl_->fillTrigTable(impl_->p0_table2, impl_->trig_table2);
-  }
-  else
-  {
-    impl_->fillTrigTable(p0_table0, impl_->trig_table0);
-    impl_->fillTrigTable(p0_table1, impl_->trig_table1);
-    impl_->fillTrigTable(p0_table2, impl_->trig_table2);
-  }
-}
-
-/**
- * Load the X table from the resources.
- * @param filename Name of the file to load.
- * @note Filename is not actually used!
- */
-void CpuDepthPacketProcessor::loadXTableFromFile(const char* filename)
+void CpuDepthPacketProcessor::loadXZTables(const float *xtable, const float *ztable)
 {
   impl_->x_table.create(424, 512);
-  const unsigned char *data;
-  size_t length;
+  std::copy(xtable, xtable + TABLE_SIZE, impl_->x_table.ptr(0,0));
 
-  if(loadResource("xTable.bin", &data, &length))
-  {
-    std::copy(data, data + length, impl_->x_table.buffer());
-  }
-  else
-  {
-    LOG_ERROR << "Loading xtable from resource 'xTable.bin' failed!";
-  }
-}
-
-/**
- * Load the Z table from the resources.
- * @param filename Name of the file to load.
- * @note Filename is not actually used!
- */
-void CpuDepthPacketProcessor::loadZTableFromFile(const char* filename)
-{
   impl_->z_table.create(424, 512);
-
-  const unsigned char *data;
-  size_t length;
-
-  if(loadResource("zTable.bin", &data, &length))
-  {
-    std::copy(data, data + length, impl_->z_table.buffer());
-  }
-  else
-  {
-    LOG_ERROR << "Loading ztable from resource 'zTable.bin' failed!";
-  }
+  std::copy(ztable, ztable + TABLE_SIZE, impl_->z_table.ptr(0,0));
 }
 
-/**
- * Load the lookup table from 11 to 16 from the resources.
- * @param filename Name of the file to load.
- * @note Filename is not actually used!
- */
-void CpuDepthPacketProcessor::load11To16LutFromFile(const char* filename)
+void CpuDepthPacketProcessor::loadLookupTable(const short *lut)
 {
-  const unsigned char *data;
-  size_t length;
-
-  if(loadResource("11to16.bin", &data, &length))
-  {
-    std::copy(data, data + length, reinterpret_cast<unsigned char*>(impl_->lut11to16));
-  }
-  else
-  {
-    LOG_ERROR << "Loading 11to16 lut from resource '11to16.bin' failed!";
-  }
+  std::copy(lut, lut + LUT_SIZE, impl_->lut11to16);
 }
 
 /**

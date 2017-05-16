@@ -1,7 +1,7 @@
 /*
  * This file is part of the OpenKinect Project. http://www.openkinect.org
  *
- * Copyright (c) 2014 individual OpenKinect contributors. See the CONTRIB file
+ * Copyright (c) 2015 individual OpenKinect contributors. See the CONTRIB file
  * for details.
  *
  * This code is licensed to you under the terms of the Apache License, version
@@ -24,46 +24,32 @@
  * either License.
  */
 
-/** @file double_buffer.h Double buffer implementation. */
+#pragma once
 
-#ifndef DOUBLE_BUFFER_H_
-#define DOUBLE_BUFFER_H_
+#include <libfreenect2/libfreenect2.hpp>
+#include <Driver/OniDriverAPI.h>
+#include "VideoStream.hpp"
 
-#include <stddef.h>
-#include <libfreenect2/config.h>
-
-namespace libfreenect2
+namespace Freenect2Driver
 {
+  class IrStream : public VideoStream
+  {
+  public:
+    // from NUI library and converted to radians
+    static const float HORIZONTAL_FOV;
+    static const float VERTICAL_FOV;
 
-/** Data of a single buffer. */
-struct Buffer
-{
-public:
-  size_t capacity; ///< Capacity of the buffer.
-  size_t length;   ///< Used length of the buffer.
-  unsigned char* data; ///< Start address of the buffer.
-};
+  private:
+    OniSensorType getSensorType() const;
+    VideoModeMap getSupportedVideoModes() const;
+    void populateFrame(libfreenect2::Frame* srcFrame, int srcX, int srcY, OniFrame* dstFrame, int dstX, int dstY, int width, int height) const;
 
-/** Double bufffer class. */
-class DoubleBuffer
-{
-public:
-  DoubleBuffer();
-  virtual ~DoubleBuffer();
+  public:
+    IrStream(Device* driver_dev, libfreenect2::Freenect2Device* pDevice, Freenect2Driver::Registration *reg);
+    //~IrStream() { }
 
-  void allocate(size_t buffer_size);
-
-  void swap();
-
-  Buffer& front();
-
-  Buffer& back();
-private:
-  Buffer buffer_[2]; // Both data buffers.
-  unsigned char front_buffer_index_; ///< Index of the front buffer.
-
-  unsigned char* buffer_data_; ///< Memory holding both buffers.
-};
-
-} /* namespace libfreenect2 */
-#endif /* DOUBLE_BUFFER_H_ */
+    // from StreamBase
+    OniBool isPropertySupported(int propertyId);
+    OniStatus getProperty(int propertyId, void* data, int* pDataSize);
+  };
+}

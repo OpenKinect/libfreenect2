@@ -27,6 +27,7 @@
 #ifndef COMMAND_TRANSACTION_H_
 #define COMMAND_TRANSACTION_H_
 
+#include <vector>
 #include <libusb.h>
 #include <libfreenect2/protocol/command.h>
 
@@ -41,39 +42,20 @@ public:
   static const int ResponseCompleteLength = 16;
   static const uint32_t ResponseCompleteMagic = 0x0A6FE000;
 
-  enum ResultCode
-  {
-    Success,
-    Error
-  };
-
-  struct Result
-  {
-    ResultCode code;
-
-    unsigned char *data;
-    int capacity, length;
-
-    Result();
-    ~Result();
-
-    void allocate(size_t size);
-    void deallocate();
-    bool notSuccessfulThenDeallocate();
-  };
+  typedef std::vector<unsigned char> Result;
 
   CommandTransaction(libusb_device_handle *handle, int inbound_endpoint, int outbound_endpoint);
   ~CommandTransaction();
 
-  void execute(const CommandBase& command, Result& result);
+  bool execute(const CommandBase& command, Result& result);
 private:
   libusb_device_handle *handle_;
   int inbound_endpoint_, outbound_endpoint_, timeout_;
   Result response_complete_result_;
 
-  ResultCode send(const CommandBase& command);
+  bool send(const CommandBase& command);
 
-  void receive(Result& result);
+  bool receive(Result& result, uint32_t min_length);
 
   bool isResponseCompleteResult(Result& result, uint32_t sequence);
 };
