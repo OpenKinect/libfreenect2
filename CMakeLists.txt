@@ -356,7 +356,7 @@ IF(ENABLE_CUDA)
     IF(NOT MSVC)
       SET(CUDA_FLAGS "${CUDA_FLAGS} -Xcompiler -fPIC")
     ENDIF()
-    IF(HAVE_CXX11 EQUAL yes AND CUDA_VERSION VERSION_GREATER 7.0)
+    IF(HAVE_CXX11 STREQUAL yes AND CUDA_VERSION VERSION_GREATER 7.0)
       SET(CUDA_FLAGS "${CUDA_FLAGS} -std=c++11")
     ENDIF()
 
@@ -382,7 +382,7 @@ IF(ENABLE_CUDA)
 ENDIF(ENABLE_CUDA)
 
 # RPATH handling for CUDA 8.0 libOpenCL.so conflict. See #804.
-IF(HAVE_OpenCL EQUAL yes AND UNIX AND NOT APPLE)
+IF(HAVE_OpenCL STREQUAL yes AND UNIX AND NOT APPLE)
   FILE(GLOB CUDA_ld_so_conf /etc/ld.so.conf.d/cuda*.conf)
   IF(CUDA_ld_so_conf)
     MESSAGE(WARNING "Your CUDA installation overrides OpenCL system library path.")
