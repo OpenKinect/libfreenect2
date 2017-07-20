@@ -1,0 +1,39 @@
+# Maintainer: Maarten de Vries <maarten@de-vri.es>
+# Contributor: Nathan Ringo <tikiking1@gmail.com>
+
+pkgname=libfreenect2
+pkgver=0.2.0
+pkgrel=4
+pkgdesc="Open source drivers for the Kinect for Windows v2"
+arch=(i686 x86_64)
+url="http://openkinect.org"
+license=(Apache GPL)
+depends=(libusb glfw turbojpeg ocl-icd)
+makedepends=(cmake opencl-headers)
+source=("git+https://github.com/ttoocs/libfreenect2.git")
+sha512sums=(SKIP)
+
+prepare() {
+	cd "${srcdir}/libfreenect2"
+	sed -i -e 's/MODE="0666"/TAG+="uaccess"/' platform/linux/udev/90-kinect2.rules
+	sed -i -e '93aINSTALL(TARGETS Protonect DESTINATION bin)' examples/CMakeLists.txt
+	cmake \
+		-DCMAKE_INSTALL_PREFIX=/usr \
+		-DCMAKE_BUILD_TYPE=Release \
+		-DENABLE_CXX11=ON \
+		-DENABLE_OPENCL=ON \
+		-DENABLE_CUDA=OFF \
+		-DBUILD_EXAMPLES=ON
+}
+
+build() {
+	cd "${srcdir}/libfreenect2"
+	make
+}
+
+package() {
+	cd "${srcdir}/libfreenect2"
+	make DESTDIR="${pkgdir}" install
+	mkdir -p ${pkgdir}/usr/lib/udev/rules.d
+	install platform/linux/udev/90-kinect2.rules ${pkgdir}/usr/lib/udev/rules.d/65-kinect2.rules
+}
