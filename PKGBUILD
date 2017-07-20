@@ -15,7 +15,7 @@ sha512sums=(SKIP)
 
 prepare() {
 	cd "${srcdir}/libfreenect2"
-	sed -i -e 's/MODE="0666"/TAG+="uaccess"/' platform/linux/udev/90-kinect2.rules
+	#sed -i -e 's/MODE="0666"/TAG+="uaccess"/' platform/linux/udev/90-kinect2.rules
 	sed -i -e '93aINSTALL(TARGETS Protonect DESTINATION bin)' examples/CMakeLists.txt
 	cmake \
 		-DCMAKE_INSTALL_PREFIX=/usr \
