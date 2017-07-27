@@ -19,7 +19,7 @@ prepare() {
 	sed -i -e '93aINSTALL(TARGETS Protonect DESTINATION bin)' examples/CMakeLists.txt
 	cmake \
 		-DCMAKE_INSTALL_PREFIX=/usr \
-		-DCMAKE_BUILD_TYPE=Debug \
+		-DCMAKE_BUILD_TYPE=Release \
 		-DENABLE_CXX11=ON \
 		-DENABLE_OPENCL=ON \
 		-DENABLE_CUDA=OFF \
