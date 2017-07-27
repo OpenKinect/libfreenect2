@@ -33,7 +33,7 @@
 
 #include <libfreenect2/config.h>
 #include <libfreenect2/frame_listener.hpp>
-
+#include <functional>
 namespace libfreenect2
 {
 ///@addtogroup frame
