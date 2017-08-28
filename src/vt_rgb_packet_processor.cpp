@@ -164,7 +164,10 @@ void VTRgbPacketProcessor::process(const RgbPacket &packet)
     frame->gain = packet.gain;
     frame->gamma = packet.gamma;
 
-    listener_->onNewFrame(Frame::Color, frame);
+    if (!listener_->onNewFrame(Frame::Color, frame)) {
+        // The listener didn't take ownership of the frame, so we delete it
+        delete frame;
+    }
 
     CFRelease(sampleBuffer);
     CFRelease(blockBuffer);
