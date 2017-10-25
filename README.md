@@ -212,7 +212,7 @@ Note: Ubuntu 12.04 is too old to support. Debian jessie may also be too old, and
     1. (Ubuntu 14.04 and newer) `sudo apt-get install libturbojpeg libjpeg-turbo8-dev`
     2. (Debian) `sudo apt-get install libturbojpeg0-dev`
 * Install OpenGL
-    1. (Ubuntu 14.04 only) `sudo dpkg -i debs/libglfw3*deb; sudo apt-get install -f; sudo apt-get install libgl1-mesa-dri-lts-vivid` (If the last command conflicts with other packages, don't do it.)
+    1. (Ubuntu 14.04 only) `sudo dpkg -i debs/libglfw3*deb; sudo apt-get install -f`
     2. (Odroid XU4) OpenGL 3.1 is not supported on this platform. Use `cmake -DENABLE_OPENGL=OFF` later.
     3. (Other) `sudo apt-get install libglfw3-dev`
 * Install OpenCL (optional)
