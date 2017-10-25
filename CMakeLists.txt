@@ -444,6 +444,10 @@ INSTALL(DIRECTORY "${PROJECT_BINARY_DIR}/${PROJECT_NAME}" DESTINATION include)
 INSTALL(FILES "${PROJECT_BINARY_DIR}/freenect2Config.cmake" DESTINATION lib/cmake/freenect2/)
 INSTALL(FILES "${PROJECT_BINARY_DIR}/freenect2ConfigVersion.cmake" DESTINATION lib/cmake/freenect2/)
 INSTALL(FILES "${PROJECT_BINARY_DIR}/freenect2.pc" DESTINATION lib/pkgconfig/)
+EXECUTE_PROCESS(COMMAND test -w /etc/udev/rules.d RESULT_VARIABLE root)
+IF(NOT root)
+	INSTALL(FILES "${MY_DIR}/platform/linux/udev/90-kinect2.rules" DESTINATION /etc/udev/rules.d/)
+ENDIF()
 
 ADD_SUBDIRECTORY(${MY_DIR}/doc)
 
