@@ -35,6 +35,7 @@ FIND_LIBRARY(OpenNI2_LIBRARY
     "/opt/local/lib"
     "/usr/lib"
     "/usr/local/lib"
+    "/usr/local/lib/ni2"
     ENV OPENNI2_REDIST
     ENV PROGRAMFILES
     ENV ProgramW6432
