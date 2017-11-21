@@ -278,7 +278,7 @@ private:
   Freenect2& operator=(const Freenect2&);
 };
 
-class LIBFREENECT2_API Freenect2ReplayDevice {
+class LIBFREENECT2_API Freenect2ReplayDevice: public Freenect2Device {
  public:
   Freenect2ReplayDevice(char* directory, PacketPipeline* pipeline);
  
@@ -291,9 +291,9 @@ class LIBFREENECT2_API Freenect2ReplayDevice {
   void loadLookupTable(const short *lut);
 
   bool processRawFrame(Frame::Type type, Frame* frame);  
-  void start();
-  void stop();
-  void run();
+  bool start();
+  bool stop();
+  bool run();
 
  protected:
   void processRgbFrame(Frame* frame);

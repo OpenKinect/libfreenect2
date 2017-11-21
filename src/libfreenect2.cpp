@@ -1194,16 +1194,18 @@ void runner (void* arg) {
   static_cast<Freenect2ReplayDevice*>(arg)->run();
 }
 
-void Freenect2ReplayDevice::start() {
+bool Freenect2ReplayDevice::start() {
   running_ = true;
   t_ = new thread(runner, this);
+  return running_;
 }
 
-void Freenect2ReplayDevice::stop() {
+bool Freenect2ReplayDevice::stop() {
   running_ = false;
   t_->join();
   delete t_;
   t_ = NULL;
+  return !running_;
 }
 
 bool hasSuffix(const std::string& str, const std::string& suffix) {
@@ -1213,7 +1215,7 @@ bool hasSuffix(const std::string& str, const std::string& suffix) {
   return str.compare(str.length() - suffix.length(), suffix.length(), suffix) == 0;
 }
 
-void Freenect2ReplayDevice::run() {
+bool Freenect2ReplayDevice::run() {
   DIR *d;
   struct dirent *dir;
 
@@ -1258,6 +1260,8 @@ void Freenect2ReplayDevice::run() {
       delete[] packet.buffer;
     }
   }
+  
+  return true;
 }
 
 } /* namespace libfreenect2 */
