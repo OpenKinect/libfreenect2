@@ -159,19 +159,23 @@ const float* DumpDepthPacketProcessor::getZTable() { return ztable_; }
 const short* DumpDepthPacketProcessor::getLookupTable() { return lut_; }
 
 void DumpDepthPacketProcessor::loadP0TablesFromCommandResponse(unsigned char* buffer, size_t buffer_length) {
+  delete[] p0table_;
   p0table_ = new unsigned char[buffer_length];
   std::memcpy(p0table_, buffer, buffer_length);
 }
 
 void DumpDepthPacketProcessor::loadXZTables(const float *xtable, const float *ztable) {
+  delete[] xtable_;
   xtable_ = new float[TABLE_SIZE];
   std::memcpy(xtable_, xtable, TABLE_SIZE * sizeof(float));
 
+  delete[] ztable_;
   ztable_ = new float[TABLE_SIZE];
   std::memcpy(ztable_, ztable, TABLE_SIZE * sizeof(float));
 }
 
 void DumpDepthPacketProcessor::loadLookupTable(const short *lut) {
+  delete[] lut_;
   lut_ = new short[LUT_SIZE];
   std::memcpy(lut_, lut, LUT_SIZE * sizeof(short));
 }
