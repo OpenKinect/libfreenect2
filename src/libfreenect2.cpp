@@ -1121,7 +1121,52 @@ Freenect2Device *Freenect2::openDefaultDevice(const PacketPipeline *pipeline)
 
 
 Freenect2ReplayDevice::Freenect2ReplayDevice(char* directory, PacketPipeline* pipeline) 
-  :pipeline_(pipeline), directory_(directory), running_(false) {
+  :pipeline_(pipeline), directory_(directory), running_(false)
+{
+}
+
+std::string Freenect2ReplayDevice::getSerialNumber()
+{
+  // Reasonable assumption given it is a software serial, unless
+  // want to include a DOI, or OS/build, or some arbitrary
+  // SHA1 commit
+  return LIBFREENECT2_VERSION;
+}
+
+std::string Freenect2ReplayDevice::getFirmwareVersion()
+{
+  // Resonable assumption as well
+  char apiVer[3] = {0};
+  std::string replayFirmware = LIBFREENECT2_VERSION;
+  sprintf(apiVer, "%d", LIBFREENECT2_API_VERSION);
+  return replayFirmware + apiVer;
+}
+
+Freenect2Device::ColorCameraParams Freenect2ReplayDevice::getColorCameraParams()
+{
+  return rgb_camera_params_;
+}
+
+Freenect2Device::IrCameraParams Freenect2ReplayDevice::getIrCameraParams()
+{
+  return ir_camera_params_;
+}
+
+void Freenect2ReplayDevice::setColorCameraParams(const Freenect2Device::ColorCameraParams &params)
+{
+  rgb_camera_params_ = params;
+}
+
+void Freenect2ReplayDevice::setIrCameraParams(const Freenect2Device::IrCameraParams &params)
+{
+  ir_camera_params_ = params;
+  DepthPacketProcessor *proc = pipeline_->getDepthPacketProcessor();
+  if (proc != 0)
+  {
+    IrCameraTables tables(params);
+    proc->loadXZTables(&tables.xtable[0], &tables.ztable[0]);
+    proc->loadLookupTable(&tables.lut[0]);
+  }
 }
 
 void Freenect2ReplayDevice::setColorFrameListener(FrameListener* listener) {
