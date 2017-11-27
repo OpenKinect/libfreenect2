@@ -1169,25 +1169,39 @@ void Freenect2ReplayDevice::setIrCameraParams(const Freenect2Device::IrCameraPar
   }
 }
 
-void Freenect2ReplayDevice::setColorFrameListener(FrameListener* listener) {
+void Freenect2ReplayDevice::setConfiguration(const Freenect2Device::Config &config)
+{
+  DepthPacketProcessor *proc = pipeline_->getDepthPacketProcessor();
+  if (proc != 0)
+    proc->setConfiguration(config);
+}
+
+void Freenect2ReplayDevice::setColorFrameListener(FrameListener* listener)
+{
   RgbPacketProcessor* proc = pipeline_->getRgbPacketProcessor();
-  if (proc != NULL) {
+  if (proc != NULL)
+  {
     proc->setFrameListener(listener);
   }
 }
 
-void Freenect2ReplayDevice::setIrAndDepthFrameListener(FrameListener* listener) {
+void Freenect2ReplayDevice::setIrAndDepthFrameListener(FrameListener* listener)
+{
   DepthPacketProcessor* proc = pipeline_->getDepthPacketProcessor();
-  if (proc != NULL) {
+  if (proc != NULL)
+  {
     proc->setFrameListener(listener);
   }
 }
 
-bool Freenect2ReplayDevice::processRawFrame(Frame::Type type, Frame* frame) {
-  if (frame->format != Frame::Raw) {
+bool Freenect2ReplayDevice::processRawFrame(Frame::Type type, Frame* frame)
+{
+  if (frame->format != Frame::Raw)
+  {
     return false;
   }
-  switch (type) {
+  switch (type)
+  {
   case Frame::Color:
     processRgbFrame(frame);
     break;
@@ -1200,7 +1214,8 @@ bool Freenect2ReplayDevice::processRawFrame(Frame::Type type, Frame* frame) {
   return true;
 }
 
-void Freenect2ReplayDevice::processRgbFrame(Frame* frame) {
+void Freenect2ReplayDevice::processRgbFrame(Frame* frame)
+{
   RgbPacket packet;
   packet.timestamp = frame->timestamp;
   packet.sequence = frame->sequence;
@@ -1213,7 +1228,8 @@ void Freenect2ReplayDevice::processRgbFrame(Frame* frame) {
   pipeline_->getRgbPacketProcessor()->process(packet);
 }
 
-void Freenect2ReplayDevice::processDepthFrame(Frame* frame) {
+void Freenect2ReplayDevice::processDepthFrame(Frame* frame)
+{
   DepthPacket packet;
   packet.timestamp = frame->timestamp;
   packet.sequence = frame->sequence;
@@ -1223,29 +1239,54 @@ void Freenect2ReplayDevice::processDepthFrame(Frame* frame) {
   pipeline_->getDepthPacketProcessor()->process(packet);
 }
 
-void Freenect2ReplayDevice::loadP0Tables(unsigned char* buffer, size_t buffer_length) {
+void Freenect2ReplayDevice::loadP0Tables(unsigned char* buffer, size_t buffer_length)
+{
   pipeline_->getDepthPacketProcessor()->loadP0TablesFromCommandResponse(buffer, buffer_length);
 }
 
-void Freenect2ReplayDevice::loadXZTables(const float *xtable, const float *ztable) {
+void Freenect2ReplayDevice::loadXZTables(const float *xtable, const float *ztable)
+{
   pipeline_->getDepthPacketProcessor()->loadXZTables(xtable, ztable);
 }
 
-void Freenect2ReplayDevice::loadLookupTable(const short *lut) {
+void Freenect2ReplayDevice::loadLookupTable(const short *lut)
+{
   pipeline_->getDepthPacketProcessor()->loadLookupTable(lut);
 }
 
-void runner (void* arg) {
+void runner (void* arg)
+{
   static_cast<Freenect2ReplayDevice*>(arg)->run();
 }
 
-bool Freenect2ReplayDevice::start() {
+bool Freenect2ReplayDevice::start()
+{
   running_ = true;
+  startStreams(true, true);
   t_ = new thread(runner, this);
   return running_;
 }
 
-bool Freenect2ReplayDevice::stop() {
+bool Freenect2ReplayDevice::startStreams(bool enable_rgb, bool enable_depth)
+{
+  LOG_INFO << "starting...: rgb: " << enable_rgb << ", depth: " << enable_depth;
+
+  if (enable_rgb)
+  {
+    LOG_INFO << "starting rgb replay...";
+  }
+
+  if (enable_depth)
+  {
+    LOG_INFO << "submitting depth replay...";
+  }
+
+  LOG_INFO << "started";
+  return true;
+}
+
+bool Freenect2ReplayDevice::stop()
+{
   running_ = false;
   t_->join();
   delete t_;
@@ -1253,21 +1294,25 @@ bool Freenect2ReplayDevice::stop() {
   return !running_;
 }
 
-bool hasSuffix(const std::string& str, const std::string& suffix) {
-  if (str.length() < suffix.length()) {
+bool hasSuffix(const std::string& str, const std::string& suffix)
+{
+  if (str.length() < suffix.length())
+  {
     return false;
   }
   return str.compare(str.length() - suffix.length(), suffix.length(), suffix) == 0;
 }
 
-bool Freenect2ReplayDevice::run() {
+bool Freenect2ReplayDevice::run()
+{
   DIR *d;
   struct dirent *dir;
 
   std::vector<std::string> frames;
 
   d = opendir(directory_);
-  while ((dir = readdir(d)) != NULL) {
+  while ((dir = readdir(d)) != NULL)
+  {
     std::string name = dir->d_name;
     if (hasSuffix(name, ".depth")) {
       frames.push_back(name);

@@ -295,6 +295,8 @@ public:
   void setColorFrameListener(FrameListener* listener);
   void setIrAndDepthFrameListener(FrameListener* listener);
 
+  virtual void setConfiguration(const Config &config);
+  
   void loadP0Tables(unsigned char* buffer, size_t buffer_length);
   void loadXZTables(const float *xtable, const float *ztable);
   void loadLookupTable(const short *lut);
@@ -302,6 +304,7 @@ public:
   bool processRawFrame(Frame::Type type, Frame* frame);  
 
   virtual bool start();
+  virtual bool startStreams(bool rgb, bool depth);
   virtual bool stop();
   virtual bool run();
 
