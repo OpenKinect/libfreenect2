@@ -34,10 +34,6 @@
 #include <libfreenect2/packet_pipeline.h>
 #include <string>
 
-namespace tthread {
-  class thread;
-}
-
 namespace libfreenect2
 {
 
@@ -276,49 +272,6 @@ private:
   /* Disable copy and assignment constructors */
   Freenect2(const Freenect2&);
   Freenect2& operator=(const Freenect2&);
-};
-
-class LIBFREENECT2_API Freenect2ReplayDevice: public Freenect2Device
-{
-public:
-  Freenect2ReplayDevice(char* directory, PacketPipeline* pipeline);
- 
-  virtual std::string getSerialNumber();
-  virtual std::string getFirmwareVersion();
-
-  virtual ColorCameraParams getColorCameraParams();
-  virtual IrCameraParams getIrCameraParams();
-
-  virtual void setColorCameraParams(const ColorCameraParams &params);
-  virtual void setIrCameraParams(const IrCameraParams &params);
-
-  void setColorFrameListener(FrameListener* listener);
-  void setIrAndDepthFrameListener(FrameListener* listener);
-
-  virtual void setConfiguration(const Config &config);
-  
-  void loadP0Tables(unsigned char* buffer, size_t buffer_length);
-  void loadXZTables(const float *xtable, const float *ztable);
-  void loadLookupTable(const short *lut);
-
-  bool processRawFrame(Frame::Type type, Frame* frame);  
-
-  virtual bool start();
-  virtual bool startStreams(bool rgb, bool depth);
-  virtual bool stop();
-  virtual bool run();
-
-protected:
-  void processRgbFrame(Frame* frame);
-  void processDepthFrame(Frame* frame);
-
-private:
-  PacketPipeline* pipeline_;
-  char* directory_;
-  tthread::thread* t_;
-  bool running_;
-  Freenect2Device::IrCameraParams ir_camera_params_;
-  Freenect2Device::ColorCameraParams rgb_camera_params_;
 };
 
 ///@}

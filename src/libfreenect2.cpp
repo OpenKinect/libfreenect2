@@ -33,8 +33,6 @@
 #include <limits>
 #include <cmath>
 #include <cstdlib>
-#include <dirent.h>
-#include <iostream>
 #include <fstream>
 
 #define WRITE_LIBUSB_ERROR(__RESULT) libusb_error_name(__RESULT) << " " << libusb_strerror((libusb_error)__RESULT)
@@ -50,6 +48,7 @@
 #include <libfreenect2/protocol/response.h>
 #include <libfreenect2/protocol/command_transaction.h>
 #include <libfreenect2/logging.h>
+#include <libfreenect2/threading.h>
 
 namespace libfreenect2
 {
@@ -260,6 +259,52 @@ public:
   virtual bool startStreams(bool rgb, bool depth);
   virtual bool stop();
   virtual bool close();
+};
+
+class LIBFREENECT2_API Freenect2ReplayDevice : public Freenect2Device
+{
+public:
+  Freenect2ReplayDevice(std::vector<std::string>& frame_filenames, PacketPipeline* pipeline);
+ 
+  virtual std::string getSerialNumber();
+  virtual std::string getFirmwareVersion();
+
+  virtual ColorCameraParams getColorCameraParams();
+  virtual IrCameraParams getIrCameraParams();
+
+  virtual void setColorCameraParams(const ColorCameraParams &params);
+  virtual void setIrCameraParams(const IrCameraParams &params);
+
+  void setColorFrameListener(FrameListener* listener);
+  void setIrAndDepthFrameListener(FrameListener* listener);
+
+  virtual void setConfiguration(const Config &config);
+  
+  virtual bool start();
+  virtual bool startStreams(bool rgb, bool depth);
+  virtual bool stop();
+
+  void loadP0Tables(unsigned char* buffer, size_t buffer_length);
+  void loadXZTables(const float *xtable, const float *ztable);
+  void loadLookupTable(const short *lut);
+
+private:
+  bool processRawFrame(Frame::Type type, Frame* frame);  
+
+  virtual void run();
+  static void static_execute(void* arg);
+  
+protected:
+  void processRgbFrame(Frame* frame);
+  void processDepthFrame(Frame* frame);
+
+private:
+  PacketPipeline* pipeline_;
+  std::vector<std::string> frame_filenames_;
+  libfreenect2::thread* t_;
+  bool running_;
+  Freenect2Device::IrCameraParams ir_camera_params_;
+  Freenect2Device::ColorCameraParams rgb_camera_params_;
 };
 
 struct PrintBusAndDevice
@@ -1119,27 +1164,21 @@ Freenect2Device *Freenect2::openDefaultDevice(const PacketPipeline *pipeline)
   return openDevice(0, pipeline);
 }
 
-
-Freenect2ReplayDevice::Freenect2ReplayDevice(char* directory, PacketPipeline* pipeline) 
-  :pipeline_(pipeline), directory_(directory), running_(false)
+Freenect2ReplayDevice::Freenect2ReplayDevice(std::vector<std::string>& frame_filenames, PacketPipeline* pipeline) 
+  :pipeline_(pipeline), frame_filenames_(frame_filenames), running_(false)
 {
 }
 
 std::string Freenect2ReplayDevice::getSerialNumber()
 {
-  // Reasonable assumption given it is a software serial, unless
-  // want to include a DOI, or OS/build, or some arbitrary
-  // SHA1 commit
+  // Reasonable assumption given it is a software serial for apps that display this
   return LIBFREENECT2_VERSION;
 }
 
 std::string Freenect2ReplayDevice::getFirmwareVersion()
 {
-  // Resonable assumption as well
-  char apiVer[3] = {0};
-  std::string replayFirmware = LIBFREENECT2_VERSION;
-  sprintf(apiVer, "%d", LIBFREENECT2_API_VERSION);
-  return replayFirmware + apiVer;
+  // Reasonable assumption given it is a software serial for apps that display this
+  return LIBFREENECT2_VERSION;
 }
 
 Freenect2Device::ColorCameraParams Freenect2ReplayDevice::getColorCameraParams()
@@ -1254,7 +1293,7 @@ void Freenect2ReplayDevice::loadLookupTable(const short *lut)
   pipeline_->getDepthPacketProcessor()->loadLookupTable(lut);
 }
 
-void runner (void* arg)
+void Freenect2ReplayDevice::static_execute (void* arg)
 {
   static_cast<Freenect2ReplayDevice*>(arg)->run();
 }
@@ -1262,27 +1301,15 @@ void runner (void* arg)
 bool Freenect2ReplayDevice::start()
 {
   running_ = true;
-  startStreams(true, true);
-  t_ = new thread(runner, this);
+  t_ = new libfreenect2::thread(static_execute, this);
   return running_;
 }
 
 bool Freenect2ReplayDevice::startStreams(bool enable_rgb, bool enable_depth)
 {
-  LOG_INFO << "starting...: rgb: " << enable_rgb << ", depth: " << enable_depth;
-
-  if (enable_rgb)
-  {
-    LOG_INFO << "starting rgb replay...";
-  }
-
-  if (enable_depth)
-  {
-    LOG_INFO << "submitting depth replay...";
-  }
-
-  LOG_INFO << "started";
-  return true;
+  LOG_INFO << "Freenect2ReplayDevice: starting: rgb: " << enable_rgb << ", depth: " << enable_depth;
+  LOG_INFO << "Freenect2ReplayDevice: unimplemented";
+  return false;
 }
 
 bool Freenect2ReplayDevice::stop()
@@ -1291,7 +1318,7 @@ bool Freenect2ReplayDevice::stop()
   t_->join();
   delete t_;
   t_ = NULL;
-  return !running_;
+  return true;
 }
 
 bool hasSuffix(const std::string& str, const std::string& suffix)
@@ -1303,25 +1330,15 @@ bool hasSuffix(const std::string& str, const std::string& suffix)
   return str.compare(str.length() - suffix.length(), suffix.length(), suffix) == 0;
 }
 
-bool Freenect2ReplayDevice::run()
+void Freenect2ReplayDevice::run()
 {
-  DIR *d;
-  struct dirent *dir;
+  std::vector<std::string> frames = frame_filenames_;
 
-  std::vector<std::string> frames;
-
-  d = opendir(directory_);
-  while ((dir = readdir(d)) != NULL)
+  for (size_t i = 0; i < frames.size() && running_; i++)
   {
-    std::string name = dir->d_name;
-    if (hasSuffix(name, ".depth")) {
-      frames.push_back(name);
-    }
-  }
-
-  for (size_t i = 0; i < frames.size() && running_; i++) {
     std::string frame = frames[i];
 
+    // TODO: document
     size_t ix1 = frame.find("_");
     size_t ix2 = frame.find("_", ix1 + 1);
     size_t ix3 = frame.find(".", ix2 + 1);
@@ -1330,28 +1347,47 @@ bool Freenect2ReplayDevice::run()
     std::string seq = frame.substr(ix2 + 1, ix3);
 
     std::string data;
-    if (hasSuffix(frame, ".depth")) {
+
+    if (hasSuffix(frame, ".depth"))
+    {
       std::ifstream fd(frame.c_str());
+      
+      if(!fd)
+      {
+        LOG_ERROR << "failed to open replay frame: " << frame << std::endl;
+        continue;
+      }
+
       fd.seekg(0, fd.end);
       int length = fd.tellg();
       fd.seekg(0, fd.beg);
 
       DepthPacket packet;
+      
       packet.timestamp = atoi(ts.c_str());
       packet.sequence = atoi(seq.c_str());
-      packet.buffer = new unsigned char[length];
-      packet.buffer_length = length;
 
-      fd.read(reinterpret_cast<char*>(packet.buffer), length);
+      packet.buffer_length = length;
+      std::vector<char> buffer;
+      buffer.reserve(length);
+      packet.buffer = reinterpret_cast<unsigned char*>(&buffer[0]);
+      fd.read(&buffer[0], length);
+      
+      if(!fd)
+      {
+        LOG_ERROR
+          << "failed to read replay frame: " << frame
+          << ": " << fd.gcount() << " vs. " << length << " bytes"
+          << std::endl;
+        fd.close();
+        continue;
+      }
+      
       fd.close();
 
       pipeline_->getDepthPacketProcessor()->process(packet);
-
-      delete[] packet.buffer;
     }
   }
-  
-  return true;
 }
 
 } /* namespace libfreenect2 */
