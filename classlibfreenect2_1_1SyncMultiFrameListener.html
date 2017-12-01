@@ -190,7 +190,7 @@ Public Member Functions</h2></td></tr>
 <p>Wait milliseconds for new frames. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramdir">[out]</td><td class="paramname">frame</td><td>Caller is responsible to release the frames. </td></tr>
+    <tr><td class="paramdir">[out]</td><td class="paramname">frame</td><td>Caller is responsible to release the frames in <code>frame</code>. </td></tr>
     <tr><td class="paramdir"></td><td class="paramname">milliseconds</td><td>Timeout. This parameter is ignored if not built with C++11 threading support. </td></tr>
   </table>
   </dd>
@@ -216,7 +216,7 @@ Public Member Functions</h2></td></tr>
 <p>Wait indefinitely for new frames. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramdir">[out]</td><td class="paramname">frame</td><td>Caller is responsible to release the frames. </td></tr>
+    <tr><td class="paramdir">[out]</td><td class="paramname">frame</td><td>Caller is responsible to release the frames in <code>frame</code>. </td></tr>
   </table>
   </dd>
 </dl>
@@ -237,7 +237,7 @@ Public Member Functions</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p>Shortcut to delete all frames. </p>
+<p>Shortcut to delete all frames in <code>frame</code>. </p>
 
 </div>
 </div>
