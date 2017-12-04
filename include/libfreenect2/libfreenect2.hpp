@@ -33,6 +33,7 @@
 #include <libfreenect2/frame_listener.hpp>
 #include <libfreenect2/packet_pipeline.h>
 #include <string>
+#include <vector>
 
 namespace libfreenect2
 {
@@ -272,6 +273,61 @@ private:
   /* Disable copy and assignment constructors */
   Freenect2(const Freenect2&);
   Freenect2& operator=(const Freenect2&);
+};
+
+class Freenect2ReplayDevice;
+
+/**
+ * Library context to create and open replay devices.
+ *
+ * You openDevice() and control the device with returned Freenect2ReplayDevice object.
+ *
+ * You may open devices with custom PacketPipeline.
+ * After passing a PacketPipeline object to libfreenect2 do not use or free the object,
+ * libfreenect2 will take care. If openDevice() fails the PacketPipeline object will get
+ * deleted. A new PacketPipeline object has to be created each time a device is opened.
+ */
+class LIBFREENECT2_API Freenect2Replay
+{
+public:
+  /**
+   * Creates the context.
+   */
+  Freenect2Replay();
+  virtual ~Freenect2Replay();
+
+  /**
+   * @return Replay device serial number.
+   */
+  std::string getDefaultDeviceSerialNumber();
+
+  /** Open device by a collection of stored frame filenames with default pipeline.
+   * @param frame_filenames A list of filenames for stored frames.
+   * @return New device object, or NULL on failure
+   */
+  Freenect2Device *openDevice(const std::vector<std::string>& frame_filenames);
+
+  /** Open device by a collection of stored frame filenames with the specified pipeline.
+   * @param frame_filenames A list of filenames for stored frames.
+   * @param factory New PacketPipeline instance. This is always automatically freed.
+   * @return New device object, or NULL on failure
+   */
+  Freenect2Device *openDevice(const std::vector<std::string>& frame_filenames, const PacketPipeline *factory);
+
+private:
+  typedef std::vector<Freenect2ReplayDevice*> DeviceVector;
+  DeviceVector devices_;
+
+  bool initialized;
+
+  void addDevice(Freenect2ReplayDevice *device);
+  void removeDevice(Freenect2ReplayDevice *device);
+  void clearDevices();
+  int getNumDevices();
+  
+  /* Disable copy and assignment constructors */
+  Freenect2Replay(const Freenect2Replay&);
+  Freenect2Replay& operator=(const Freenect2Replay&);
 };
 
 ///@}
