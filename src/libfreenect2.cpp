@@ -27,6 +27,7 @@
 /** @file libfreenect2.cpp Freenect2 devices and processing implementation. */
 
 #include <string>
+#include <locale>
 #include <vector>
 #include <algorithm>
 #include <libusb.h>
@@ -1387,23 +1388,83 @@ bool hasSuffix(const std::string& str, const std::string& suffix)
   return str.compare(str.length() - suffix.length(), suffix.length(), suffix) == 0;
 }
 
+/**
+ * Parses stored frame's filename.
+ * Format: <prefix>_<timestamp>_<sequence>.<suffix>
+ *  <prefix> - a string of the filename, anything
+ *  <timestamp> -- packet timestamp as in pipeline packets
+ *  <sequence> -- frame sequence number in the packet
+ *  <suffix> -- .depth, .jpg, or .jpeg (case insensitive) 
+ * @param frame_filename string to parse
+ * @param timestamp_sequence array of 2 elements to return the values in: timestamp and sequence
+ */
+bool parseFrameFilename(const std::string& frame_filename, size_t timestamp_sequence[2])
+{
+  LOG_DEBUG << "parsing: " << frame_filename;
+  
+  std::locale loc;
+  std::string lowercase_filename = std::tolower(frame_filename, loc);
+
+  if
+  (
+    !hasSuffix(lowercase_filename, ".depth")
+    && !hasSuffix(lowercase_filename, ".jpg")
+    && !hasSuffix(lowercase_filename, ".jpeg")
+  )
+  {
+    LOG_ERROR << "wrong suffix in the filename; need .depth, .jpg, or .jpeg";
+    return false;
+  }
+  
+  size_t ix1 = frame_filename.find("_");
+  size_t ix2 = frame_filename.find("_", ix1 + 1);
+  size_t ix3 = frame_filename.find(".", ix2 + 1);
+
+  std::string ts = frame_filename.substr(0, ix1);
+  std::string seq = frame_filename.substr(ix2 + 1, ix3);
+
+  LOG_DEBUG << "ts: " << ts << ", seq: " << seq;
+
+  if(ts.size() == 0 || seq.size() == 0)
+  {
+    LOG_ERROR << "could not extract timestamp or sequence";
+    return false;
+  }
+  
+  timestamp_sequence[0] = atoi(ts.c_str());
+  timestamp_sequence[1] = atoi(seq.c_str());
+
+  LOG_DEBUG << "ts: " << timestamp_sequence[0] << ", seq: " << timestamp_sequence[1];
+
+  if(timestamp_sequence[0] == 0)
+  {
+    LOG_WARNING << "invalid timestamp";
+    return false;
+  }
+  
+  return true;
+}
+
+#define DEPTH_SINGLE_IMAGE_SIZE 512 * 424 * 11/8
+
 void Freenect2ReplayDevice::run()
 {
   std::vector<std::string> frames = frame_filenames_;
 
+  size_t size_of_a_depth_frame = DEPTH_SINGLE_IMAGE_SIZE;
+  size_t buffer_size = 10 * size_of_a_depth_frame;
+  
+  size_t timestamp_sequence[2] = {0};
+    
   for (size_t i = 0; i < frames.size() && running_; i++)
   {
     std::string frame = frames[i];
 
-    // TODO: document
-    size_t ix1 = frame.find("_");
-    size_t ix2 = frame.find("_", ix1 + 1);
-    size_t ix3 = frame.find(".", ix2 + 1);
-
-    std::string ts = frame.substr(0, ix1);
-    std::string seq = frame.substr(ix2 + 1, ix3);
-
-    std::string data;
+    if(parseFrameFilename(frame, timestamp_sequence) == false)
+    {
+      LOG_ERROR << "could not parse replay frame filename " << frame << ", skipping...";
+      continue;
+    }
 
     if (hasSuffix(frame, ".depth"))
     {
@@ -1420,13 +1481,14 @@ void Freenect2ReplayDevice::run()
       fd.seekg(0, fd.beg);
 
       DepthPacket packet;
-      
-      packet.timestamp = atoi(ts.c_str());
-      packet.sequence = atoi(seq.c_str());
 
-      packet.buffer_length = length;
+      packet.timestamp = timestamp_sequence[0];
+      packet.sequence = timestamp_sequence[1];
+
       std::vector<char> buffer;
-      buffer.reserve(length);
+      buffer.reserve(buffer_size);
+      buffer.resize(length);
+      packet.buffer_length = length;
       packet.buffer = reinterpret_cast<unsigned char*>(&buffer[0]);
       fd.read(&buffer[0], length);
       
