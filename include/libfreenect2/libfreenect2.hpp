@@ -275,17 +275,12 @@ private:
   Freenect2& operator=(const Freenect2&);
 };
 
-class Freenect2ReplayDevice;
+class Freenect2ReplayImpl;
 
 /**
  * Library context to create and open replay devices.
  *
- * You openDevice() and control the device with returned Freenect2ReplayDevice object.
- *
- * You may open devices with custom PacketPipeline.
- * After passing a PacketPipeline object to libfreenect2 do not use or free the object,
- * libfreenect2 will take care. If openDevice() fails the PacketPipeline object will get
- * deleted. A new PacketPipeline object has to be created each time a device is opened.
+ * Call openDevice() and control the device with the returned Freenect2ReplayDevice object.
  */
 class LIBFREENECT2_API Freenect2Replay
 {
@@ -296,12 +291,7 @@ public:
   Freenect2Replay();
   virtual ~Freenect2Replay();
 
-  /**
-   * @return Replay device serial number.
-   */
-  std::string getDefaultDeviceSerialNumber();
-
-  /** Open device by a collection of stored frame filenames with default pipeline.
+  /** Open a device by a collection of stored frame filenames with default pipeline.
    * See filename format below.
    * @param frame_filenames A list of filenames for stored frames.
    * @return New device object, or NULL on failure
@@ -314,7 +304,7 @@ public:
    *  <prefix> - a string of the filename, anything
    *  <timestamp> -- packet timestamp as in pipeline packets
    *  <sequence> -- frame sequence number in the packet
-   *  <suffix> -- .depth, .jpg, or .jpeg (case insensitive) 
+   *  <suffix> -- .depth, .jpg, or .jpeg (case sensitive)
    * @param frame_filenames A list of filenames for stored frames.
    * @param factory New PacketPipeline instance. This is always automatically freed.
    * @return New device object, or NULL on failure
@@ -322,16 +312,8 @@ public:
   Freenect2Device *openDevice(const std::vector<std::string>& frame_filenames, const PacketPipeline *factory);
 
 private:
-  typedef std::vector<Freenect2ReplayDevice*> DeviceVector;
-  DeviceVector devices_;
+  Freenect2ReplayImpl *impl_;
 
-  bool initialized;
-
-  void addDevice(Freenect2ReplayDevice *device);
-  void removeDevice(Freenect2ReplayDevice *device);
-  void clearDevices();
-  int getNumDevices();
-  
   /* Disable copy and assignment constructors */
   Freenect2Replay(const Freenect2Replay&);
   Freenect2Replay& operator=(const Freenect2Replay&);
