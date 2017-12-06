@@ -304,9 +304,13 @@ protected:
 
 private:
   const PacketPipeline* pipeline_;
+  size_t buffer_size_;
+  DepthPacket packet_;
+
   std::vector<std::string> frame_filenames_;
   libfreenect2::thread* t_;
   bool running_;
+
   Freenect2Device::IrCameraParams ir_camera_params_;
   Freenect2Device::ColorCameraParams rgb_camera_params_;
 };
@@ -1168,9 +1172,13 @@ Freenect2Device *Freenect2::openDefaultDevice(const PacketPipeline *pipeline)
   return openDevice(0, pipeline);
 }
 
+#define DEPTH_SINGLE_IMAGE_SIZE 512 * 424 * 11/8
+
 Freenect2ReplayDevice::Freenect2ReplayDevice(const std::vector<std::string>& frame_filenames, const PacketPipeline* pipeline) 
   :pipeline_(pipeline), frame_filenames_(frame_filenames), running_(false)
 {
+  buffer_size_ = 10 * DEPTH_SINGLE_IMAGE_SIZE;
+  pipeline_->getDepthPacketProcessor()->allocateBuffer(packet_, buffer_size_);
 }
 
 Freenect2ReplayDevice::~Freenect2ReplayDevice()
@@ -1445,15 +1453,10 @@ bool parseFrameFilename(const std::string& frame_filename, size_t timestamp_sequ
   return true;
 }
 
-#define DEPTH_SINGLE_IMAGE_SIZE 512 * 424 * 11/8
-
 void Freenect2ReplayDevice::run()
 {
   std::vector<std::string> frames = frame_filenames_;
 
-  size_t size_of_a_depth_frame = DEPTH_SINGLE_IMAGE_SIZE;
-  size_t buffer_size = 10 * size_of_a_depth_frame;
-  
   size_t timestamp_sequence[2] = {0};
     
   for (size_t i = 0; i < frames.size() && running_; i++)
@@ -1472,39 +1475,53 @@ void Freenect2ReplayDevice::run()
       
       if(!fd)
       {
-        LOG_ERROR << "failed to open replay frame: " << frame << std::endl;
+        LOG_ERROR << "failed to open replay frame: " << frame << ", skipping...";
         continue;
       }
 
       fd.seekg(0, fd.end);
-      int length = fd.tellg();
+      size_t length = fd.tellg();
       fd.seekg(0, fd.beg);
 
-      DepthPacket packet;
-
-      packet.timestamp = timestamp_sequence[0];
-      packet.sequence = timestamp_sequence[1];
-
-      std::vector<char> buffer;
-      buffer.reserve(buffer_size);
-      buffer.resize(length);
-      packet.buffer_length = length;
-      packet.buffer = reinterpret_cast<unsigned char*>(&buffer[0]);
-      fd.read(&buffer[0], length);
-      
-      if(!fd)
+      if(pipeline_->getDepthPacketProcessor()->ready())
       {
-        LOG_ERROR
-          << "failed to read replay frame: " << frame
-          << ": " << fd.gcount() << " vs. " << length << " bytes"
-          << std::endl;
-        fd.close();
-        continue;
-      }
-      
-      fd.close();
+        DepthPacket &packet = packet_;
+        packet.timestamp = timestamp_sequence[0];
+        packet.sequence = timestamp_sequence[1];
+        packet.buffer = packet_.memory->data;
+        packet.buffer_length = packet_.memory->capacity;
 
-      pipeline_->getDepthPacketProcessor()->process(packet);
+        if(length > packet.buffer_length)
+        {
+          LOG_ERROR
+            << "file length: " << length
+            << "exceeds depth image buffer size: " << packet.buffer_length << "; skipping...";
+          fd.close();
+          continue;
+        }
+
+        fd.read(reinterpret_cast<char*>(packet.buffer), length);
+
+        if(!fd)
+        {
+          LOG_ERROR
+            << "failed to read replay frame: " << frame
+            << ": " << fd.gcount() << " vs. " << length << " bytes";
+          fd.close();
+          continue;
+        }
+      
+        fd.close();
+
+        pipeline_->getDepthPacketProcessor()->process(packet);
+        pipeline_->getDepthPacketProcessor()->allocateBuffer(packet_, buffer_size_);
+      }
+      else
+      {
+        LOG_DEBUG
+          << "skipping a replay depth packet for " << frame
+          << " as depth processor is not ready";
+      }
     }
   }
 }
