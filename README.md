@@ -131,7 +131,7 @@ When you report USB issues, please attach relevant debug log from running the pr
 * Install OpenCL (optional)
     1. Intel GPU: Download "Intel® SDK for OpenCL™ Applications 2016" from https://software.intel.com/en-us/intel-opencl (requires free registration) and install it.
 * Install CUDA (optional, Nvidia only)
-    1. Download CUDA Toolkit and install it. NOTE: CUDA 7.5 does not support Visual Studio 2015.
+    1. Download CUDA Toolkit and install it. You MUST install the samples too.
 * Install OpenNI2 (optional)
 
     Download OpenNI 2.2.0.33 (x64) from http://structure.io/openni, install it to default locations (`C:\Program Files...`).
@@ -227,7 +227,7 @@ Note: Ubuntu 12.04 is too old to support. Debian jessie may also be too old, and
     - (Ubuntu 14.04 only) Download `cuda-repo-ubuntu1404...*.deb` ("deb (network)") from Nvidia website, follow their installation instructions, including `apt-get install cuda` which installs Nvidia graphics driver.
     - (Jetson TK1) It is preloaded.
     - (Nvidia/Intel dual GPUs) After `apt-get install cuda`, use `sudo prime-select intel` to use Intel GPU for desktop.
-    - (Other) Follow Nvidia website's instructions.
+    - (Other) Follow Nvidia website's instructions. You must install the samples package.
 * Install VAAPI (optional, Intel only)
     1. (Ubuntu 14.04 only) `sudo dpkg -i debs/{libva,i965}*deb; sudo apt-get install -f`
     2. (Other) `sudo apt-get install libva-dev libjpeg-dev`
