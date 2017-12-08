@@ -25,7 +25,7 @@
  */
 
 /** @file frame_listener_impl.cpp Implementation classes for frame listeners. */
-
+#include <functional>
 #include <libfreenect2/frame_listener_impl.h>
 #include <libfreenect2/threading.h>
 
