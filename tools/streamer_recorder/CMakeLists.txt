@@ -14,17 +14,15 @@ ENDIF()
 PROJECT(libfreenect2_tools_SR)
 
 SET(MY_DIR ${libfreenect2_tools_SR_SOURCE_DIR})
-SET(DEPENDS_DIR "${MY_DIR}/../../depends" CACHE STRING "Dependency directory")
+SET(DEPENDS_DIR "${MY_DIR}/../../../depends" CACHE STRING "Dependency directory")
 
 OPTION(ENABLE_OPENGL "Enable OpenGL support" ON)
 
-# The example build system is standalone and will work out-of-tree with these files copied
+# The build system could be standalone if these files are copied instead of being referenced here.
 SET(freenect2_ROOT_DIR ${MY_DIR}/../..)
 SET(flextGL_SOURCES ${freenect2_ROOT_DIR}/src/flextGL.cpp)
 SET(flextGL_INCLUDE_DIRS ${freenect2_ROOT_DIR}/src) # for flextGL.h
-SET(tools_SR_INCLUDE_DIRS ${MY_DIR}/include) # for local include
 SET(example_INCLUDE_DIRS ${freenect2_ROOT_DIR}/examples) # for protonect viewer
-
 
 FIND_PACKAGE(PkgConfig)    # try find PKGConfig as it will be used if found
 LIST(APPEND CMAKE_MODULE_PATH ${freenect2_ROOT_DIR}/cmake_modules) # FindGLFW3.cmake
@@ -40,10 +38,15 @@ ENDIF()
 
 INCLUDE_DIRECTORIES(
   ${freenect2_INCLUDE_DIR}
+  ${example_INCLUDE_DIRS}
+  ${MY_DIR}/include
 )
 
 SET(ProtonectSR_src
   ProtonectSR.cpp
+  PracticalSocket.cpp
+  streamer.cpp
+  recorder.cpp
 )
 
 SET(ProtonectSR_LIBRARIES
@@ -54,6 +57,17 @@ SET(ProtonectSR_DLLS
   ${freenect2_DLLS}
 )
 
+# Add OpenCV package dependency for udp-image-streaming
+FIND_PACKAGE(OpenCV REQUIRED)
+INCLUDE_DIRECTORIES(${OpenCV_INCLUDE_DIRS})
+LIST(APPEND ProtonectSR_LIBRARIES
+  ${OpenCV_LIBS}
+)
+# OpenCV requires exception.
+IF(UNIX AND NOT APPLE)
+  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fexceptions")
+ENDIF()
+
 IF(ENABLE_OPENGL)
   FIND_PACKAGE(GLFW3)
   FIND_PACKAGE(OpenGL)
@@ -61,16 +75,11 @@ IF(ENABLE_OPENGL)
     INCLUDE_DIRECTORIES(
       ${GLFW3_INCLUDE_DIRS}
       ${flextGL_INCLUDE_DIRS}
-      ${tools_SR_INCLUDE_DIRS}
-      ${example_INCLUDE_DIRS}
     )
 
     LIST(APPEND ProtonectSR_DLLS ${GLFW3_DLL})
     LIST(APPEND ProtonectSR_src
       ${example_INCLUDE_DIRS}/viewer.cpp
-      ${tools_SR_INCLUDE_DIRS}/PracticalSocket.cpp
-      ${tools_SR_INCLUDE_DIRS}/streamer.cpp
-      ${tools_SR_INCLUDE_DIRS}/recorder.cpp
       ${flextGL_SOURCES}
     )
     LIST(APPEND ProtonectSR_LIBRARIES
@@ -89,6 +98,16 @@ TARGET_LINK_LIBRARIES(ProtonectSR
   ${ProtonectSR_LIBRARIES}
 )
 
+if(EXISTS ProtonectSR)
+  configure_file(build/ProtonectSR freenect2-record COPYONLY)
+  configure_file(build/ProtonectSR freenect2-replay COPYONLY)
+  configure_file(build/ProtonectSR freenect2-stream COPYONLY)
+endif()
+
+file(MAKE_DIRECTORY build/recordings)
+file(MAKE_DIRECTORY build/recordings/depth)
+file(MAKE_DIRECTORY build/recordings/regist)
+
 IF(WIN32)
   INSTALL(TARGETS ProtonectSR DESTINATION bin)
   LIST(REMOVE_DUPLICATES ProtonectSR_DLLS)
@@ -99,7 +118,3 @@ IF(WIN32)
   ENDFOREACH(FILEI)
   INSTALL(FILES ${ProtonectSR_DLLS} DESTINATION bin)
 ENDIF()
-
-# Add OpenCV package dependency for udp-image-streaming
-find_package( OpenCV REQUIRED )
-target_link_libraries( ProtonectSR ${OpenCV_LIBS} )
