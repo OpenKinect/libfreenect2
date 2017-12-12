@@ -37,6 +37,7 @@
 #include <mutex>
 #include <condition_variable>
 #include <chrono>
+#include <functional>
 
 #define WAIT_CONDITION(var, mutex, lock) var.wait(lock);
 
