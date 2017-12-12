@@ -24,11 +24,18 @@
  * either License.
  */
 
-/** @file Protonect.cpp Main application file. */
+/** @file ProtonectSR.cpp Main tool application file. */
 
 #include <iostream>
 #include <cstdlib>
 #include <signal.h>
+
+// For replay devices
+#if defined(_WIN32) || defined(__WIN32__) || defined(__WINDOWS__)
+  #include <msdirent.h>
+#else
+  #include <dirent.h>
+#endif
 
 /// [headers]
 #include <libfreenect2/libfreenect2.hpp>
@@ -42,7 +49,6 @@
 #ifdef EXAMPLES_WITH_OPENGL_SUPPORT
 #include "viewer.h"
 #endif
-
 
 bool protonect_shutdown = false; ///< Whether the running application should shut down.
 
@@ -98,6 +104,15 @@ public:
 };
 /// [logger]
 
+bool hasSuffix(const std::string& str, const std::string& suffix)
+{
+  if (str.length() < suffix.length())
+  {
+    return false;
+  }
+  return str.compare(str.length() - suffix.length(), suffix.length(), suffix) == 0;
+}
+
 /// [main]
 /**
  * Main application entry point.
@@ -110,6 +125,7 @@ public:
  * - -noviewer Disable viewer window.
  * - -streamer Enable UDP Streaming of captured images.
  * - -recorder Enable recording of captured images.
+ * - -replay Enable replay of captured images.
  */
 int main(int argc, char *argv[])
 /// [main]
@@ -119,10 +135,13 @@ int main(int argc, char *argv[])
   std::cerr << "Environment variables: LOGFILE=<protonect.log>" << std::endl;
   std::cerr << "Usage: " << program_path << " [-gpu=<id>] [gl | cl | clkde | cuda | cudakde | cpu] [<device serial>]" << std::endl;
   std::cerr << "        [-noviewer] [-norgb | -nodepth] [-help] [-version]" << std::endl;
+  std::cerr << "        [-recorder] [-streamer] [-replay]" << std::endl;
   std::cerr << "        [-frames <number of frames to process>]" << std::endl;
-  std::cerr << "To pause and unpause: pkill -USR1 Protonect" << std::endl;
-  size_t executable_name_idx = program_path.rfind("Protonect");
+  std::cerr << "To pause and unpause: pkill -USR1 ProtonectSR" << std::endl;
+  size_t executable_name_idx = program_path.rfind("ProtonectSR");
 
+  const std::string prog(argv[0]);
+  
   std::string binpath = "/";
 
   if(executable_name_idx != std::string::npos)
@@ -149,6 +168,8 @@ int main(int argc, char *argv[])
 
 /// [context]
   libfreenect2::Freenect2 freenect2;
+  // TODO: enable on merge
+  //libfreenect2::Freenect2Replay freenect2replay;
   libfreenect2::Freenect2Device *dev = 0;
   libfreenect2::PacketPipeline *pipeline = 0;
 /// [context]
@@ -158,6 +179,7 @@ int main(int argc, char *argv[])
   bool viewer_enabled = true;
   bool streamer_enabled = false;
   bool recorder_enabled = false;
+  bool replay_enabled = false;
   bool enable_rgb = true;
   bool enable_depth = true;
   int deviceId = -1;
@@ -258,13 +280,17 @@ int main(int argc, char *argv[])
         return -1;
       }
     }
-    else if(arg == "-streamer" || arg == "--streamer")
+    else if(arg == "-streamer" || arg == "--streamer" || prog == "freenect2-stream")
     {
       streamer_enabled = true;
     }
-    else if(arg == "-recorder" || arg == "--recorder")
+    else if(arg == "-recorder" || arg == "--recorder" || prog == "freenect2-record")
     {
       recorder_enabled = true;
+    }
+    else if(arg == "-replay" || arg == "--replay" || prog == "freenect2-replay")
+    {
+      replay_enabled = true;
     }
     else
     {
@@ -279,27 +305,75 @@ int main(int argc, char *argv[])
   }
 
 /// [discovery]
-  if(freenect2.enumerateDevices() == 0)
+  if(replay_enabled == false)
   {
-    std::cout << "no device connected!" << std::endl;
-    return -1;
-  }
+    if(freenect2.enumerateDevices() == 0)
+    {
+      std::cout << "no device connected!" << std::endl;
+      return -1;
+    }
 
-  if (serial == "")
-  {
-    serial = freenect2.getDefaultDeviceSerialNumber();
+    if(serial == "")
+    {
+      serial = freenect2.getDefaultDeviceSerialNumber();
+    }
   }
 /// [discovery]
 
-  if(pipeline)
+  if(replay_enabled == false)
   {
+    if(pipeline)
+    {
 /// [open]
-    dev = freenect2.openDevice(serial, pipeline);
+      dev = freenect2.openDevice(serial, pipeline);
 /// [open]
+    }
+    else
+    {
+      dev = freenect2.openDevice(serial);
+    }
   }
   else
   {
-    dev = freenect2.openDevice(serial);
+    DIR *d;
+    struct dirent *dir;
+
+    std::vector<std::string> frame_filenames;
+
+    d = opendir("recordings/depth");
+    
+    if(!d)
+    {
+      std::cerr << "Could not open directory " << dir << " for replay." << std::endl;
+      exit(1);
+    }
+    
+    while((dir = readdir(d)) != NULL)
+    {
+      std::string name = dir->d_name;
+      
+      if(hasSuffix(name, ".depth"))
+      {
+        frame_filenames.push_back(name);
+      }
+      else
+      {
+        std::cerr << "Skipping currently unsupported frame filename: " << name << std::endl;
+      }
+    }
+    // TODO: enable on merge
+/*    
+    if(pipeline)
+    {
+/// [open]
+      dev = freenect2replay.openDevice(frame_filenames, pipeline);
+/// [open]
+    }
+    else
+    {
+      dev = freenect2replay.openDevice(frame_filenames);
+    }
+*/
   }
 
   if(dev == 0)
@@ -359,18 +433,18 @@ int main(int argc, char *argv[])
   viewer_enabled = false;
 #endif
 
-Streamer streamer; // have to declare it outside statements to be accessible everywhere
-Recorder recorder;
+  Streamer streamer; // have to declare it outside statements to be accessible everywhere
+  Recorder recorder;
 
-if (streamer_enabled)
-{
-  streamer.initialize();
-}
+  if(streamer_enabled)
+  {
+    streamer.initialize();
+  }
 
-if (recorder_enabled)
-{
-  recorder.initialize();
-}
+  if(recorder_enabled)
+  {
+    recorder.initialize();
+  }
 
 /// [loop start]
   while(!protonect_shutdown && (framemax == (size_t)-1 || framecount < framemax))
@@ -403,8 +477,8 @@ if (recorder_enabled)
     {
       // TODO: add recording timestamp if max frame number reached
       // + avoid recording new ones
-      recorder.record(depth,"depth");
-      recorder.record(&registered,"registered");
+      recorder.record(depth, "depth");
+      recorder.record(&registered, "registered");
       // recorder.record(rgb,"rgb");
 
       recorder.registTimeStamp();
