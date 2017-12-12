@@ -109,7 +109,7 @@ bool SyncMultiFrameListener::waitForNewFrame(FrameMap &frame, int milliseconds)
 #ifdef LIBFREENECT2_THREADING_STDLIB
   libfreenect2::unique_lock l(impl_->mutex_);
 
-  auto predicate = std::bind(&SyncMultiFrameListenerImpl::hasNewFrame, impl_);
+  auto predicate = [this]{ return impl_->hasNewFrame(); };
 
   if(impl_->condition_.wait_for(l, std::chrono::milliseconds(milliseconds), predicate))
   {

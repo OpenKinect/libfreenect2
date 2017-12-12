@@ -35,7 +35,6 @@
 #ifdef LIBFREENECT2_WITH_PROFILING
 #include <vector>
 #include <numeric>
-#include <functional>
 #include <cmath>
 #endif
 
@@ -276,7 +275,10 @@ public:
     size_t n = v.size();
     double mean = sum / n;
     std::vector<double> diff(n);
-    std::transform(v.begin(), v.end(), diff.begin(), std::bind2nd(std::minus<double>(), mean));
+    for (size_t i = 0; i < n; ++i)
+    {
+      diff[i] = v[i] - mean;
+    }
     double sqsum = std::inner_product(diff.begin(), diff.end(), diff.begin(), 0.0);
     double std = std::sqrt(sqsum / (n-1));
 
