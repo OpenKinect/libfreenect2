@@ -1,7 +1,7 @@
 /*
  * This file is part of the OpenKinect Project. http://www.openkinect.org
  *
- * Copyright (c) 2011 individual OpenKinect contributors. See the CONTRIB file
+ * Copyright (c) 2017 individual OpenKinect contributors. See the CONTRIB file
  * for details.
  *
  * This code is licensed to you under the terms of the Apache License, version

@@ -1,6 +1,8 @@
 /*
  *   C++ sockets on Unix and Windows
- *   Copyright (C) 2002
+ *   Copyright (C) 2002 Michael J. Donahoo and Kenneth L. Calvert
+ *   http://cs.ecs.baylor.edu/%7Edonahoo/practical/CSockets/practical/
+ *   Code forked from https://github.com/chenxiaoqino/udp-image-streaming
  *
  *   This program is free software; you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License as published by
