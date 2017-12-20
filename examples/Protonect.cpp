@@ -36,10 +36,104 @@
 #include <libfreenect2/registration.h>
 #include <libfreenect2/packet_pipeline.h>
 #include <libfreenect2/logger.h>
+#include <libfreenect2\threading.h>
 /// [headers]
 #ifdef EXAMPLES_WITH_OPENGL_SUPPORT
 #include "viewer.h"
 #endif
+
+class KinectThread;
+
+void MTKinectFunc(void* data){
+	static_cast<KinectThread*>(data)->Execute();
+}
+
+class KinectThread
+{
+public:
+	libfreenect2::Freenect2* _control;
+
+	libfreenect2::thread* _handler;
+
+	int _serial;
+	int _pipeline;
+	int _listen;
+
+	libfreenect2::Freenect2Device* _device;
+	libfreenect2::Registration* _registration;
+	libfreenect2::SyncMultiFrameListener* _listener;
+	libfreenect2::FrameMap _frames;
+
+	//TODO methods to lock thread and get data
+
+	KinectThread(){
+		_control = NULL;
+
+		_handler = NULL;
+
+		//TODO default to minimal setup
+		//TODO create missing enums
+		_serial = 0;
+		_pipeline = 0;
+		_listen = 0;
+
+		_device = NULL;
+		_registration = NULL;
+		_listener = NULL;
+
+	}
+	~KinectThread(){
+		Kill();
+	}
+
+	int init(libfreenect2::Freenect2* control){
+		_control = NULL;
+	}
+
+	int Setup(int listen, int id=0, int pipeline=0){
+		_listen = listen;
+		_serial = id;
+		_pipeline = pipeline;
+	}
+
+	int Launch(){
+		//TODO verify if it's initialized
+		if(_handler != NULL)
+			Kill();
+		_handler = new libfreenect2::thread(MTKinectFunc,this);
+	}
+
+	//Running inside thread
+	int Execute(){
+		//solve pipeline type
+		//solve serial and init (id to string and open device)
+		//solve listener with listen (enum types)
+
+		//set registration
+		//set listener
+
+		//loop geting frames
+	}
+
+	int Kill(){
+		_serial = 0;
+		_pipeline = 0;
+		_listen = 0;
+
+		delete _handler;
+		delete _registration;
+		delete _listener;
+		//should device be deleted??
+
+		_handler = NULL;
+		_device = NULL;
+		_registration = NULL;
+		_listener = NULL;
+
+	}
+
+};
+
 
 
 bool protonect_shutdown = false; ///< Whether the running application should shut down.
@@ -145,6 +239,7 @@ int main(int argc, char *argv[])
 
 /// [context]
   libfreenect2::Freenect2 freenect2;
+  libfreenect2::Freenect2 freenect2c;
   libfreenect2::Freenect2Device *dev = 0;
   libfreenect2::PacketPipeline *pipeline = 0;
 /// [context]
