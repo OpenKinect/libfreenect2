@@ -235,9 +235,8 @@ Note: Ubuntu 12.04 is too old to support. Debian jessie may also be too old, and
 * Install OpenNI2 (optional)
     1. (Ubuntu 14.04 only) `sudo apt-add-repository ppa:deb-rob/ros-trusty && sudo apt-get update` (You don't need this if you have ROS repos), then `sudo apt-get install libopenni2-dev`
     2. (Other) `sudo apt-get install libopenni2-dev`
-* Build
+* Build (if you have run `cd depends` previously, `cd ..` back to the libfreenect2 root directory first.)
     ```
-    cd ..
     mkdir build && cd build
     cmake .. -DCMAKE_INSTALL_PREFIX=$HOME/freenect2
     make
