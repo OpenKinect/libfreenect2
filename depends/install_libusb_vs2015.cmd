@@ -6,10 +6,6 @@ rmdir /s /q libusb_src libusb
 git clone https://github.com/libusb/libusb.git libusb_src || exit /b
 cd libusb_src
 
-git remote add xlz https://github.com/xlz/libusb.git
-git fetch xlz || exit /b
-git merge xlz/winiso
-
 set CONFIG=Release
 set YEAR=2015
 set MSBUILD="C:\Program Files (x86)\MSBuild\14.0\Bin\MSBuild.exe"
