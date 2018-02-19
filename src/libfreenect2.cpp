@@ -370,6 +370,15 @@ public:
         LOG_ERROR << "failed to create usb context: " << WRITE_LIBUSB_ERROR(r);
         return;
       }
+
+#ifdef _WIN32
+      r = libusb_set_option((libusb_context*)usb_context, LIBUSB_OPTION_USE_USBDK);
+      if (r != LIBUSB_SUCCESS)
+      {
+          LOG_ERROR << "failed setting UsbDK mode: " << WRITE_LIBUSB_ERROR(r);
+          return;
+      }
+#endif
     }
 
     usb_event_loop_.start(usb_context_);
