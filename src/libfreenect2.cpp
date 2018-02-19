@@ -370,6 +370,10 @@ public:
         LOG_ERROR << "failed to create usb context: " << WRITE_LIBUSB_ERROR(r);
         return;
       }
+
+#if defined(_WIN32) || defined (__WIN32__) || defined(__WINDOWS__)
+      (void)libusb_set_option(usb_context_, LIBUSB_OPTION_USE_USBDK);
+#endif
     }
 
     usb_event_loop_.start(usb_context_);
