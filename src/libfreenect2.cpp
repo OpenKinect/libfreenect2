@@ -371,13 +371,8 @@ public:
         return;
       }
 
-#ifdef _WIN32
-      r = libusb_set_option((libusb_context*)usb_context, LIBUSB_OPTION_USE_USBDK);
-      if (r != LIBUSB_SUCCESS)
-      {
-          LOG_ERROR << "failed setting UsbDK mode: " << WRITE_LIBUSB_ERROR(r);
-          return;
-      }
+#if defined(_WIN32) || defined (__WIN32__) || defined(__WINDOWS__)
+      (void)libusb_set_option((libusb_context*)usb_context, LIBUSB_OPTION_USE_USBDK);
 #endif
     }
 
