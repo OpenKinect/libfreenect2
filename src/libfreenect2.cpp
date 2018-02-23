@@ -372,7 +372,7 @@ public:
       }
 
 #if defined(_WIN32) || defined (__WIN32__) || defined(__WINDOWS__)
-      (void)libusb_set_option((libusb_context*)usb_context, LIBUSB_OPTION_USE_USBDK);
+      (void)libusb_set_option(usb_context_, LIBUSB_OPTION_USE_USBDK);
 #endif
     }
 
