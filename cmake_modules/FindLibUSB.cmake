@@ -42,24 +42,6 @@ FIND_PATH(LibUSB_INCLUDE_DIRS
 )
 
 SET(LIBUSB_NAME libusb)
-IF(WIN32)
-  INCLUDE(CheckCSourceRuns)
-  CHECK_C_SOURCE_RUNS("#include <windows.h>\nint main(){return !LoadLibraryA(\"libusbK\");}" LIBUSB_WITH_LIBUSBK)
-  CHECK_C_SOURCE_RUNS("#include <windows.h>\nint main(){return !LoadLibraryA(\"UsbDkHelper\");}" LIBUSB_WITH_USBDK)
-
-  IF(LIBUSB_USE_USBDK)
-    SET(LIBUSB_NAME libusb-usbdk)
-  ENDIF()
-
-  IF(LIBUSB_NAME MATCHES ^libusb-usbdk$ AND NOT LIBUSB_WITH_USBDK)
-    MESSAGE(WARNING "UsbDk device driver is not found. Fall back to libusbK.")
-    SET(LIBUSB_NAME libusb)
-  ENDIF()
-
-  IF(LIBUSB_NAME MATCHES ^libusb$ AND NOT LIBUSB_WITH_LIBUSBK)
-    MESSAGE(FATAL_ERROR "No USB device driver is installed.")
-  ENDIF()
-ENDIF()
 
 FIND_LIBRARY(LibUSB_LIBRARIES
   NAMES ${LIBUSB_NAME}-1.0
@@ -91,11 +73,6 @@ FIND_FILE(LibUSB_DLL
     MS64
     MS64/dll
 )
-IF(LibUSB_DLL AND LIBUSB_USE_USBDK)
-  FILE(COPY ${LibUSB_DLL} DESTINATION ${CMAKE_BINARY_DIR})
-  SET(LibUSB_DLL ${CMAKE_BINARY_DIR}/libusb-1.0.dll)
-  FILE(RENAME ${CMAKE_BINARY_DIR}/${LIBUSB_NAME}-1.0.dll ${LibUSB_DLL})
-ENDIF()
 ENDIF()
 
 INCLUDE(FindPackageHandleStandardArgs)
