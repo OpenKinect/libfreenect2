@@ -149,7 +149,7 @@ When you report USB issues, please attach relevant debug log from running the pr
 
     Copy freenect2-openni2.dll, and other dll files (libusb-1.0.dll, glfw.dll, etc.) in `install\bin` to `C:\Program Files\OpenNI2\Tools\OpenNI2\Drivers`. Then run `C:\Program Files\OpenNI\Tools\NiViewer.exe`. Environment variable `LIBFREENECT2_PIPELINE` can be set to `cl`, `cuda`, etc to specify the pipeline.
 
-### Mac OSX
+### Mac OS
 
 Use your favorite package managers (brew, ports, etc.) to install most if not all dependencies:
 
@@ -168,12 +168,12 @@ Use your favorite package managers (brew, ports, etc.) to install most if not al
     ```
 * Install TurboJPEG (optional)
     ```
-    brew tap homebrew/science
     brew install jpeg-turbo
     ```
 * Install CUDA (optional): TODO
 * Install OpenNI2 (optional)
     ```
+    brew tap brewsci/science
     brew install openni2
     export OPENNI2_REDIST=/usr/local/lib/ni2
     export OPENNI2_INCLUDE=/usr/local/include/ni2
