@@ -211,8 +211,8 @@ Note: Ubuntu 12.04 is too old to support. Debian jessie may also be too old, and
     1. (Ubuntu 14.04 only) `sudo dpkg -i debs/libusb*deb`
     2. (Other) `sudo apt-get install libusb-1.0-0-dev`
 * Install TurboJPEG
-    1. (Ubuntu 14.04 and newer) `sudo apt-get install libturbojpeg libjpeg-turbo8-dev`
-    2. (Debian) `sudo apt-get install libturbojpeg0-dev`
+    1. (Ubuntu 14.04 to 16.04) `sudo apt-get install libturbojpeg libjpeg-turbo8-dev`
+    2. (Debian/Ubuntu 17.10 and newer) `sudo apt-get install libturbojpeg0-dev`
 * Install OpenGL
     1. (Ubuntu 14.04 only) `sudo dpkg -i debs/libglfw3*deb; sudo apt-get install -f`
     2. (Odroid XU4) OpenGL 3.1 is not supported on this platform. Use `cmake -DENABLE_OPENGL=OFF` later.
