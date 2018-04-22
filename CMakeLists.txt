@@ -24,6 +24,10 @@ ENDIF()
 
 PROJECT(libfreenect2)
 
+IF(POLICY CMP0042)
+  cmake_policy(SET CMP0042 NEW)
+ENDIF()
+
 SET(MY_DIR ${libfreenect2_SOURCE_DIR})
 SET(DEPENDS_DIR "${MY_DIR}/depends" CACHE STRING "dependency directory must be set to 'false' if external deps are used")
 
