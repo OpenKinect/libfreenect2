@@ -8,7 +8,7 @@
 * [Maintainers](README.md#maintainers)
 * [Installation](README.md#installation)
   * [Windows / Visual Studio](README.md#windows--visual-studio)
-  * [MacOS X](README.md#mac-osx)
+  * [MacOS](README.md#macos)
   * [Linux](README.md#linux)
 * [API Documentation (external)](https://openkinect.github.io/libfreenect2/)
 
@@ -151,7 +151,7 @@ When you report USB issues, please attach relevant debug log from running the pr
 
     Copy freenect2-openni2.dll, and other dll files (libusb-1.0.dll, glfw.dll, etc.) in `install\bin` to `C:\Program Files\OpenNI2\Tools\OpenNI2\Drivers`. Then run `C:\Program Files\OpenNI\Tools\NiViewer.exe`. Environment variable `LIBFREENECT2_PIPELINE` can be set to `cl`, `cuda`, etc to specify the pipeline.
 
-### Mac OS
+### MacOS
 
 Use your favorite package managers (brew, ports, etc.) to install most if not all dependencies:
 
