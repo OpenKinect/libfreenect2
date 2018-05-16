@@ -1,10 +1,14 @@
-FIND_LIBRARY(freenect2_LIBRARY freenect2
-    PATHS @CMAKE_INSTALL_PREFIX@/lib
-    NO_DEFAULT_PATH
-)
-SET(freenect2_LIBRARIES ${freenect2_LIBRARY} @LIBFREENECT2_THREADING_LIBRARIES@)
-FIND_PATH(freenect2_INCLUDE_DIR @PROJECT_NAME@/libfreenect2.hpp
-    PATHS @CMAKE_INSTALL_PREFIX@/include
-    NO_DEFAULT_PATH
-)
-SET(freenect2_INCLUDE_DIRS ${freenect2_INCLUDE_DIR})
+# - Config file for the freenect2 package
+# It defines the following variables
+#  freenect2_INCLUDE_DIRS - include directories for stdng
+#  freenect2_LIBRARIES    - libraries to link against
+
+# Compute paths
+GET_FILENAME_COMPONENT(freenect2_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
+SET(freenect2_INCLUDE_DIRS "@CONF_INCLUDE_DIRS@")
+
+# Our library dependencies (contains definitions for IMPORTED targets)
+INCLUDE("${freenect2_CMAKE_DIR}/freenect2Targets.cmake")
+
+# These are IMPORTED targets created by freenect2Targets.cmake
+SET(freenect2_LIBRARIES freenect2)
