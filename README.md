@@ -244,6 +244,13 @@ Note: Ubuntu 12.04 is too old to support. Debian jessie may also be too old, and
     make
     make install
     ```
+    **OR** (if you plan to use the[ Kinect2_Bridge](https://github.com/code-iai/iai_kinect2/blob/master/README.md#install))
+    ```
+    mkdir build && cd build
+    cmake .. -DENABLE_CXX11=ON -DCMAKE_INSTALL_PREFIX=$HOME/freenect2
+    make
+    make install
+    ```
     You need to specify `cmake -Dfreenect2_DIR=$HOME/freenect2/lib/cmake/freenect2` for CMake based third-party application to find libfreenect2.
 * Set up udev rules for device access: `sudo cp ../platform/linux/udev/90-kinect2.rules /etc/udev/rules.d/`, then replug the Kinect.
 * Run the test program: `./bin/Protonect`
