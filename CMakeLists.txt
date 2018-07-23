@@ -34,12 +34,14 @@ SET(DEPENDS_DIR "${MY_DIR}/depends" CACHE STRING "dependency directory must be s
 OPTION(BUILD_SHARED_LIBS "Build shared (ON) or static (OFF) libraries" ON)
 OPTION(BUILD_EXAMPLES "Build examples" ON)
 OPTION(BUILD_OPENNI2_DRIVER "Build OpenNI2 driver" ON)
-OPTION(ENABLE_CXX11 "Enable C++11 support" OFF)
+OPTION(ENABLE_CXX11 "Enable C++11 support" ON)
+
 OPTION(ENABLE_OPENCL "Enable OpenCL support" ON)
 OPTION(ENABLE_CUDA "Enable CUDA support" ON)
+OPTION(CUDA_PROPAGATE_HOST_FLAGS "Propagate CUDA flags" off)
 OPTION(ENABLE_OPENGL "Enable OpenGL support" ON)
 OPTION(ENABLE_VAAPI "Enable VA-API support" ON)
-OPTION(ENABLE_TEGRAJPEG "Enable Tegra HW JPEG support" ON)
+OPTION(ENABLE_TEGRAJPEG "Enable Tegra HW JPEG support" OFF)
 OPTION(ENABLE_PROFILING "Collect profiling stats (memory consuming)" OFF)
 
 IF(ENABLE_PROFILING)
@@ -337,8 +339,10 @@ ENDIF(ENABLE_OPENCL)
 
 SET(HAVE_CUDA disabled)
 IF(ENABLE_CUDA)
+  
   FIND_PACKAGE(CUDA)
   SET(HAVE_CUDA no)
+
   IF(CUDA_FOUND AND MSVC14 AND CUDA_VERSION VERSION_LESS 8.0)
     SET(HAVE_CUDA "no (VS2015 not supported)")
   ELSEIF(CUDA_FOUND)
