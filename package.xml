@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package>
   <name>libfreenect2</name>
-  <version>0.0.7</version>
+  <version>0.0.8</version>
   <description>libfreenect2 as a ros package</description>
 
   <maintainer email="mfernandezcarmona@lincoln.ac.uk">Manuel Fernandez-Carmona</maintainer>
