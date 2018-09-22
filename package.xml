@@ -1,0 +1,40 @@
+<?xml version="1.0"?>
+<package>
+  <name>libfreenect2</name>
+  <version>0.0.8</version>
+  <description>libfreenect2 as a ros package</description>
+
+  <maintainer email="mfernandezcarmona@lincoln.ac.uk">Manuel Fernandez-Carmona</maintainer>
+
+  <license>Apache 2.0</license>
+
+  <buildtool_depend>cmake</buildtool_depend>
+
+  <!-- dependencies for libfreenect2-->
+  <build_depend>cmake</build_depend> 
+  <build_depend>pkg-config</build_depend> 
+  <build_depend>libturbojpeg</build_depend> 
+  <build_depend>libglfw3-dev</build_depend> 
+  <build_depend>libopenni2-dev</build_depend>
+  <build_depend>libusb-1.0-dev</build_depend>
+  <build_depend>cuda_latest</build_depend>
+  <build_depend>opencl_latest</build_depend>
+
+  <run_depend>cmake</run_depend> 
+  <run_depend>pkg-config</run_depend> 
+  <run_depend>libturbojpeg</run_depend> 
+  <run_depend>libglfw3-dev</run_depend> 
+  <run_depend>libopenni2-dev</run_depend>
+  <run_depend>libusb-1.0-dev</run_depend>
+  <run_depend>cuda_latest</run_depend>
+  <run_depend>opencl_latest</run_depend>
+
+
+<export>
+  <build_type>
+cmake
+  </build_type>
+</export>
+
+
+</package>
