@@ -33,6 +33,7 @@
 #include <limits>
 #include <cmath>
 #include <cstdlib>
+#include <cstring>
 #include <fstream>
 
 #define WRITE_LIBUSB_ERROR(__RESULT) libusb_error_name(__RESULT) << " " << libusb_strerror((libusb_error)__RESULT)
@@ -255,6 +256,13 @@ public:
 
   virtual void setColorFrameListener(libfreenect2::FrameListener* rgb_frame_listener);
   virtual void setIrAndDepthFrameListener(libfreenect2::FrameListener* ir_frame_listener);
+  virtual void setColorAutoExposure(float exposure_compensation = 0);
+  virtual void setColorSemiAutoExposure(float pseudo_exposure_time_ms);
+  virtual void setColorManualExposure(float integration_time_ms, float analog_gain);
+  virtual void setColorSetting(ColorSettingCommandType cmd, uint32_t value);
+  virtual void setColorSetting(ColorSettingCommandType cmd, float value);
+  virtual uint32_t getColorSetting(ColorSettingCommandType cmd);
+  virtual float getColorSettingFloat(ColorSettingCommandType cmd);
   virtual bool start();
   virtual bool startStreams(bool rgb, bool depth);
   virtual bool stop();
@@ -278,6 +286,14 @@ public:
 
   virtual void setColorFrameListener(FrameListener* listener);
   virtual void setIrAndDepthFrameListener(FrameListener* listener);
+
+  virtual void setColorAutoExposure(float exposure_compensation) {}
+  virtual void setColorSemiAutoExposure(float pseudo_exposure_time_ms) {}
+  virtual void setColorManualExposure(float integration_time_ms, float analog_gain) {}
+  virtual void setColorSetting(ColorSettingCommandType cmd, uint32_t value) {}
+  virtual void setColorSetting(ColorSettingCommandType cmd, float value) {}
+  virtual uint32_t getColorSetting(ColorSettingCommandType cmd) { return 0u; }
+  virtual float getColorSettingFloat(ColorSettingCommandType cmd) { return 0.0f; }
 
   bool open();
 
@@ -734,6 +750,64 @@ void Freenect2DeviceImpl::setIrAndDepthFrameListener(libfreenect2::FrameListener
   // TODO: should only be possible, if not started
   if(pipeline_->getDepthPacketProcessor() != 0)
     pipeline_->getDepthPacketProcessor()->setFrameListener(ir_frame_listener);
+}
+
+void Freenect2DeviceImpl::setColorAutoExposure(float exposure_compensation)
+{
+  CommandTransaction::Result result;
+  command_tx_.execute(ColorSettingCommand(COLOR_SETTING_SET_ACS, 0u), result);
+  command_tx_.execute(ColorSettingCommand(COLOR_SETTING_SET_EXPOSURE_MODE, 0u), result);  // 0 == Fully auto
+  command_tx_.execute(ColorSettingCommand(COLOR_SETTING_SET_EXPOSURE_COMPENSATION, exposure_compensation), result);
+}
+
+void Freenect2DeviceImpl::setColorSemiAutoExposure(float pseudo_exposure_time_ms)
+{
+  CommandTransaction::Result result;
+  command_tx_.execute(ColorSettingCommand(COLOR_SETTING_SET_ACS, 0u), result);
+  command_tx_.execute(ColorSettingCommand(COLOR_SETTING_SET_EXPOSURE_MODE, 3u), result);  // 3 == Semi-auto
+  command_tx_.execute(ColorSettingCommand(COLOR_SETTING_SET_EXPOSURE_TIME_MS, pseudo_exposure_time_ms), result);
+}
+
+void Freenect2DeviceImpl::setColorManualExposure(float integration_time_ms, float analog_gain)
+{
+  CommandTransaction::Result result;
+  command_tx_.execute(ColorSettingCommand(COLOR_SETTING_SET_ACS, 0u), result);
+  command_tx_.execute(ColorSettingCommand(COLOR_SETTING_SET_EXPOSURE_MODE, 4u), result);  // 4 == Fully manual
+  command_tx_.execute(ColorSettingCommand(COLOR_SETTING_SET_INTEGRATION_TIME, integration_time_ms), result);
+  command_tx_.execute(ColorSettingCommand(COLOR_SETTING_SET_ANALOG_GAIN, analog_gain), result);
+}
+
+void Freenect2DeviceImpl::setColorSetting(ColorSettingCommandType cmd, uint32_t value)
+{
+  CommandTransaction::Result result;
+  command_tx_.execute(ColorSettingCommand(cmd, value), result);
+}
+
+void Freenect2DeviceImpl::setColorSetting(ColorSettingCommandType cmd, float value)
+{
+  CommandTransaction::Result result;
+  command_tx_.execute(ColorSettingCommand(cmd, value), result);
+}
+
+uint32_t Freenect2DeviceImpl::getColorSetting(ColorSettingCommandType cmd)
+{
+  CommandTransaction::Result result;
+  command_tx_.execute(ColorSettingCommand(cmd), result);
+  if (result.size() < sizeof(ColorSettingResponse))
+  {
+    LOG_WARNING << "failed to get color setting, response size " << result.size() << " too small, expected " << sizeof(ColorSettingResponse);
+    return 0u;
+  }
+  ColorSettingResponse const* data = reinterpret_cast<ColorSettingResponse const*>(&result[0]);
+  return data->Data;
+}
+
+float Freenect2DeviceImpl::getColorSettingFloat(ColorSettingCommandType cmd)
+{
+  uint32_t data = getColorSetting(cmd);
+  float out;
+  memcpy(&out, &data, sizeof(out));
+  return out;
 }
 
 bool Freenect2DeviceImpl::open()

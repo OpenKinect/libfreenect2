@@ -323,6 +323,18 @@ LIBFREENECT2_PACK(struct P0TablesResponse
   uint8_t  unknownD[];
 });
 
+// RGB camera settings reply for a single setting change.
+// Equivalent of NUISENSOR_RGB_CHANGE_STREAM_SETTING_REPLY in NuiSensorLib.h
+LIBFREENECT2_PACK(struct ColorSettingResponse
+{
+  uint32_t NumStatus;
+  uint32_t CommandListStatus;
+  // Result of the first command -- we only send one at a time for now.
+  // Equivalent of a fixed-length array of NUISENSOR_RGB_CHANGE_STREAM_SETTING_REPLY_STATUS in NuiSensorLib.h
+  uint32_t Status;
+  uint32_t Data;
+});
+
 } /* namespace protocol */
 } /* namespace libfreenect2 */
 #endif /* RESPONSE_H_ */
