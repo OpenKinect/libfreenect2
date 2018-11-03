@@ -242,16 +242,14 @@ struct ColorSettingCommand : public Command<KCMD_RGB_SETTING, ColorSettingRespon
 
   // Could overload ctor to ease usage for float-valued settings.
   ColorSettingCommand(ColorSettingCommandType cmd, float value)
-    : ColorSettingCommand(cmd, float_bytes_to_uint32_(value))
+    : Command<KCMD_RGB_SETTING, ColorSettingResponseSize, ColorSettingResponseSize, 4>(0)
   {
-  }
-
-private:
-  static uint32_t float_bytes_to_uint32_(float value)
-  {
-    uint32_t out;
-    memcpy(&out, &value, sizeof(out));
-    return out;
+    this->data_.parameters[0] = 1;
+    this->data_.parameters[1] = 0;
+    this->data_.parameters[2] = (uint32_t)cmd;
+    uint32_t value2;
+    memcpy(&value2, &value, sizeof(value2));
+    this->data_.parameters[3] = value2;
   }
 };
 
