@@ -165,7 +165,6 @@ Use your favorite package managers (brew, ports, etc.) to install most if not al
     ```
     brew update
     brew install libusb
-    brew tap homebrew/versions
     brew install glfw3
     ```
 * Install TurboJPEG (optional)
