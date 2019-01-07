@@ -33,6 +33,7 @@
 #include <libfreenect2/frame_listener.hpp>
 #include <libfreenect2/packet_pipeline.h>
 #include <libfreenect2/color_settings.h>
+#include <libfreenect2/led_settings.h>
 #include <string>
 #include <vector>
 
@@ -199,6 +200,11 @@ public:
   virtual void setColorSetting(ColorSettingCommandType cmd, float value) = 0;
   virtual uint32_t getColorSetting(ColorSettingCommandType cmd) = 0;
   virtual float getColorSettingFloat(ColorSettingCommandType cmd) = 0;
+
+  /** Set the settings of a Kinect LED.
+   * @param led Settings for a single LED.
+   */
+  virtual void setLedStatus(LedSettings led) = 0;
 
   /** Start data processing with both RGB and depth streams.
    * All above configuration must only be called before start() or after stop().

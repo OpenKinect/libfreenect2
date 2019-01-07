@@ -30,6 +30,7 @@
 #include <stdint.h>
 #include <cstring>
 #include "libfreenect2/protocol/response.h"
+#include "libfreenect2/led_settings.h"
 
 #define KCMD_READ_FIRMWARE_VERSIONS 0x02
 #define KCMD_INIT_STREAMS 0x09
@@ -42,6 +43,7 @@
 #define KCMD_SET_MODE 0x4B
 
 #define KCMD_RGB_SETTING 0x3E  // Command value for color camera settings
+#define KCMD_LED_SETTING  0x4B
 
 #define KCMD_0x46 0x46
 #define KCMD_0x47 0x47
@@ -254,6 +256,18 @@ private:
     return out;
   }
 };
+
+
+#define LedSettingResponseSize  0
+struct LedSettingCommand : public libfreenect2::protocol::Command<KCMD_LED_SETTING, LedSettingResponseSize, LedSettingResponseSize, 4>
+{
+  LedSettingCommand(LedSettings led)
+    : Command<KCMD_LED_SETTING, LedSettingResponseSize, LedSettingResponseSize, 4>(0)  // seq always zero
+  {
+    memcpy(this->data_.parameters, &led, sizeof(led));
+  }
+};
+
 
 } /* namespace protocol */
 } /* namespace libfreenect2 */
