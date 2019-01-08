@@ -124,6 +124,7 @@ SET(SOURCES
   include/libfreenect2/frame_listener_impl.h
   include/libfreenect2/libfreenect2.hpp
   include/libfreenect2/color_settings.h
+  include/libfreenect2/led_settings.h
   include/libfreenect2/packet_pipeline.h
   include/internal/libfreenect2/packet_processor.h
   include/libfreenect2/registration.h

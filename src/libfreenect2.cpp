@@ -263,6 +263,7 @@ public:
   virtual void setColorSetting(ColorSettingCommandType cmd, float value);
   virtual uint32_t getColorSetting(ColorSettingCommandType cmd);
   virtual float getColorSettingFloat(ColorSettingCommandType cmd);
+  virtual void setLedStatus(LedSettings led);
   virtual bool start();
   virtual bool startStreams(bool rgb, bool depth);
   virtual bool stop();
@@ -294,6 +295,7 @@ public:
   virtual void setColorSetting(ColorSettingCommandType cmd, float value) {}
   virtual uint32_t getColorSetting(ColorSettingCommandType cmd) { return 0u; }
   virtual float getColorSettingFloat(ColorSettingCommandType cmd) { return 0.0f; }
+  virtual void setLedStatus(LedSettings led) {}
 
   bool open();
 
@@ -808,6 +810,12 @@ float Freenect2DeviceImpl::getColorSettingFloat(ColorSettingCommandType cmd)
   float out;
   memcpy(&out, &data, sizeof(out));
   return out;
+}
+
+void Freenect2DeviceImpl::setLedStatus(LedSettings led)
+{
+  CommandTransaction::Result result;
+  command_tx_.execute(LedSettingCommand(led), result);
 }
 
 bool Freenect2DeviceImpl::open()
