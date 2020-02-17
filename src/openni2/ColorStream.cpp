@@ -50,7 +50,7 @@ ColorStream::FreenectVideoModeMap ColorStream::getSupportedVideoModes() const
   modes[makeOniVideoMode(ONI_PIXEL_FORMAT_RGB888, 1920, 1080, 30)] = 1;
 
   return modes;
- 
+
   /* working format possiblities
   FREENECT_VIDEO_RGB
   FREENECT_VIDEO_YUV_RGB
@@ -76,12 +76,12 @@ void ColorStream::populateFrame(libfreenect2::Frame* srcFrame, int srcX, int src
 
         reg->colorFrameRGB888(srcFrame, &registered);
 
-        copyFrame(static_cast<uint8_t*>(registered.data), srcX, srcY, registered.width * registered.bytes_per_pixel, 
-                  static_cast<uint8_t*>(dstFrame->data), dstX, dstY, dstFrame->stride, 
+        copyFrame(static_cast<uint8_t*>(registered.data), srcX, srcY, registered.width * registered.bytes_per_pixel,
+                  static_cast<uint8_t*>(dstFrame->data), dstX, dstY, dstFrame->stride,
                   width, height, mirroring);
       } else {
-        copyFrame(static_cast<uint8_t*>(srcFrame->data), srcX, srcY, srcFrame->width * srcFrame->bytes_per_pixel, 
-                  static_cast<uint8_t*>(dstFrame->data), dstX, dstY, dstFrame->stride, 
+        copyFrame(static_cast<uint8_t*>(srcFrame->data), srcX, srcY, srcFrame->width * srcFrame->bytes_per_pixel,
+                  static_cast<uint8_t*>(dstFrame->data), dstX, dstY, dstFrame->stride,
                   width, height, mirroring);
       }
       return;
@@ -96,7 +96,37 @@ void ColorStream::copyFrame(uint8_t* srcPix, int srcX, int srcY, int srcStride, 
   for (int y = 0; y < height; y++) {
     uint8_t* dst = dstPix + y * dstStride;
     uint8_t* src = srcPix + y * srcStride;
+
+#ifdef LIBFREENECT2_WITH_TEGRAJPEG_SUPPORT
     if (mirroring) {
+      dst += dstStride - 1;
+      for (int x = 0; x < srcStride; ++x)
+      {
+        // if (x % 4 != 3)
+        // {
+        // *dst-- = *src++;
+        *dst-- = src[2];
+        *dst-- = src[1];
+        *dst-- = src[0];
+        src += 4;
+        // }
+        // else
+        // {
+        //   ++src;
+        // }
+      }
+    } else {
+      for (int x = 0; x < dstStride-2; x += 3)
+      {
+        *dst++ = src[0];
+        *dst++ = src[1];
+        *dst++ = src[2];
+        src += 4;
+      }
+    }
+#else
+    if (mirroring)
+    {
       dst += dstStride - 1;
       for (int x = 0; x < srcStride; ++x)
       {
@@ -109,8 +139,10 @@ void ColorStream::copyFrame(uint8_t* srcPix, int srcX, int srcY, int srcStride, 
           ++src;
         }
       }
-    } else {
-      for (int x = 0; x < dstStride-2; x += 3)
+    }
+    else
+    {
+      for (int x = 0; x < dstStride - 2; x += 3)
       {
         *dst++ = src[2];
         *dst++ = src[1];
@@ -118,6 +150,7 @@ void ColorStream::copyFrame(uint8_t* srcPix, int srcX, int srcY, int srcStride, 
         src += 4;
       }
     }
+#endif
   }
 }
 

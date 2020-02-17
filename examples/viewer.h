@@ -53,7 +53,11 @@ typedef ImageFormat<2, GL_R16UI, GL_RED_INTEGER, GL_UNSIGNED_SHORT> U16C1;
 typedef ImageFormat<4, GL_R32F, GL_RED, GL_FLOAT> F32C1;
 typedef ImageFormat<8, GL_RG32F, GL_RG, GL_FLOAT> F32C2;
 typedef ImageFormat<12, GL_RGB32F, GL_RGB, GL_FLOAT> F32C3;
-typedef ImageFormat<4, GL_RGBA, GL_BGRA, GL_UNSIGNED_BYTE> F8C4;
+#ifdef LIBFREENECT2_WITH_TEGRAJPEG_SUPPORT
+    typedef ImageFormat<4, GL_RGBA, GL_BGRA, GL_UNSIGNED_BYTE> F8C4;
+#else
+    typedef ImageFormat<4, GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE> F8C4;
+#endif
 typedef ImageFormat<16, GL_RGBA32F, GL_RGBA, GL_FLOAT> F32C4;
 
 template<typename FormatT>
