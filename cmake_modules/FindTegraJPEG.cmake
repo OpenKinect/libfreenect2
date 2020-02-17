@@ -6,7 +6,7 @@
 FIND_PATH(TegraJPEG_INCLUDE_DIRS
   libjpeg-8b/jpeglib.h
   DOC "Found TegraJPEG include directory"
-  PATHS /usr/src/tegra_multimedia_api/include
+  PATHS /usr/src/tegra_multimedia_api/include /usr/src/jetson_multimedia_api/include
   NO_DEFAULT_PATH
 )
 
