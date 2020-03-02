@@ -128,6 +128,7 @@ SET(SOURCES
   include/libfreenect2/packet_pipeline.h
   include/internal/libfreenect2/packet_processor.h
   include/libfreenect2/registration.h
+  include/libfreenect2/cuda_registration.h
   include/internal/libfreenect2/resource.h
   include/internal/libfreenect2/rgb_packet_processor.h
   include/internal/libfreenect2/rgb_packet_stream_parser.h
@@ -357,7 +358,7 @@ IF(ENABLE_CUDA)
     )
     SET(CUDA_FLAGS -use_fast_math)
     IF(NOT MSVC)
-      SET(CUDA_FLAGS "${CUDA_FLAGS} -Xcompiler -fPIC")
+      SET(CUDA_FLAGS "${CUDA_FLAGS} -Xcompiler -fPIC -D_FORCE_INLINES")
     ENDIF()
     IF(HAVE_CXX11 STREQUAL yes AND CUDA_VERSION VERSION_GREATER 7.0)
       SET(CUDA_FLAGS "${CUDA_FLAGS} -std=c++11")
@@ -365,9 +366,16 @@ IF(ENABLE_CUDA)
 
     SET(OLD_CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
     STRING(REGEX REPLACE "-std=c\\+\\+.." "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+    # Thrust requires exceptions.  If OpenCL from NVidia is used we don't need this flag.
+    STRING(REGEX REPLACE "-fno-exceptions" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+    MESSAGE(STATUS "*************")
+    mESSAGE(STATUS ${CMAKE_CXX_FLAGS})
+    MESSAGE(STATUS ${CUDA_FLAGS})
+    MESSAGE(STATUS "*************")
     CUDA_COMPILE(CUDA_OBJECTS
       src/cuda_depth_packet_processor.cu
       src/cuda_kde_depth_packet_processor.cu
+      src/cuda_registration.cu
       OPTIONS ${CUDA_FLAGS}
     )
     SET(CMAKE_CXX_FLAGS "${OLD_CMAKE_CXX_FLAGS}")

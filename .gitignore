@@ -1,4 +1,5 @@
 build
+compile
 
 # Dependency folders
 depends/*/
@@ -122,6 +123,11 @@ ClientBin/
 *.[Pp]ublish.xml
 *.pfx
 *.publishsettings
+
+# Nsight Nvidia Eclipse
+.cproject
+.project
+.settings/
 
 # RIA/Silverlight projects
 Generated_Code/
