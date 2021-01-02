@@ -270,7 +270,9 @@ public:
       display = NULL;
     }
     CHECK_COND(vaDisplayIsValid(display));
-
+    #ifdef LIBFREENECT2_WITH_VAAPI_DRIVER
+    vaSetDriverName(display,LIBFREENECT2_WITH_VAAPI_DRIVER);
+    #endif
     /* Initialize and create config */
     int major_ver, minor_ver;
     CHECK_VA(vaInitialize(display, &major_ver, &minor_ver));
