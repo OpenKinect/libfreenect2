@@ -78,7 +78,7 @@ void Recorder::initialize()
   /////////////////////////////////////////////////////////////////
 
   // record image: define compression parameters and frame counter
-  img_comp_param.push_back(CV_IMWRITE_JPEG_QUALITY); //specify the compression technique
+  img_comp_param.push_back(cv::IMWRITE_JPEG_QUALITY); //specify the compression technique
   img_comp_param.push_back(100); //specify the compression quality
   frameID = 0;
 
