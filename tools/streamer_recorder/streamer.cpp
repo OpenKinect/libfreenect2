@@ -36,7 +36,7 @@ void Streamer::initialize()
   servAddress = SERVER_ADDRESS;
   servPort = Socket::resolveService(SERVER_PORT, "udp"); // Server port
 
-  compression_params.push_back(CV_IMWRITE_JPEG_QUALITY);
+  compression_params.push_back(cv::IMWRITE_JPEG_QUALITY);
   compression_params.push_back(jpegqual);
 }
 
