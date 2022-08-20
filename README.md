@@ -81,6 +81,15 @@ When you report USB issues, please attach relevant debug log from running the pr
 
 ## Installation
 
+### Enable CUDA (optional)
+
+Install the latest CUDA Toolkit. Add option `-DENABLE_CUDA=ON -DNVCUDASAMPLES_ROOT=<cuda_samples_dir>` to cmake to enable CUDA. CUDA samples could be downloaded [here](https://github.com/NVIDIA/cuda-samples.git). Below is an example to build on Linux if you download CUDA samples under the same directory as libfreenect2:
+
+``` sh
+cd libfreenect2 && mkdir build && cd build
+cmake .. -DENABLE_CXX11=ON -DENABLE_CUDA=ON -DNVCUDASAMPLES_ROOT=`pwd`/../../cuda-samples && make -j4
+```
+
 ### Windows / Visual Studio
 
 * Install UsbDk driver
