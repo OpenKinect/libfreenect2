@@ -32,7 +32,10 @@
 #include <libfreenect2/config.h>
 #include <libfreenect2/frame_listener.hpp>
 #include <libfreenect2/packet_pipeline.h>
+#include <libfreenect2/color_settings.h>
+#include <libfreenect2/led_settings.h>
 #include <string>
+#include <vector>
 
 namespace libfreenect2
 {
@@ -159,6 +162,50 @@ public:
   /** Provide your listener to receive IR and depth frames. */
   virtual void setIrAndDepthFrameListener(FrameListener* ir_frame_listener) = 0;
 
+  /** Sets the RGB camera to fully automatic exposure setting.
+   * Exposure compensation: negative value gives an underexposed image,
+   * positive gives an overexposed image.
+   * 
+   * @param exposure_compensation Exposure compensation, range [-2.0, 2.0]
+   */
+  virtual void setColorAutoExposure(float exposure_compensation = 0) = 0;
+
+  /** Sets a flicker-free exposure time of the RGB camera in pseudo-ms, value in range [0.0, 640] ms.
+   * The actual frame integration time is set to a multiple of fluorescent light period
+   * that is shorter than the requested time e.g. requesting 16 ms will set 10 ms
+   * in Australia (100Hz light flicker), 8.33 ms in USA (120Hz light flicker).
+   * The gain is automatically set to compensate for the reduced integration time,
+   * as if the gain was set to 1.0 and the integration time was the requested value.
+   *
+   * Requesting less than a single fluorescent light period will set the integration time
+   * to the requested value, so the image brightness will flicker.
+   *
+   * To set the shortest non-flickering integration period for any country, simply set
+   * a pseudo-exposure time of between (10.0, 16.667) ms, which will automatically drop
+   * the integration time to 10 or 8.3 ms depending on country, while setting the analog
+   * gain control to a brighter value.
+   * 
+   * @param pseudo_exposure_time_ms Pseudo-exposure time in milliseconds, range (0.0, 66.0+]
+   */
+  virtual void setColorSemiAutoExposure(float pseudo_exposure_time_ms) = 0;
+
+  /** Manually set true exposure time and analog gain of the RGB camera.
+   * @param integration_time_ms True shutter time in milliseconds, range (0.0, 66.0]
+   * @param analog_gain Analog gain, range [1.0, 4.0]
+   */
+  virtual void setColorManualExposure(float integration_time_ms, float analog_gain) = 0;
+
+  /** Set/get an individual setting value of the RGB camera. */
+  virtual void setColorSetting(ColorSettingCommandType cmd, uint32_t value) = 0;
+  virtual void setColorSetting(ColorSettingCommandType cmd, float value) = 0;
+  virtual uint32_t getColorSetting(ColorSettingCommandType cmd) = 0;
+  virtual float getColorSettingFloat(ColorSettingCommandType cmd) = 0;
+
+  /** Set the settings of a Kinect LED.
+   * @param led Settings for a single LED.
+   */
+  virtual void setLedStatus(LedSettings led) = 0;
+
   /** Start data processing with both RGB and depth streams.
    * All above configuration must only be called before start() or after stop().
    *
@@ -272,6 +319,50 @@ private:
   /* Disable copy and assignment constructors */
   Freenect2(const Freenect2&);
   Freenect2& operator=(const Freenect2&);
+};
+
+class Freenect2ReplayImpl;
+
+/**
+ * Library context to create and open replay devices.
+ *
+ * Call openDevice() and control the device with the returned Freenect2ReplayDevice object.
+ */
+class LIBFREENECT2_API Freenect2Replay
+{
+public:
+  /**
+   * Creates the context.
+   */
+  Freenect2Replay();
+  virtual ~Freenect2Replay();
+
+  /** Open a device by a collection of stored frame filenames with default pipeline.
+   * See filename format below.
+   * @param frame_filenames A list of filenames for stored frames.
+   * @return New device object, or NULL on failure
+   */
+  Freenect2Device *openDevice(const std::vector<std::string>& frame_filenames);
+
+  /** Open device by a collection of stored frame filenames with the specified pipeline.
+   * File names non-compliant with the filename format will be skipped.
+   * Filename format: <prefix>_<timestamp>_<sequence>.<suffix>
+   *  <prefix> - a string of the filename, anything
+   *  <timestamp> -- packet timestamp as in pipeline packets
+   *  <sequence> -- frame sequence number in the packet
+   *  <suffix> -- .depth, .jpg, or .jpeg (case sensitive)
+   * @param frame_filenames A list of filenames for stored frames.
+   * @param factory New PacketPipeline instance. This is always automatically freed.
+   * @return New device object, or NULL on failure
+   */
+  Freenect2Device *openDevice(const std::vector<std::string>& frame_filenames, const PacketPipeline *factory);
+
+private:
+  Freenect2ReplayImpl *impl_;
+
+  /* Disable copy and assignment constructors */
+  Freenect2Replay(const Freenect2Replay&);
+  Freenect2Replay& operator=(const Freenect2Replay&);
 };
 
 ///@}

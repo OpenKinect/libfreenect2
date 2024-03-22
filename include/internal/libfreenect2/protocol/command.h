@@ -28,7 +28,9 @@
 #define COMMAND_H_
 
 #include <stdint.h>
+#include <cstring>
 #include "libfreenect2/protocol/response.h"
+#include "libfreenect2/led_settings.h"
 
 #define KCMD_READ_FIRMWARE_VERSIONS 0x02
 #define KCMD_INIT_STREAMS 0x09
@@ -39,6 +41,9 @@
 
 #define KCMD_SET_STREAMING 0x2B
 #define KCMD_SET_MODE 0x4B
+
+#define KCMD_RGB_SETTING 0x3E  // Command value for color camera settings
+#define KCMD_LED_SETTING  0x4B
 
 #define KCMD_0x46 0x46
 #define KCMD_0x47 0x47
@@ -219,6 +224,49 @@ typedef CommandWith4Params<KCMD_SET_MODE, 0x00, 0x00> SetModeDisabledCommand;
 typedef CommandWith4Params<KCMD_SET_MODE, 0x00, 0x01> SetModeEnabledCommand;
 typedef CommandWith4Params<KCMD_SET_MODE, 0x00, 0x01, 0x00640064> SetModeEnabledWith0x00640064Command;
 typedef CommandWith4Params<KCMD_SET_MODE, 0x00, 0x01, 0x00500050> SetModeEnabledWith0x00500050Command;
+
+// The following information was found by using the library released by Microsoft under MIT license,
+// https://github.com/Microsoft/MixedRealityCompanionKit/tree/master/KinectIPD/NuiSensor
+// Command values come from headers, packet CommandId from stepping through assembly in NuiSensorLib.lib
+#define ColorSettingResponseSize sizeof(ColorSettingResponse)
+struct ColorSettingCommand : public Command<KCMD_RGB_SETTING, ColorSettingResponseSize, ColorSettingResponseSize, 4>
+{
+  ColorSettingCommand(ColorSettingCommandType cmd, uint32_t value = 0)
+    : Command<KCMD_RGB_SETTING, ColorSettingResponseSize, ColorSettingResponseSize, 4>(0)  // seq always zero
+  {
+    // Data parameters are elements of struct NUISENSOR_RGB_CHANGE_STREAM_SETTING
+    // which supports multiple settings for a single call.
+    this->data_.parameters[0] = 1;  // NumCommands = 1 for single command
+    this->data_.parameters[1] = 0;  // SequenceId = 0 for RGB commands
+    this->data_.parameters[2] = (uint32_t)cmd;  // Cmd with a value from NUISENSOR_RGB_COMMAND_*
+    this->data_.parameters[3] = value;  // Arg is int or float depending on Cmd, zero for GET_*
+  }
+
+  // Could overload ctor to ease usage for float-valued settings.
+  ColorSettingCommand(ColorSettingCommandType cmd, float value)
+    : Command<KCMD_RGB_SETTING, ColorSettingResponseSize, ColorSettingResponseSize, 4>(0)
+  {
+    this->data_.parameters[0] = 1;
+    this->data_.parameters[1] = 0;
+    this->data_.parameters[2] = (uint32_t)cmd;
+    uint32_t value2;
+    memcpy(&value2, &value, sizeof(value2));
+    this->data_.parameters[3] = value2;
+  }
+};
+
+
+#define LedSettingResponseSize  0
+struct LedSettingCommand : public libfreenect2::protocol::Command<KCMD_LED_SETTING, LedSettingResponseSize, LedSettingResponseSize, 4>
+{
+  LedSettingCommand(LedSettings led)
+    : Command<KCMD_LED_SETTING, LedSettingResponseSize, LedSettingResponseSize, 4>(0)  // seq always zero
+  {
+    memcpy(this->data_.parameters, &led, sizeof(led));
+  }
+};
+
+
 } /* namespace protocol */
 } /* namespace libfreenect2 */
 #endif /* COMMAND_H_ */

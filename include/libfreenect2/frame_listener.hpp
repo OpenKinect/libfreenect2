@@ -67,7 +67,7 @@ class LIBFREENECT2_API Frame
   size_t height;          ///< Number of lines in the frame.
   size_t bytes_per_pixel; ///< Number of bytes in a pixel. If frame format is 'Raw' this is the buffer size.
   unsigned char* data;    ///< Data of the frame (aligned). @see See Frame::Type for pixel format.
-  uint32_t timestamp;     ///< Unit: roughly or exactly 0.1 millisecond
+  uint32_t timestamp;     ///< Unit: 0.125 millisecond. Usually incrementing by 266 (30Hz) or 533 (15Hz).
   uint32_t sequence;      ///< Increasing frame sequence number
   float exposure;         ///< From 0.5 (very bright) to ~60.0 (fully covered)
   float gain;             ///< From 1.0 (bright) to 1.5 (covered)

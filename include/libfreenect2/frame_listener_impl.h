@@ -58,18 +58,18 @@ public:
   bool hasNewFrame() const;
 
   /** Wait milliseconds for new frames.
-   * @param[out] frame Caller is responsible to release the frames.
+   * @param[out] frame Caller is responsible to release the frames in `frame`.
    * @param milliseconds Timeout. This parameter is ignored if not built with C++11 threading support.
    * @return true if a frame is received; false if not.
    */
   bool waitForNewFrame(FrameMap &frame, int milliseconds);
 
   /** Wait indefinitely for new frames.
-   * @param[out] frame Caller is responsible to release the frames.
+   * @param[out] frame Caller is responsible to release the frames in `frame`.
    */
   void waitForNewFrame(FrameMap &frame);
 
-  /** Shortcut to delete all frames */
+  /** Shortcut to delete all frames in `frame`. */
   void release(FrameMap &frame);
 
   virtual bool onNewFrame(Frame::Type type, Frame *frame);

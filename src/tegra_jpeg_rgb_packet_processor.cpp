@@ -29,7 +29,8 @@
 
 namespace nv_headers {
 #define DONT_USE_EXTERN_C
-#include "nv_headers/jpeglib.h"
+#define TEGRA_ACCELERATE
+#include "libjpeg-8b/jpeglib.h"
 }
 
 #include <dlfcn.h>
