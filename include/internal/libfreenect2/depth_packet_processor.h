@@ -280,6 +280,31 @@ private:
 };
 #endif // LIBFREENECT2_WITH_CUDA_SUPPORT
 
+#ifdef LIBFREENECT2_WITH_METAL_SUPPORT
+class MetalDepthPacketProcessorImpl;
+
+/** Depth packet processor using Apple Metal GPU compute. */
+class MetalDepthPacketProcessor : public DepthPacketProcessor
+{
+public:
+  MetalDepthPacketProcessor(const int deviceIndex = -1);
+  virtual ~MetalDepthPacketProcessor();
+  virtual void setConfiguration(const libfreenect2::DepthPacketProcessor::Config &config);
+
+  virtual void loadP0TablesFromCommandResponse(unsigned char *buffer, size_t buffer_length);
+
+  virtual void loadXZTables(const float *xtable, const float *ztable);
+  virtual void loadLookupTable(const short *lut);
+
+  virtual bool good();
+  virtual const char *name() { return "Metal"; }
+
+  virtual void process(const DepthPacket &packet);
+private:
+  MetalDepthPacketProcessorImpl *impl_;
+};
+#endif // LIBFREENECT2_WITH_METAL_SUPPORT
+
 class DumpDepthPacketProcessor : public DepthPacketProcessor
 {
  public:

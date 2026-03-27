@@ -1102,6 +1102,10 @@ PacketPipeline *createPacketPipelineByName(std::string name)
   if (name == "cl")
     return new OpenCLPacketPipeline();
 #endif
+#if defined(LIBFREENECT2_WITH_METAL_SUPPORT)
+  if (name == "metal")
+    return new MetalPacketPipeline();
+#endif
   if (name == "cpu")
     return new CpuPacketPipeline();
   return NULL;
@@ -1123,6 +1127,8 @@ PacketPipeline *createDefaultPacketPipeline()
   return new OpenGLPacketPipeline();
 #elif defined(LIBFREENECT2_WITH_CUDA_SUPPORT)
   return new CudaPacketPipeline();
+#elif defined(LIBFREENECT2_WITH_METAL_SUPPORT)
+  return new MetalPacketPipeline();
 #elif defined(LIBFREENECT2_WITH_OPENCL_SUPPORT)
   return new OpenCLPacketPipeline();
 #else

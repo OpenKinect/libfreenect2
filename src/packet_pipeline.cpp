@@ -178,6 +178,15 @@ CudaKdePacketPipeline::CudaKdePacketPipeline(const int deviceId) : deviceId(devi
 CudaPacketPipeline::~CudaPacketPipeline() { }
 #endif // LIBFREENECT2_WITH_CUDA_SUPPORT
 
+#ifdef LIBFREENECT2_WITH_METAL_SUPPORT
+MetalPacketPipeline::MetalPacketPipeline(const int deviceId) : deviceId(deviceId)
+{
+  comp_->initialize(getDefaultRgbPacketProcessor(), new MetalDepthPacketProcessor(deviceId));
+}
+
+MetalPacketPipeline::~MetalPacketPipeline() { }
+#endif // LIBFREENECT2_WITH_METAL_SUPPORT
+
 DumpPacketPipeline::DumpPacketPipeline()
 {
   RgbPacketProcessor *rgb = new DumpRgbPacketProcessor();
