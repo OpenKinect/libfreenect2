@@ -165,9 +165,15 @@ SET(LIBFREENECT2_DLLS
   ${LibUSB_DLL}
 )
 
+OPTION(ENABLE_VIDEOTOOLBOX "Enable VideoToolbox RGB decoder (crashes on Apple Silicon / M1+, use OFF to force TurboJPEG)" ON)
+
 SET(HAVE_VideoToolbox "no (Apple only)")
 IF(APPLE)
-  FIND_LIBRARY(VIDEOTOOLBOX_LIBRARY VideoToolbox)
+  IF(ENABLE_VIDEOTOOLBOX)
+    FIND_LIBRARY(VIDEOTOOLBOX_LIBRARY VideoToolbox)
+  ELSE()
+    MESSAGE(STATUS "VideoToolbox disabled by ENABLE_VIDEOTOOLBOX=OFF — using TurboJPEG for RGB (required on Apple Silicon / M1+)")
+  ENDIF()
 
   SET(HAVE_VideoToolbox no)
   IF(VIDEOTOOLBOX_LIBRARY)
