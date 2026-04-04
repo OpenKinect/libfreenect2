@@ -156,6 +156,18 @@ public:
 };
 #endif // LIBFREENECT2_WITH_CUDA_SUPPORT
 
+#ifdef LIBFREENECT2_WITH_METAL_SUPPORT
+/** Pipeline with Metal GPU depth processing (Apple platforms). */
+class LIBFREENECT2_API MetalPacketPipeline : public PacketPipeline
+{
+protected:
+  const int deviceId;
+public:
+  MetalPacketPipeline(const int deviceId = -1);
+  virtual ~MetalPacketPipeline();
+};
+#endif // LIBFREENECT2_WITH_METAL_SUPPORT
+
 ///@}
 } /* namespace libfreenect2 */
 #endif /* PACKET_PIPELINE_H_ */

@@ -41,6 +41,11 @@ OPTION(ENABLE_OPENGL "Enable OpenGL support" ON)
 OPTION(ENABLE_VAAPI "Enable VA-API support" ON)
 OPTION(ENABLE_TEGRAJPEG "Enable Tegra HW JPEG support" ON)
 OPTION(ENABLE_PROFILING "Collect profiling stats (memory consuming)" OFF)
+IF(APPLE)
+  OPTION(ENABLE_METAL "Enable Metal GPU depth processing (Apple platforms)" ON)
+ELSE()
+  OPTION(ENABLE_METAL "Enable Metal GPU depth processing (Apple platforms)" OFF)
+ENDIF()
 
 IF(ENABLE_PROFILING)
   SET(LIBFREENECT2_WITH_PROFILING 1)
@@ -337,6 +342,54 @@ IF(ENABLE_OPENCL)
   ENDIF(OpenCL_FOUND)
 ENDIF(ENABLE_OPENCL)
 
+SET(HAVE_Metal "disabled (non-Apple)")
+IF(APPLE AND ENABLE_METAL)
+  SET(HAVE_Metal no)
+
+  SET(METAL_SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/src/metal_depth_packet_processor.metal")
+  SET(METAL_AIR    "${CMAKE_CURRENT_BINARY_DIR}/metal_depth_packet_processor.air")
+  SET(METAL_LIB    "${CMAKE_CURRENT_BINARY_DIR}/default.metallib")
+
+  ADD_CUSTOM_COMMAND(
+    OUTPUT ${METAL_AIR}
+    COMMAND xcrun -sdk macosx metal -c ${METAL_SOURCE} -o ${METAL_AIR}
+    DEPENDS ${METAL_SOURCE}
+    COMMENT "Compiling Metal shader to AIR"
+    VERBATIM
+  )
+
+  ADD_CUSTOM_COMMAND(
+    OUTPUT ${METAL_LIB}
+    COMMAND xcrun -sdk macosx metallib ${METAL_AIR} -o ${METAL_LIB}
+    DEPENDS ${METAL_AIR}
+    COMMENT "Linking Metal library"
+    VERBATIM
+  )
+
+  ADD_CUSTOM_TARGET(MetalShaders ALL DEPENDS ${METAL_LIB})
+
+  SET(LIBFREENECT2_WITH_METAL_SUPPORT 1)
+  SET(HAVE_Metal yes)
+
+  LIST(APPEND SOURCES
+    src/metal_depth_packet_processor.mm
+  )
+
+  LIST(APPEND LIBRARIES
+    "-framework Metal"
+    "-framework Foundation"
+  )
+
+  # Mark the .mm file for Objective-C++ compilation (CMake handles this via the
+  # extension, but the explicit property guards against edge cases).
+  SET_SOURCE_FILES_PROPERTIES(src/metal_depth_packet_processor.mm
+    PROPERTIES COMPILE_FLAGS "-x objective-c++"
+  )
+
+  # Install the compiled metallib alongside the dylib.
+  INSTALL(FILES ${METAL_LIB} DESTINATION lib)
+ENDIF(APPLE AND ENABLE_METAL)
+
 SET(HAVE_CUDA disabled)
 IF(ENABLE_CUDA)
   FIND_PACKAGE(CUDA)
@@ -417,6 +470,11 @@ GENERATE_RESOURCES(${RESOURCES_INC_FILE} ${MY_DIR} ${RESOURCES})
 
 ADD_DEFINITIONS(-DRESOURCES_INC)
 ADD_LIBRARY(freenect2 ${SOURCES})
+
+IF(APPLE AND ENABLE_METAL AND LIBFREENECT2_WITH_METAL_SUPPORT)
+  ADD_DEPENDENCIES(freenect2 MetalShaders)
+ENDIF()
+
 SET_TARGET_PROPERTIES(freenect2 PROPERTIES
   CXX_VISIBILITY_PRESET hidden
   VISIBILITY_INLINES_HIDDEN 1
