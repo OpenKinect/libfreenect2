@@ -34,11 +34,21 @@
 #include <algorithm>
 #include <libfreenect2/config.h>
 #include <libfreenect2/libfreenect2.hpp>
+#include <libfreenect2/status_codes.h>
 
 namespace libfreenect2
 {
 namespace protocol
 {
+
+// Original struct name: NUISENSOR_USB_PACKET_RESPONSE
+LIBFREENECT2_PACK(struct ResponseFooter
+{
+  uint32_t PacketType;  // Magic number: 0x0A6FE000
+  uint32_t TransactionId;
+  SensorStatusCode Status;
+  uint32_t Reserved;
+});
 
 class SerialNumberResponse
 {
@@ -328,7 +338,7 @@ LIBFREENECT2_PACK(struct P0TablesResponse
 LIBFREENECT2_PACK(struct ColorSettingResponse
 {
   uint32_t NumStatus;
-  uint32_t CommandListStatus;
+  uint32_t CommandListStatus; // value from SensorStatusCode
   // Result of the first command -- we only send one at a time for now.
   // Equivalent of a fixed-length array of NUISENSOR_RGB_CHANGE_STREAM_SETTING_REPLY_STATUS in NuiSensorLib.h
   uint32_t Status;

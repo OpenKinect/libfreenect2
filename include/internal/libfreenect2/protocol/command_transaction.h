@@ -30,6 +30,7 @@
 #include <vector>
 #include <libusb.h>
 #include <libfreenect2/protocol/command.h>
+#include <libfreenect2/protocol/response.h>
 
 namespace libfreenect2
 {
@@ -48,10 +49,12 @@ public:
   ~CommandTransaction();
 
   bool execute(const CommandBase& command, Result& result);
+
+  SensorStatusCode getCommandStatus();
 private:
   libusb_device_handle *handle_;
   int inbound_endpoint_, outbound_endpoint_, timeout_;
-  Result response_complete_result_;
+  ResponseFooter response_complete_result_;
 
   bool send(const CommandBase& command);
 

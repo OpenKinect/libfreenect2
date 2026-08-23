@@ -43,14 +43,21 @@ CommandTransaction::CommandTransaction(libusb_device_handle *handle, int inbound
   outbound_endpoint_(outbound_endpoint),
   timeout_(1000)
 {
+  response_complete_result_.Status = STATUS_CODE_NONE;
 }
 
 CommandTransaction::~CommandTransaction() {}
 
+SensorStatusCode CommandTransaction::getCommandStatus()
+{
+  return response_complete_result_.Status;
+}
+
 bool CommandTransaction::execute(const CommandBase& command, Result& result)
 {
+  CommandTransaction::Result resultFooter;
   result.resize(command.maxResponseLength());
-  response_complete_result_.resize(ResponseCompleteLength);
+  resultFooter.resize(ResponseCompleteLength);
 
   // send command
   if (!send(command))
@@ -63,18 +70,26 @@ bool CommandTransaction::execute(const CommandBase& command, Result& result)
       return false;
     if (isResponseCompleteResult(result, command.sequence()))
     {
-      LOG_ERROR << "received premature response complete!";
+      memcpy(&response_complete_result_, result.data(), sizeof(response_complete_result_));
+      result.resize(0);
+      LOG_ERROR << "received premature response complete! Error code: " << getCommandStatus();
       return false;
     }
   }
 
   // receive response complete
-  if (!receive(response_complete_result_, ResponseCompleteLength))
+  if (!receive(resultFooter, ResponseCompleteLength))
     return false;
-  if (!isResponseCompleteResult(response_complete_result_, command.sequence()))
+  if (!isResponseCompleteResult(resultFooter, command.sequence()))
   {
     LOG_ERROR << "missing response complete!";
     return false;
+  }
+  
+  memcpy(&response_complete_result_, result.data(), sizeof(response_complete_result_));
+
+  if (getCommandStatus()) {
+    LOG_ERROR << "Device reported command was unsuccessful! Error code: " << getCommandStatus();
   }
 
   return true;
@@ -126,13 +141,18 @@ bool CommandTransaction::isResponseCompleteResult(CommandTransaction::Result& re
 {
   if(result.size() == ResponseCompleteLength)
   {
-    uint32_t *data = reinterpret_cast<uint32_t *>(&result[0]);
+    ResponseFooter *data = reinterpret_cast<ResponseFooter *>(&result[0]);
 
-    if(data[0] == ResponseCompleteMagic)
+    if(data->PacketType == ResponseCompleteMagic)
     {
-      if(data[1] != sequence)
+      if(data->TransactionId != sequence)
       {
-        LOG_ERROR << "response complete with wrong sequence number! expected: " << sequence << " got: " << data[1];
+        LOG_ERROR << "response complete with wrong sequence number! expected: " << sequence << " got: " << data->TransactionId;
+      }
+
+      if(data->Status != STATUS_CODE_SUCCESS)
+      {
+        LOG_ERROR << "response complete with unsuccessful status code! status:" << data->Status;
       }
       return true;
     }
