@@ -278,9 +278,13 @@ enum SensorStatusCode {
 	STATUS_CODE_AUDIO_USB_NO_FREE_REQ_BUF = 2307,
 	STATUS_CODE_AUDIO_I2S_DMA_NO_MEMORY = 2308,
 
+	STATUS_CODE_COUNT,
+
 	// Not from Microsoft's library; included in case of a problem on our end
 	STATUS_CODE_NONE = -1
 };
+
+const char *KinectStatusCodeString(unsigned int code);
 
 } /* namespace libfreenect2 */
 

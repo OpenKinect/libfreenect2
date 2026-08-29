@@ -72,7 +72,7 @@ bool CommandTransaction::execute(const CommandBase& command, Result& result)
     {
       memcpy(&response_complete_result_, result.data(), sizeof(response_complete_result_));
       result.resize(0);
-      LOG_ERROR << "received premature response complete! Error code: " << getCommandStatus();
+      LOG_ERROR << "received premature response complete! Error code: " << KinectStatusCodeString(getCommandStatus()) << " (" << getCommandStatus() << ")";
       return false;
     }
   }
@@ -89,7 +89,7 @@ bool CommandTransaction::execute(const CommandBase& command, Result& result)
   memcpy(&response_complete_result_, resultFooter.data(), sizeof(response_complete_result_));
 
   if (getCommandStatus()) {
-    LOG_ERROR << "Device reported command was unsuccessful! Error code: " << getCommandStatus();
+    LOG_ERROR << "Device reported command was unsuccessful! Error code: " << KinectStatusCodeString(getCommandStatus()) << " (" << getCommandStatus() << ")";
   }
 
   return true;
@@ -152,7 +152,7 @@ bool CommandTransaction::isResponseCompleteResult(CommandTransaction::Result& re
 
       if(data->Status != STATUS_CODE_SUCCESS)
       {
-        LOG_ERROR << "response complete with unsuccessful status code! status:" << data->Status;
+        LOG_ERROR << "response complete with unsuccessful status code! status:" << KinectStatusCodeString(data->Status) << " (" << data->Status << ")";
       }
       return true;
     }

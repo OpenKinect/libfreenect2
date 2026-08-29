@@ -133,6 +133,7 @@ SET(SOURCES
   include/internal/libfreenect2/rgb_packet_stream_parser.h
   include/internal/libfreenect2/threading.h
 
+  src/status_codes.cpp
   src/transfer_pool.cpp
   src/event_loop.cpp
   src/usb_control.cpp
