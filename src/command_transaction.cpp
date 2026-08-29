@@ -86,7 +86,7 @@ bool CommandTransaction::execute(const CommandBase& command, Result& result)
     return false;
   }
   
-  memcpy(&response_complete_result_, result.data(), sizeof(response_complete_result_));
+  memcpy(&response_complete_result_, resultFooter.data(), sizeof(response_complete_result_));
 
   if (getCommandStatus()) {
     LOG_ERROR << "Device reported command was unsuccessful! Error code: " << getCommandStatus();
