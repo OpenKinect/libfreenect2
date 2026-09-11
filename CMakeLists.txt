@@ -1,4 +1,4 @@
-CMAKE_MINIMUM_REQUIRED(VERSION 2.8.12.1)
+CMAKE_MINIMUM_REQUIRED(VERSION 3.5)
 
 SET(PROJECT_VER_MAJOR 0)
 SET(PROJECT_VER_MINOR 2)
@@ -133,6 +133,7 @@ SET(SOURCES
   include/internal/libfreenect2/rgb_packet_stream_parser.h
   include/internal/libfreenect2/threading.h
 
+  src/status_codes.cpp
   src/transfer_pool.cpp
   src/event_loop.cpp
   src/usb_control.cpp
